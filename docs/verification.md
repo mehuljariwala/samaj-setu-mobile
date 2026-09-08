@@ -26,3 +26,12 @@
 - No continuously looping decoration or action delays.
 - Reduced-motion mode disables animation/transition and uses instant programmatic step scrolling.
 - TypeScript and production build passed. Runtime animation timing was not browser-tested in this update.
+
+## SVG cues and microinteractions
+
+- Added consistent Lucide SVG field icons and chapter icons with text labels.
+- Added filled-field feedback and live centimetre-to-feet/inches height conversion.
+- Added accessible expandable explanations for contact, birth time, and media privacy using the installed accordion primitive.
+- Saving or removing a profile now displays explicit feedback; saved cards include a text badge.
+- New motion remains opt-in to no-preference mode; reduced-motion behavior is preserved.
+- TypeScript and production build passed.
