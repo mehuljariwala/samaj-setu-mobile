@@ -35,3 +35,12 @@
 - Saving or removing a profile now displays explicit feedback; saved cards include a text badge.
 - New motion remains opt-in to no-preference mode; reduced-motion behavior is preserved.
 - TypeScript and production build passed.
+
+## Compact single-page form
+
+- Replaced the 13-step biodata modal with an inline app page.
+- Six expandable sections, one open at a time, with compact two-column fields and optional details hidden until requested.
+- Retains existing local draft keys and values; all-field validation and separate publication consent remain in place.
+- Review and completion render in the same page. Save/Review remain available in a bottom action bar.
+- Browser verified: Home opens the inline form; existing local draft is restored; expanding Community collapses Personal without losing values. Inspected mobile rendering.
+- TypeScript and production build passed.
