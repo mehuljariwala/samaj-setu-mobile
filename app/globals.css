@@ -38,3 +38,81 @@ body{background:#0a1b32;color:#142d4e}.studio{background:radial-gradient(ellipse
 @media(max-width:900px){.studio{gap:35px}.rail-copy h1{font-size:32px}}
 @media(max-width:740px){body,.studio{background:#f4f7fc}.phone{border-radius:0;box-shadow:none}.app-header{padding:19px 23px}.greeting{margin-left:-23px;margin-right:-23px;padding-left:23px;padding-right:23px}.welcome{padding-top:23px}.welcome-emblem{width:100%;height:auto;min-height:106px}.welcome h1{font-size:29px}.welcome .intro{font-size:16px}.app-sheet{border-radius:18px 18px 0 0}.bio-actions{padding-bottom:calc(12px + env(safe-area-inset-bottom))}.bio-chapters>span{font-size:12px}.bottom-nav{max-width:480px}.app-header .brand{font-size:21px}}
 @media(max-width:740px){.studio{display:block;padding:0;gap:0}.bio-chapters{margin-bottom:20px}}
+/* Motion: quick orientation, tactile choices, and restrained celebration. */
+@keyframes setu-page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes setu-card-enter {
+  from { opacity: 0; transform: translateY(12px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes setu-confirm {
+  0% { transform: scale(.86); opacity: .35; }
+  65% { transform: scale(1.045); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes setu-status-ring {
+  from { box-shadow: 0 0 0 0 rgb(38 112 215 / 15%); }
+  to { box-shadow: 0 0 0 16px rgb(38 112 215 / 0%); }
+}
+@keyframes setu-toast-enter {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .phone > .content, .phone > .welcome {
+    animation: setu-page-enter 260ms cubic-bezier(.2,.7,.2,1) backwards;
+  }
+  .welcome-emblem, .welcome-steps > div, .candidate-switch,
+  .completion-card, .quick-grid > button, .privacy-card,
+  .profile-card, .admin-stats, .admin-application, .application-card {
+    animation: setu-card-enter 350ms cubic-bezier(.2,.7,.2,1) backwards;
+  }
+  .welcome-steps > div:nth-child(2), .quick-grid > button:nth-child(2),
+  .profile-card:nth-of-type(2) { animation-delay: 55ms; }
+  .welcome-steps > div:nth-child(3), .profile-card:nth-of-type(3),
+  .privacy-card { animation-delay: 100ms; }
+  .completion-card { animation-delay: 45ms; }
+  .bio-heading { animation: setu-page-enter 220ms ease-out backwards; }
+  .guided-bio .bio-field { animation: setu-card-enter 280ms ease-out backwards; }
+  .guided-bio .bio-field:nth-child(2) { animation-delay: 40ms; }
+  .guided-bio .bio-field:nth-child(3) { animation-delay: 75ms; }
+  .review-orbit > div { animation: setu-confirm 420ms ease-out backwards; }
+  .review-orbit > span, .bio-success {
+    animation: setu-confirm 400ms ease-out backwards, setu-status-ring 900ms 400ms ease-out;
+  }
+  .bio-choice.selected > svg, .bio-media.added > svg,
+  .save-button.saved > svg { animation: setu-confirm 240ms ease-out; }
+  .toast { animation: setu-toast-enter 220ms ease-out backwards; }
+  .primary, .secondary, .completion-card > button, .icon-button,
+  .quick-grid > button, .candidate-switch, .admin-application,
+  .save-button, .bio-choice, .relationship, .bio-media, .bottom-nav button {
+    transition: background-color 160ms ease, border-color 160ms ease,
+      box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+  .primary > svg, .secondary > svg, .completion-card > button > svg,
+  .profile-bottom button > svg { transition: transform 180ms ease; }
+  .primary:active:not(:disabled), .secondary:active:not(:disabled),
+  .quick-grid > button:active, .candidate-switch:active,
+  .bio-choice:active, .relationship:active, .bottom-nav button:active {
+    transform: scale(.98);
+  }
+  [data-slot=progress-indicator] { transition: width 320ms cubic-bezier(.2,.7,.2,1); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .primary:hover:not(:disabled), .completion-card > button:hover {
+    transform: translateY(-1px); box-shadow: 0 7px 17px rgb(18 96 214 / 20%);
+  }
+  .primary:hover:not(:disabled) > svg, .completion-card > button:hover > svg,
+  .profile-bottom button:hover > svg { transform: translateX(3px); }
+  .quick-grid > button:hover, .candidate-switch:hover, .admin-application:hover {
+    transform: translateY(-2px); border-color: #83afe7;
+    box-shadow: 0 6px 16px rgb(22 66 117 / 9%);
+  }
+  .bio-choice:hover, .relationship:hover { border-color: #548eda; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  button:active { transform: none !important; }
+}

@@ -18,3 +18,11 @@
 - Eight focused validation checks passed: unknown birth time, invalid time, valid time, invalid/valid contact, height bounds, blank mosal, and empty completion count.
 - TypeScript and production build passed.
 - Candidate consent remains a separate pending action; finishing a draft does not publish or record candidate consent.
+
+## Motion update
+
+- Added short page entrances, staggered cards, selection feedback, status confirmation, and tactile button states.
+- Biodata heading and form remount per step to replay entrance motion without losing controlled field values.
+- No continuously looping decoration or action delays.
+- Reduced-motion mode disables animation/transition and uses instant programmatic step scrolling.
+- TypeScript and production build passed. Runtime animation timing was not browser-tested in this update.
