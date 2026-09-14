@@ -6,7 +6,8 @@ import { dirname, resolve } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenvConfig({ path: resolve(__dirname, '../../.env') });
+// Load .env immediately on module load
+dotenvConfig({ path: resolve(__dirname, '../../.env'), override: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

@@ -79,8 +79,9 @@ export class OpenRouterProvider implements AIProvider {
           body: JSON.stringify({
             model: env.OPENROUTER_MODEL,
             messages,
-            response_format: { type: 'json_object' },
-            temperature: 0.3,   // Low temp for consistent outputs
+            // Note: response_format is NOT used — Gemma doesn't support it.
+            // We instruct the model via the system prompt to return JSON.
+            temperature: 0.3,
             max_tokens: 4096,
           }),
           signal: controller.signal,
@@ -105,8 +106,16 @@ export class OpenRouterProvider implements AIProvider {
           throw new AppError(ErrorCodes.AI_INVALID_OUTPUT, 502, 'Empty response from AI provider.');
         }
 
-        // Sanitize and parse JSON
-        const jsonContent = content.trim().replace(/^```json\s*/i, '').replace(/\s*```$/i, '');
+        // Extract JSON from the response — Gemma may wrap it in markdown
+        let jsonContent = content.trim();
+        // Remove leading/trailing markdown code fences
+        jsonContent = jsonContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+        // Find the JSON object if there's surrounding text
+        const jsonStart = jsonContent.indexOf('{');
+        const jsonEnd = jsonContent.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          jsonContent = jsonContent.slice(jsonStart, jsonEnd + 1);
+        }
         let parsed: unknown;
         try {
           parsed = JSON.parse(jsonContent);

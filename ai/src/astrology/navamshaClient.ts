@@ -3,20 +3,81 @@ import { logger } from '../utils/logger.js';
 import { AppError, ErrorCodes } from '../types/api.js';
 import type { BirthDetails } from '../types/birth.js';
 
-type RequestMethod = 'GET' | 'POST';
-
-interface NavamshaRequestParams {
-  dob: string;    // YYYY-MM-DD
-  tob: string;    // HH:mm:ss
-  lat: number;
-  lon: number;
-  tz: string;     // IANA timezone
+// ---------------------------------------------------------------------------
+// StandardBirthRequest shape — per api.navamsha.in/openapi.json
+// ---------------------------------------------------------------------------
+interface NavamshaBirthRequest {
+  year: number;
+  month: number;
+  date: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  latitude: number;
+  longitude: number;
+  timezone: number;  // float UTC offset, e.g. 5.5 for IST
 }
 
-async function navamshaRequest<T>(
+// StandardCompatibilityRequest shape (bride / groom)
+interface NavamshaCompatibilityRequest {
+  bride: NavamshaBirthRequest;
+  groom: NavamshaBirthRequest;
+}
+
+// ---------------------------------------------------------------------------
+// IANA timezone → numeric UTC offset
+// ---------------------------------------------------------------------------
+function ianaToOffsetHours(tz: string): number {
+  try {
+    // Use Intl to find the current offset for the timezone
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    });
+    const parts = formatter.formatToParts(now);
+    const offsetStr = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+    // offsetStr is like "GMT+5:30", "GMT-4", "GMT+0"
+    const match = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return 5.5; // fallback IST
+    const sign = match[1] === '+' ? 1 : -1;
+    const hrs = parseInt(match[2], 10);
+    const mins = parseInt(match[3] ?? '0', 10);
+    return sign * (hrs + mins / 60);
+  } catch {
+    return 5.5; // fallback IST
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Convert BirthDetails → NavamshaBirthRequest
+// ---------------------------------------------------------------------------
+function toBirthRequest(birth: BirthDetails): NavamshaBirthRequest {
+  const [yearStr, monthStr, dayStr] = birth.dateOfBirth.split('-');
+  const timeParts = birth.timeOfBirth.split(':');
+  const hours = parseInt(timeParts[0] ?? '0', 10);
+  const minutes = parseInt(timeParts[1] ?? '0', 10);
+  const seconds = parseInt(timeParts[2] ?? '0', 10);
+
+  return {
+    year: parseInt(yearStr!, 10),
+    month: parseInt(monthStr!, 10),
+    date: parseInt(dayStr!, 10),
+    hours,
+    minutes,
+    seconds,
+    latitude: birth.latitude,
+    longitude: birth.longitude,
+    timezone: ianaToOffsetHours(birth.timezone),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Core POST helper
+// ---------------------------------------------------------------------------
+async function navamshaPost<T>(
   path: string,
-  params: NavamshaRequestParams,
-  method: RequestMethod = 'GET',
+  body: unknown,
   retries?: number,
 ): Promise<T> {
   const env = getEnv();
@@ -25,19 +86,14 @@ async function navamshaRequest<T>(
   const apiKey = env.NAVAMSHA_API_KEY;
 
   if (!apiKey) {
-    throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 500,
-      'Navamsha API key is not configured. Set NAVAMSHA_API_KEY in .env');
+    throw new AppError(
+      ErrorCodes.KUNDLI_CALCULATION_FAILED,
+      500,
+      'Navamsha API key is not configured. Set NAVAMSHA_API_KEY in .env',
+    );
   }
 
-  const url = new URL(`${baseUrl}${path}`);
-
-  // Navamsha uses query params per their docs
-  url.searchParams.set('dob', params.dob);
-  url.searchParams.set('tob', params.tob);
-  url.searchParams.set('lat', String(params.lat));
-  url.searchParams.set('lon', String(params.lon));
-  url.searchParams.set('tz', params.tz);
-
+  const url = `${baseUrl}${path}`;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -45,28 +101,35 @@ async function navamshaRequest<T>(
     const timeoutId = setTimeout(() => controller.abort(), env.NAVAMSHA_TIMEOUT_MS);
 
     try {
-      const response = await fetch(url.toString(), {
-        method,
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
           'X-API-Key': apiKey,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
       if (response.status === 429) {
-        throw new AppError(ErrorCodes.KUNDLI_PROVIDER_RATE_LIMIT, 429,
-          'Navamsha API rate limit reached.');
+        throw new AppError(
+          ErrorCodes.KUNDLI_PROVIDER_RATE_LIMIT,
+          429,
+          'Navamsha API rate limit reached.',
+        );
       }
 
       if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 502,
+        const text = await response.text().catch(() => '');
+        throw new AppError(
+          ErrorCodes.KUNDLI_CALCULATION_FAILED,
+          502,
           `Navamsha API error: ${response.status} ${response.statusText}`,
-          { body: body.slice(0, 500) });
+          { body: text.slice(0, 500) },
+        );
       }
 
       const data = await response.json() as T;
@@ -74,12 +137,10 @@ async function navamshaRequest<T>(
 
     } catch (err) {
       clearTimeout(timeoutId);
-
       if (err instanceof AppError) throw err;
 
       if ((err as Error).name === 'AbortError') {
-        lastError = new AppError(ErrorCodes.KUNDLI_PROVIDER_TIMEOUT, 504,
-          'Navamsha API timed out.');
+        lastError = new AppError(ErrorCodes.KUNDLI_PROVIDER_TIMEOUT, 504, 'Navamsha API timed out.');
       } else {
         lastError = err;
       }
@@ -93,84 +154,41 @@ async function navamshaRequest<T>(
   }
 
   if (lastError instanceof AppError) throw lastError;
-  throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 502,
-    'Navamsha API unavailable after retries.');
+  throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 502, 'Navamsha API unavailable after retries.');
 }
 
-function toNavamshaParams(birth: BirthDetails): NavamshaRequestParams {
-  // Ensure HH:mm:ss format
-  const tob = birth.timeOfBirth.includes(':')
-    ? birth.timeOfBirth.split(':').length === 2
-      ? `${birth.timeOfBirth}:00`
-      : birth.timeOfBirth
-    : `${birth.timeOfBirth}:00:00`;
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
-  return {
-    dob: birth.dateOfBirth,
-    tob,
-    lat: birth.latitude,
-    lon: birth.longitude,
-    tz: birth.timezone,
-  };
-}
-
-/** GET /api/v1/kundali/basic — basic chart with planets, lagna, rashi, nakshatra */
+/** POST /api/v1/kundali/basic — Lagna, planets, nakshatra, rashi */
 export async function getBasicKundli(birth: BirthDetails): Promise<unknown> {
-  return navamshaRequest('/api/v1/kundali/basic', toNavamshaParams(birth));
+  return navamshaPost('/api/v1/kundali/basic', toBirthRequest(birth));
 }
 
-/** GET /api/v1/planets/extended — extended planet data with houses */
+/** POST /api/v1/planets/extended — Extended planet positions */
 export async function getExtendedKundli(birth: BirthDetails): Promise<unknown> {
-  return navamshaRequest('/api/v1/planets/extended', toNavamshaParams(birth));
+  return navamshaPost('/api/v1/planets/extended', toBirthRequest(birth));
 }
 
-/** GET /api/v1/dasha/vimshottari — Vimshottari Dasha periods */
+/** POST /api/v1/dasha/vimshottari — Vimshottari Dasha periods */
 export async function getDasha(birth: BirthDetails): Promise<unknown> {
-  return navamshaRequest('/api/v1/dasha/vimshottari', toNavamshaParams(birth));
+  return navamshaPost('/api/v1/dasha/vimshottari', toBirthRequest(birth));
 }
 
-/** POST /api/v1/matchmaking/ashtakoot — provider Ashtakoot Gun Milan */
+/** POST /api/v1/dosha/mangal — Mangal Dosha check */
+export async function getMangalDosha(birth: BirthDetails): Promise<unknown> {
+  return navamshaPost('/api/v1/dosha/mangal', toBirthRequest(birth));
+}
+
+/**
+ * POST /api/v1/compatibility/ashtakoot — 36-point Gun Milan
+ * personA = bride (female), personB = groom (male)
+ */
 export async function getAshtakoot(birthA: BirthDetails, birthB: BirthDetails): Promise<unknown> {
-  const env = getEnv();
-  const apiKey = env.NAVAMSHA_API_KEY;
-
-  if (!apiKey) {
-    throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 500, 'Navamsha API key not configured.');
-  }
-
-  const paramsA = toNavamshaParams(birthA);
-  const paramsB = toNavamshaParams(birthB);
-
-  const url = `${env.NAVAMSHA_BASE_URL}/api/v1/matchmaking/ashtakoot`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), env.NAVAMSHA_TIMEOUT_MS);
-
-  try {
-    const body = {
-      boy: { dob: paramsA.dob, tob: paramsA.tob, lat: paramsA.lat, lon: paramsA.lon, tz: paramsA.tz },
-      girl: { dob: paramsB.dob, tob: paramsB.tob, lat: paramsB.lat, lon: paramsB.lon, tz: paramsB.tz },
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 502,
-        `Navamsha Ashtakoot error: ${response.status}`, { body: text.slice(0, 500) });
-    }
-    return response.json();
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err instanceof AppError) throw err;
-    if ((err as Error).name === 'AbortError') {
-      throw new AppError(ErrorCodes.KUNDLI_PROVIDER_TIMEOUT, 504, 'Navamsha Ashtakoot timed out.');
-    }
-    throw new AppError(ErrorCodes.KUNDLI_CALCULATION_FAILED, 502, 'Navamsha Ashtakoot unavailable.');
-  }
+  const body: NavamshaCompatibilityRequest = {
+    bride: toBirthRequest(birthA),
+    groom: toBirthRequest(birthB),
+  };
+  return navamshaPost('/api/v1/compatibility/ashtakoot', body);
 }
