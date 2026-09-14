@@ -610,3 +610,26 @@ token endpoint, which helps, but this is a deliberate convenience trade rather t
 default. Two ways to narrow it without touching the UX: make this account `admin` rather than
 `superadmin` (it keeps approve, reject, request-correction and certificate inspection; it loses
 role-granting and rule-editing, which the other superadmin still has), or use eight digits.
+
+## Sign-out, and a localised validation message — 14 September 2026
+
+Two reports from using the deployed app.
+
+**There was no way to log out.** `SignOutButton` was rendered only at the foot of the Family
+screen. Admin screens carry no tab bar and no Family tab, and neither does the "awaiting
+review" screen — so an admin, and any applicant still in review, had no route out of the
+session at all. Sign-out now lives in the shell top bar for every signed-in visitor, with the
+labelled version kept on Family where someone looking for account settings will go.
+
+**The app interrupted in English.** Sign-up on a fully Gujarati screen produced the browser's
+own "Please lengthen this text to 8 characters or more". Two problems: constraint messages
+follow the browser's language rather than the app's, and a client-side block means the request
+never reaches the server — so an operator who already has an account never saw the far more
+useful "That number already has an account. Sign in instead." and was left arguing with a
+character count. Both fields now set a localised message, and the sign-up hint carries a direct
+link to sign-in beside the rule that blocks them.
+
+The eight-character minimum itself is unchanged and correct: it applies where a password is
+*chosen*, not where one is entered. `/sign-in` ships with no `minLength`, which is what lets the
+six-digit admin PIN through — confirmed by reading the attributes off the deployed HTML rather
+than assuming the build matched the source.

@@ -5,6 +5,7 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import type { CandidateSummary, MyContext } from '@/lib/data/session';
 import { LangToggle } from './lang-toggle';
+import { SignOutButton } from './sign-out-button';
 import { TabBar } from './tabbar';
 
 type Props = {
@@ -69,6 +70,7 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
               </Link>
             )}
             <LangToggle lang={lang} />
+            {context.account && <SignOutButton lang={lang} variant="icon" />}
             {member && (
               <Link
                 className={`icon-button${context.unread_notifications > 0 ? ' dot' : ''}`}

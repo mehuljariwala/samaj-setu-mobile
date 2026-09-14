@@ -42,6 +42,21 @@ export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-u
 
   const failedField = state && !state.ok ? state.detail[0] : undefined;
 
+  /**
+   * The browser's own constraint messages are in the browser's language, not
+   * the app's — a Gujarati-first screen interrupting in English. Worse, a
+   * client-side block means the request never reaches the server, so someone
+   * who already has an account never sees "sign in instead" and is left
+   * arguing with a character count. These say the useful thing in the right
+   * language; the server still re-validates everything.
+   */
+  const localised = (message: string) => ({
+    onInvalid: (event: React.InvalidEvent<HTMLInputElement>) =>
+      event.currentTarget.setCustomValidity(message),
+    onInput: (event: { currentTarget: HTMLInputElement }) =>
+      event.currentTarget.setCustomValidity(''),
+  });
+
   return (
     <form action={submit}>
       <label className="field-label" htmlFor="phone">
@@ -59,6 +74,10 @@ export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-u
           placeholder="98765 43210"
           aria-invalid={failedField === 'phone'}
           required
+          {...localised(t(
+            'દસ અંકનો મોબાઇલ નંબર લખો.',
+            'Enter a ten-digit mobile number.',
+          ))}
         />
       </div>
 
@@ -76,10 +95,19 @@ export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-u
         minLength={mode === 'sign-up' ? 8 : undefined}
         aria-invalid={failedField === 'password'}
         required
+        {...localised(mode === 'sign-up'
+          ? t(
+            'પાસવર્ડ ઓછામાં ઓછા 8 અક્ષરનો રાખો. પહેલેથી ખાતું હોય તો નીચે “લૉગ ઇન કરો” વાપરો.',
+            'Use at least 8 characters. If you already have an account, use “Log in” below instead.',
+          )
+          : t('પાસવર્ડ લખો.', 'Enter your password.'))}
       />
       {mode === 'sign-up' && (
         <p className="field-hint">
-          {t('ઓછામાં ઓછા 8 અક્ષર.', 'At least 8 characters.')}
+          {t('ઓછામાં ઓછા 8 અક્ષર.', 'At least 8 characters.')}{' '}
+          <Link href="/sign-in">
+            {t('પહેલેથી ખાતું છે? લૉગ ઇન કરો.', 'Already have an account? Log in.')}
+          </Link>
         </p>
       )}
 
