@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, CircleHelp, FileText, ImagePlus, Trash2 } from 'lucide-react';
 
+import { DocumentCapture } from '@/components/app/document-capture';
 import { registerMediaAction, removeMediaAction } from '@/app/actions/matching';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
@@ -148,6 +149,18 @@ export function MediaUploader({
           </button>
         )}
       </div>
+
+      {/* A portrait wants the front camera and does not need document
+          resolution; a janmakshar is a document and does. */}
+      <DocumentCapture
+        lang={lang}
+        facing={isPhoto ? 'user' : 'environment'}
+        maxEdge={isPhoto ? 1600 : 2000}
+        label={isPhoto
+          ? t('કૅમેરાથી ફોટો લો', 'Take a photo with the camera')
+          : t('કૅમેરાથી જન્માક્ષરનો ફોટો લો', 'Photograph the janmakshar')}
+        onCapture={upload}
+      />
 
       {error && <p role="alert" className="error"><CircleHelp size={17} />{error}</p>}
 

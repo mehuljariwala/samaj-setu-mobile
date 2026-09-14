@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, ChevronDown, Sprout } from 'lucide-react';
+import { Bell, ChevronDown, Shield, Sprout } from 'lucide-react';
 
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -25,6 +25,12 @@ type Props = {
  */
 export function AppShell({ lang, context, acting, member = false, admin = false, children }: Props) {
   const t = translator(lang);
+
+  // Spec §2 keeps admin a separate role, so staff may hold no candidate at all
+  // and would otherwise have no way back to the console from a member screen.
+  const staff = context.roles.some(
+    (role) => role === 'moderator' || role === 'admin' || role === 'superadmin',
+  );
 
   const pendingInterests = context.candidates.reduce(
     (total, candidate) => total + candidate.pending_interests + candidate.pending_photo_requests,
@@ -57,6 +63,11 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
           )}
 
           <div className="topbar-actions">
+            {staff && !admin && (
+              <Link className="icon-button" aria-label={t('એડમિન', 'Admin')} href="/admin">
+                <Shield size={19} />
+              </Link>
+            )}
             <LangToggle lang={lang} />
             {member && (
               <Link

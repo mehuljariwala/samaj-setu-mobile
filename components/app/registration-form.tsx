@@ -16,6 +16,7 @@ import {
   attachCertificateAction, startRegistrationAction, submitRegistrationAction,
   updateRegistrationAction,
 } from '@/app/actions/registration';
+import { DocumentCapture } from '@/components/app/document-capture';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { BUCKETS, CERTIFICATE_TYPES, MAX_UPLOAD_BYTES, objectPath } from '@/lib/storage';
 import type { Lang } from '@/lib/i18n';
@@ -404,11 +405,21 @@ export function RegistrationForm({
               hidden
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
+
+            {/* Two ways in, neither a fallback: most people will photograph the
+                certificate, but a PDF from a municipal portal is common too. */}
+            <DocumentCapture
+              lang={lang}
+              facing="environment"
+              label={t('કૅમેરાથી ફોટો લો', 'Take a photo with the camera')}
+              onCapture={setFile}
+            />
+
             <p className="field-hint inline-icon">
               <LockKeyhole size={12} />
               {t(
-                'ફક્ત ચકાસણી માટેના એડમિન જોઈ શકશે. તમે પણ પછીથી આ ફાઇલ જોઈ શકશો નહીં.',
-                'Only verification admins can open this. You will not be able to view it again either.',
+                'ફક્ત ચકાસણી માટેના એડમિન જોઈ શકશે. તમે પણ પછીથી આ ફાઇલ જોઈ શકશો નહીં. કૅમેરાથી લીધેલો ફોટો તમારી ગૅલેરીમાં સચવાતો નથી.',
+                'Only verification admins can open this. You will not be able to view it again either. A photo taken here is not saved to your gallery.',
               )}
             </p>
           </>

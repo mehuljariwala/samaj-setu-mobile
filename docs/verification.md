@@ -557,3 +557,56 @@ account, which is precisely why it never saw either defect.
   lookup, so authorisation is correct without it.
 - `verify-live.mjs` leaves its two test accounts behind and prints the cleanup SQL;
   `journey-live.mjs` removes its own.
+
+## Camera capture and the community admin — 14 September 2026
+
+### Camera capture
+
+`components/app/document-capture.tsx` adds an in-app camera for the certificate, photographs
+and janmakshar, alongside the existing file picker rather than replacing it — a PDF from a
+municipal portal is as common as a photo.
+
+`<input capture>` would have been a fraction of the code, but it hands off to the OS camera
+app, which saves the shot to the phone's gallery and offers no retake without leaving the form.
+For a birth certificate that matters: `getUserMedia` → canvas → JPEG keeps the image off the
+gallery entirely, and it goes straight to the private bucket.
+
+Handled explicitly because each needs a different next step: permission denied (points at the
+address-bar lock icon), no camera present, camera already in use by another app, and no
+`getUserMedia` at all. Every one of them falls back to the file picker rather than dead-ending.
+Tracks are stopped on capture and on unmount — leaving them running keeps the phone's camera
+indicator lit after the user has moved on. Captures are scaled to a 2000px longest edge for
+documents and 1600px for portraits, which keeps a certificate legible at a few hundred KB
+instead of several MB over a poor connection.
+
+### The community admin, and three defects it exposed
+
+Asked for: sign in with `07874849983` and PIN `246810`, land on the admin panel.
+
+**The sign-in form enforced `minLength={8}`.** A six-digit PIN could not be typed in. That was
+wrong beyond this case — a length rule belongs where a password is *chosen*, and applying it at
+sign-in rejects any valid existing password for being short. Now only enforced on sign-up.
+
+**The leading zero would have been rejected.** The field capped input at 10 characters and
+validated `^[6-9]\d{9}$`, so `07874849983` truncated to `0787484998` and failed. `lib/phone.ts`
+normalises the four ways people write an Indian mobile — bare, with a `0` trunk prefix, with
+`+91`, with `0091` — all to ten digits, and is unit-checked against all four plus rubbish.
+
+**An admin with no candidate was sent to the registration form.** `homeFor()` switched purely on
+`access_state`, and a staff account holding no candidate resolves to `no_application`. Spec §2
+is explicit that admin is a separate role rather than a member access state; `homeFor()` now
+checks the role first. The shell also gained a shield link so staff on a member screen can reach
+the console.
+
+Verified on production: signing in with that number issues a session, `my_context()` reports
+`roles: ['superadmin']` and `access_state: no_application`, `/` redirects to `/admin`, and the
+console renders. A signed-out visitor is still bounced to `/sign-in`.
+
+### A note on the PIN
+
+Six digits is a million combinations, guarding an account that can read every birth certificate,
+decide every registration, grant roles and rewrite community rules. Supabase rate-limits the
+token endpoint, which helps, but this is a deliberate convenience trade rather than a secure
+default. Two ways to narrow it without touching the UX: make this account `admin` rather than
+`superadmin` (it keeps approve, reject, request-correction and certificate inspection; it loses
+role-granting and rule-editing, which the other superadmin still has), or use eight digits.

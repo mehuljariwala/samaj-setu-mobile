@@ -38,6 +38,13 @@ async function load(): Promise<PageContext> {
 
 /** Where an account belongs when it asks for a screen its state does not allow. */
 export function homeFor(context: MyContext): string {
+  // Staff first. An admin is a separate role, not a member access state
+  // (spec §2) — without this, a community admin who has no candidate of their
+  // own resolves to `no_application` and gets sent to the registration form.
+  if (context.roles.some((role) => role === 'moderator' || role === 'admin' || role === 'superadmin')) {
+    return '/admin';
+  }
+
   switch (context.access_state) {
     case 'signed_out':
       return '/';

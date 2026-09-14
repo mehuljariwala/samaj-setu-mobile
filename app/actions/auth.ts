@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { actionResult, AppError, type ActionResult } from '@/lib/data/errors';
-import { digitsField, field, trimmedField } from '@/lib/data/form';
+import { field, trimmedField } from '@/lib/data/form';
+import { isValidLocalPhone, normalizeLocalPhone, toE164 } from '@/lib/phone';
 import { signOut as signOutOfSession } from '@/lib/data/session';
 
 /**
@@ -20,24 +21,18 @@ import { signOut as signOutOfSession } from '@/lib/data/session';
  * real OTP later is a config change in supabase/config.toml plus a different
  * call here; no schema change.
  */
-const PHONE = /^[6-9]\d{9}$/;
 const MIN_PASSWORD = 8;
-
-/** GoTrue works in E.164; the product works in ten local digits. */
-function toE164(localPhone: string): string {
-  return `+91${localPhone}`;
-}
 
 export async function signUpAction(
   _previous: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ accountId: string }>> {
   return actionResult(async () => {
-    const phone = digitsField(formData, 'phone');
+    const phone = normalizeLocalPhone(field(formData, 'phone'));
     const password = field(formData, 'password');
     const displayName = trimmedField(formData, 'displayName');
 
-    if (!PHONE.test(phone)) {
+    if (!isValidLocalPhone(phone)) {
       throw new AppError('invalid', 'Enter a ten-digit mobile number.', ['phone']);
     }
     if (password.length < MIN_PASSWORD) {
@@ -75,10 +70,13 @@ export async function signInAction(
   formData: FormData,
 ): Promise<ActionResult<{ accountId: string }>> {
   return actionResult(async () => {
-    const phone = digitsField(formData, 'phone');
+    const phone = normalizeLocalPhone(field(formData, 'phone'));
     const password = field(formData, 'password');
 
-    if (!PHONE.test(phone)) {
+    // No minimum on sign-in. A length rule belongs where the password is
+    // chosen; applying it here would lock out any account whose password was
+    // set elsewhere — an admin PIN issued by the community, for instance.
+    if (!isValidLocalPhone(phone)) {
       throw new AppError('invalid', 'Enter a ten-digit mobile number.', ['phone']);
     }
 

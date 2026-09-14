@@ -10,6 +10,10 @@ built on Next.js 16 and Supabase.
 - **Two-step registration** — who the profile is for and the candidate's name, then birth date,
   city, father's name and the certificate. The certificate uploads straight to a private bucket;
   nobody but a verification admin can ever read it back, including the person who uploaded it.
+- **Camera capture** for certificates, photographs and janmakshar, with a file picker alongside
+  for PDFs. The in-app camera asks permission, previews, and allows a retake — and the image
+  never reaches the phone's gallery, which is where the OS camera app would leave a photographed
+  birth certificate.
 - **Admin review** — registration and publication queues with overdue targets, private
   certificate inspection, duplicate comparison, and approve / request-correction / reject.
 - **Biodata** — six collapsible sections, 25 fields, autosaved server-side as a versioned

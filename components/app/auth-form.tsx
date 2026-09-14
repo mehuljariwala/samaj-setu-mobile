@@ -55,7 +55,7 @@ export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-u
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          maxLength={10}
+          maxLength={14}
           placeholder="98765 43210"
           aria-invalid={failedField === 'phone'}
           required
@@ -71,7 +71,9 @@ export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-u
         name="password"
         type="password"
         autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-        minLength={8}
+        // Only when choosing one. Enforcing it at sign-in would reject a
+        // perfectly valid existing password for being short.
+        minLength={mode === 'sign-up' ? 8 : undefined}
         aria-invalid={failedField === 'password'}
         required
       />

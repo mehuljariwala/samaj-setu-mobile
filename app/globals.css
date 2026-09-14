@@ -1426,3 +1426,60 @@ html[data-booting] .welcome { visibility: hidden; }
   background: var(--surface-2);
   object-fit: cover;
 }
+
+/* ----------------------------------------------------------- camera capture -
+   An in-app camera for documents and portraits. The frame goes from the video
+   stream to a canvas to a private bucket, so a photographed birth certificate
+   never reaches the phone's gallery the way the OS camera app would leave it. */
+.capture-open {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 46px; padding: 11px;
+  border: 1.5px solid var(--brand);
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 14px; font-weight: 650;
+}
+.capture-open:disabled { opacity: 0.6; }
+
+.capture { margin-top: 10px; }
+.capture-stage {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-height: 58vh;
+  overflow: hidden;
+  border-radius: var(--r);
+  background: #10131c;
+}
+.capture-stage video,
+.capture-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.capture-close {
+  position: absolute; top: 10px; right: 10px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+}
+
+/* A target to fill rather than a rule — a certificate shot edge-to-edge is the
+   one an admin sends back. */
+.capture-frame {
+  position: absolute; inset: 9% 6%;
+  border: 2px dashed rgb(255 255 255 / 70%);
+  border-radius: var(--r-sm);
+  pointer-events: none;
+}
+
+.capture-hint {
+  margin: 9px 0 10px;
+  font-size: 12.5px; line-height: 1.6; color: var(--ink-3);
+  text-align: center;
+}
+.capture-actions { display: flex; gap: 8px; }
+.capture-actions > button { flex: 1; }
+
+/* The two ways in, side by side: neither is the fallback. */
+.capture-choice { display: flex; gap: 8px; margin-top: 10px; }
+.capture-choice > * { flex: 1; margin: 0; }
