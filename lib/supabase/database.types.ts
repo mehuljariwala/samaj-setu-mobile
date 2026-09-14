@@ -471,9 +471,7 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: "candidate_consents_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: true; referencedRelation: "candidates"; referencedColumns: ["id"] },
-          { foreignKeyName: "candidate_consents_granted_by_account_id_fkey"; columns: ["granted_by_account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
           { foreignKeyName: "candidate_consents_revision_id_fkey"; columns: ["revision_id"]; isOneToOne: false; referencedRelation: "biodata_revisions"; referencedColumns: ["id"] },
-          { foreignKeyName: "candidate_consents_withdrawn_by_account_id_fkey"; columns: ["withdrawn_by_account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
         ];
       };
       candidate_contacts: {

@@ -384,6 +384,57 @@ begin
     'not even an admin can delete an audit event');
   reset role;
 
+  -- ================================================== account deletion ======
+  -- Spec §6 puts deletion controls on the Family screen, so an account has to
+  -- be deletable. Two separate defects made it impossible and neither was
+  -- caught here, because nothing in this suite used to delete an account:
+  -- a RESTRICT foreign key from the consent ledger, then a trigger that wrote
+  -- half a withdrawal and tripped a check constraint.
+  perform pg_temp.as_user(v_admin);
+  declare
+    v_leaver   uuid := '00000000-0000-4000-8000-0000000000f1';
+    v_orphan   uuid;
+  begin
+    -- accounts.id references auth.users, and the trigger on that table is what
+    -- normally creates the row — so go in through auth.users, as sign-up does.
+    insert into auth.users (id, phone, raw_user_meta_data)
+    values (v_leaver, '919000000001',
+            '{"display_name":"Departing candidate"}'::jsonb);
+    perform pg_temp.ok(
+      exists (select 1 from public.accounts where id = v_leaver),
+      'the auth trigger created the departing account');
+
+    insert into public.candidates (full_name, date_of_birth, gender, identity_status)
+    values ('જનાર ઉમેદવાર', date '1997-07-07', 'female', 'verified')
+    returning id into v_orphan;
+
+    insert into public.candidate_memberships (candidate_id, account_id, role, relationship)
+    values (v_orphan, v_leaver, 'candidate', 'self');
+
+    perform pg_temp.as_user(v_leaver);
+    perform public.grant_publication_consent(v_orphan);
+    perform pg_temp.ok(app.has_active_consent(v_orphan), 'the departing account consented');
+
+    perform pg_temp.as_user(v_admin);
+    delete from public.accounts where id = v_leaver;
+
+    perform pg_temp.ok(
+      not exists (select 1 from public.accounts where id = v_leaver),
+      'an account that has given consent can still be deleted');
+    perform pg_temp.ok(
+      not app.has_active_consent(v_orphan),
+      'losing the last operator withdraws consent');
+    perform pg_temp.ok(
+      not (select discoverable from public.candidates where id = v_orphan),
+      'a profile nobody can operate is not left visible');
+    perform pg_temp.ok(
+      exists (select 1 from public.candidate_consents
+              where candidate_id = v_orphan and granted_by_account_id = v_leaver),
+      'the consent ledger still records who consented');
+
+    delete from public.candidates where id = v_orphan;
+  end;
+
   -- ============================================ deletion and the audit log ==
   -- Regression guard. An AFTER DELETE audit trigger that holds a foreign key
   -- to the row it is describing makes that row undeletable — the delete fails

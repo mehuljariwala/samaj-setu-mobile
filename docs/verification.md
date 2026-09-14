@@ -494,3 +494,66 @@ Gujarati, and all seven gated routes return 307 to `/sign-in` for a signed-out v
 - Twelve `audit_events` rows from the verification runs remain. They are harmless test history
   and were deliberately not deleted — quietly truncating an append-only log would undo the
   property this session just fixed.
+
+## End-to-end journey and Vercel deployment — 14 September 2026
+
+Deployed to **https://samaj-setu-prototype.vercel.app** against project
+`fpdzrogmnnvibqsimlxp`. Vercel had no environment variables at all, so the first deploy would
+have returned 500 on every page; `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` were added to production,
+preview and development, the secret key stored encrypted.
+
+The live database had no admin — cleanup had removed every user — so nobody could have
+approved a single registration. A superadmin was created before deploying.
+
+### Production checks
+
+All four public routes return 200. All eight gated routes return 307 to `/sign-in` for a
+signed-out visitor. The welcome screen renders in Gujarati by default and in English with the
+language cookie set, both server-rendered. Responses carry `noindex, nofollow` and
+`cache-control: private, no-cache, no-store` (spec §9).
+
+### The full journey — `npm run db:verify:live` plus `journey-live.mjs`
+
+35 boundary checks and 24 journey checks, all passing. The journey walks three candidates from
+sign-up through admin verification, biodata, approval, consent and publication; then discovery,
+an introduction, acceptance, and contact reveal. It cleans up after itself.
+
+Notable behaviours confirmed on real infrastructure: a guardian is refused publication consent
+for their child; Arjun finds Priya but not Meera, who shares his mosal, and the exclusion is
+named rather than silent; a duplicate introduction and one to an excluded candidate are both
+refused; contact details appear only after acceptance and are hidden again when the candidate
+withholds them; pausing and withdrawing consent remove a profile from the directory in the same
+transaction; and a share link refuses an ineligible viewer while working for an eligible one.
+
+### Two more defects, both found only because the journey deleted things
+
+**An account that had ever consented could not be deleted.**
+`candidate_consents.granted_by_account_id` was `on delete restrict` — three of four test
+accounts survived cleanup. Spec §6 puts deletion controls on the Family screen, so this was a
+real block. Migration `002000` drops the constraint on the same reasoning as `001900`: a ledger
+recording what happened must outlive the account, and `app.enforce_consent_is_self()` still
+validates the grantor at insert time, which is where it belongs. It also adds a trigger that
+withdraws consent when the last operator leaves, so a profile nobody can operate cannot linger
+in the directory.
+
+**That trigger was itself half-written.** It set `withdrawn_at` without
+`withdrawn_by_account_id`, tripping `consents_withdrawal_is_complete` and failing *every*
+account deletion — the opposite of what `002000` set out to allow. Migration `002100` records
+the departing account as the withdrawer, which is accurate: their leaving is what ended the
+consent.
+
+Both are now covered by local assertions that create an account, consent, delete it, and check
+that the deletion succeeds, that consent is withdrawn, that the profile is no longer visible,
+and that the ledger still records who consented. The offline suite had never deleted an
+account, which is precisely why it never saw either defect.
+
+### Known gaps
+
+- `git push` is blocked: this machine is authenticated as `mehulj1_KVUE` and
+  `mehuljariwala-sephora`, neither of which can write to `mehuljariwala/samaj-setu-mobile`.
+  Commits are local only.
+- The custom access token hook is still not enabled; `app.has_role()` falls back to a table
+  lookup, so authorisation is correct without it.
+- `verify-live.mjs` leaves its two test accounts behind and prints the cleanup SQL;
+  `journey-live.mjs` removes its own.
