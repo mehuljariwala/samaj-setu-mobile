@@ -1,0 +1,93 @@
+project_id = "samaj-setu"
+
+[api]
+enabled = true
+port = 54321
+# `app` is deliberately absent. It holds the authorisation helpers, and
+# exposing it would let a client call them to probe for records it cannot read.
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 100
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# Per-bucket limits are set by the storage migration; this is the ceiling.
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000", "http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+# Identity is established by admin review of the birth certificate, not by a
+# self-asserted email address.
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+
+# ---------------------------------------------------------------------------
+# Phone sign-in without OTP.
+#
+# `enable_confirmations = false` is what makes this a phone + password account
+# rather than an SMS challenge: GoTrue accepts the sign-up immediately and
+# sends nothing. No SMS provider is configured, and none is required.
+#
+# The consequence, stated plainly: the phone number is a self-declared
+# identifier, corroborated by an admin during certificate review and by nothing
+# else. `public.accounts.phone_verified_at` stays null to record that.
+#
+# To switch this release to real OTP later:
+#   1. set enable_confirmations = true here and configure [auth.sms.twilio]
+#      (or another provider) with credentials in the environment;
+#   2. have the client call signInWithOtp({ phone }) / verifyOtp instead of
+#      signUp({ phone, password });
+#   3. backfill accounts.phone_verified_at from auth.users.phone_confirmed_at.
+# No schema change is needed for any of that.
+# ---------------------------------------------------------------------------
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
+template = "Your Samaj Setu code is {{ .Code }}"
+
+[auth.sms.test_otp]
+# Lets an end-to-end test sign in without a provider even if confirmations are
+# switched on. Local only — the CLI does not push this to a hosted project.
+9999900001 = "123456"
+
+# Copies elevated roles into the JWT as `app_roles`. app.has_role() falls back
+# to the account_roles table when the claim is absent, so the schema is correct
+# whether or not this is enabled.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
