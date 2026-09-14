@@ -1,0 +1,35 @@
+// Error codes per spec §68
+export const ErrorCodes = {
+  INVALID_REQUEST: 'INVALID_REQUEST',
+  INVALID_BIRTH_DATA: 'INVALID_BIRTH_DATA',
+  INVALID_LOCATION: 'INVALID_LOCATION',
+  INVALID_TIMEZONE: 'INVALID_TIMEZONE',
+  KUNDLI_NOT_FOUND: 'KUNDLI_NOT_FOUND',
+  KUNDLI_CALCULATION_FAILED: 'KUNDLI_CALCULATION_FAILED',
+  KUNDLI_PROVIDER_TIMEOUT: 'KUNDLI_PROVIDER_TIMEOUT',
+  KUNDLI_PROVIDER_RATE_LIMIT: 'KUNDLI_PROVIDER_RATE_LIMIT',
+  MATCH_INVALID: 'MATCH_INVALID',
+  MATCH_CALCULATION_FAILED: 'MATCH_CALCULATION_FAILED',
+  INSUFFICIENT_DATA: 'INSUFFICIENT_DATA',
+  AI_PROVIDER_ERROR: 'AI_PROVIDER_ERROR',
+  AI_PROVIDER_TIMEOUT: 'AI_PROVIDER_TIMEOUT',
+  AI_RATE_LIMIT: 'AI_RATE_LIMIT',
+  AI_INVALID_OUTPUT: 'AI_INVALID_OUTPUT',
+  AI_REPORT_GENERATION_FAILED: 'AI_REPORT_GENERATION_FAILED',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+export class AppError extends Error {
+  constructor(
+    public readonly code: ErrorCode,
+    public readonly statusCode: number,
+    message: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
+}

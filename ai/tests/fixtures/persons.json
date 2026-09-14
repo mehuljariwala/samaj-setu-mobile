@@ -1,0 +1,30 @@
+{
+  "personA": {
+    "externalUserId": "test-person-a",
+    "name": "Test Person A",
+    "birthDetails": {
+      "dateOfBirth": "1992-04-15",
+      "timeOfBirth": "10:30:00",
+      "placeOfBirth": "Mumbai, India",
+      "latitude": 19.0760,
+      "longitude": 72.8777,
+      "timezone": "Asia/Kolkata",
+      "birthTimeAccuracy": "exact",
+      "gotra": "Kashyap"
+    }
+  },
+  "personB": {
+    "externalUserId": "test-person-b",
+    "name": "Test Person B",
+    "birthDetails": {
+      "dateOfBirth": "1994-08-22",
+      "timeOfBirth": "14:45:00",
+      "placeOfBirth": "Delhi, India",
+      "latitude": 28.6139,
+      "longitude": 77.2090,
+      "timezone": "Asia/Kolkata",
+      "birthTimeAccuracy": "exact",
+      "gotra": "Bharadwaj"
+    }
+  }
+}
