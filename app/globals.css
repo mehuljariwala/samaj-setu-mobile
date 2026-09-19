@@ -1442,26 +1442,73 @@ html[data-booting] .welcome { visibility: hidden; }
 }
 .capture-open:disabled { opacity: 0.6; }
 
-.capture { margin-top: 10px; }
+/* The viewfinder is a modal: framing a document deserves the whole screen, and
+   inline it sat next to the submit button, which invited sending a half-filled
+   form while reaching for the shutter. `showModal` puts this in the top layer,
+   so it needs no z-index of its own. */
+.capture-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(100vw, var(--app-w));
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: #0d1017;
+  color: #fff;
+}
+.capture-dialog::backdrop { background: rgb(8 10 18 / 78%); }
+
+/* A modal dialog leaves the page behind it scrollable; the camera should not
+   be something you can slide off the edge of. */
+body:has(.capture-dialog[open]) { overflow: hidden; }
+
+.capture-dialog-body {
+  display: flex; flex-direction: column;
+  height: 100%;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.capture-dialog-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px 10px 16px;
+}
+.capture-dialog-title {
+  font-size: 14px; font-weight: 650; line-height: 1.4;
+  color: #fff;
+}
+.capture-dialog-foot { padding: 12px 16px 14px; }
+
 .capture-stage {
   position: relative;
-  aspect-ratio: 3 / 4;
-  max-height: 58vh;
+  flex: 1; min-height: 0;
   overflow: hidden;
-  border-radius: var(--r);
   background: #10131c;
 }
 .capture-stage video,
 .capture-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Shown while the browser's own permission prompt is up. */
+.capture-waiting {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  font-size: 13.5px; line-height: 1.6; text-align: center;
+  color: rgb(255 255 255 / 76%);
+}
+
 .capture-close {
-  position: absolute; top: 10px; right: 10px;
-  width: 34px; height: 34px;
+  flex: none;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  background: rgb(0 0 0 / 55%);
+  background: rgb(255 255 255 / 14%);
   color: #fff;
 }
+.capture-close:hover { background: rgb(255 255 255 / 22%); }
 
 /* A target to fill rather than a rule — a certificate shot edge-to-edge is the
    one an admin sends back. */
@@ -1473,12 +1520,20 @@ html[data-booting] .welcome { visibility: hidden; }
 }
 
 .capture-hint {
-  margin: 9px 0 10px;
-  font-size: 12.5px; line-height: 1.6; color: var(--ink-3);
+  margin: 0 0 12px;
+  font-size: 12.5px; line-height: 1.6;
+  color: rgb(255 255 255 / 72%);
   text-align: center;
 }
 .capture-actions { display: flex; gap: 8px; }
 .capture-actions > button { flex: 1; }
+
+/* The failure that can happen with the camera already open — a frame that
+   would not encode. Dark surface, so it cannot borrow the form's error style. */
+.capture-dialog .error {
+  margin-top: 10px;
+  color: #ffb4be;
+}
 
 /* The two ways in, side by side: neither is the fallback. */
 .capture-choice { display: flex; gap: 8px; margin-top: 10px; }
