@@ -1,40 +1,60 @@
 import type { KootaResult } from '../../types/compatibility';
-import { YONI_COMPATIBILITY, YONI_ENEMIES } from '../../constants/nakshatras';
+import { getYoniScore } from '../../constants/nakshatras';
 
-// Yoni Koota — max 4 points per spec §25
+/**
+ * Yoni Koota — max 4 points.
+ *
+ * This used to score in three buckets: 4 for the same animal, 0 for a
+ * sworn-enemy pair, 2 for everything else. The 3-point "friendly" branch it
+ * appeared to have could never run, because the table it consulted mapped
+ * every animal to a list containing only itself, and that case was already
+ * taken by the equality check above it. The effect was that 624 of the 729
+ * nakshatra pairs — 86% — came back as a flat neutral 2.
+ *
+ * It now reads the classical 14x14 grid, so friendly (3) and unfriendly (1)
+ * are distinguished as the tradition distinguishes them.
+ */
 export function calculateYoni(boyYoni: string, girlYoni: string): KootaResult {
-  let score = 0;
+  const score = getYoniScore(boyYoni, girlYoni);
 
-  const compatible = YONI_COMPATIBILITY[boyYoni]?.includes(girlYoni) ?? false;
-  const isEnemy = YONI_ENEMIES.some(
-    ([a, b]) => (a === boyYoni && b === girlYoni) || (a === girlYoni && b === boyYoni),
-  );
-
-  if (boyYoni === girlYoni) {
-    score = 4; // Same yoni — maximum
-  } else if (isEnemy) {
-    score = 0; // Enemy yoni
-  } else if (compatible) {
-    score = 3;
-  } else {
-    score = 2; // Neutral
+  if (score === undefined) {
+    return {
+      score: 0,
+      maximumScore: 4,
+      status: 'neutral',
+      personAValue: boyYoni,
+      personBValue: girlYoni,
+      explanationCode: 'YONI-UNKNOWN',
+      evidence: [`Unrecognised Yoni pair: ${boyYoni} / ${girlYoni}.`],
+    };
   }
+
+  const relation =
+    score === 4 ? 'Same Yoni'
+      : score === 3 ? 'Friendly Yonis'
+        : score === 2 ? 'Neutral Yonis'
+          : score === 1 ? 'Unfriendly Yonis'
+            : 'Sworn-enemy Yonis';
+
+  const note =
+    score === 4 ? 'Same Yoni — highly compatible.'
+      : score === 3 ? 'Friendly Yoni pair.'
+        : score === 2 ? 'Neither friendly nor hostile.'
+          : score === 1 ? 'Unfriendly Yoni pair — traditional caution.'
+            : 'Sworn-enemy Yoni pair — traditionally the strongest Yoni caution.';
 
   return {
     score,
     maximumScore: 4,
-    status: score >= 4 ? 'favorable' : score >= 2 ? 'neutral' : 'caution',
+    status: score >= 3 ? 'favorable' : score === 2 ? 'neutral' : score === 1 ? 'caution' : 'strong_caution',
     personAValue: boyYoni,
     personBValue: girlYoni,
     explanationCode: 'YONI-001',
     evidence: [
       `Boy Yoni: ${boyYoni}`,
       `Girl Yoni: ${girlYoni}`,
-      boyYoni === girlYoni
-        ? 'Same Yoni — highly compatible.'
-        : isEnemy
-        ? 'Enemy Yoni pair — caution.'
-        : `Score: ${score}/4`,
+      `${relation} — ${score}/4.`,
+      note,
     ],
   };
 }

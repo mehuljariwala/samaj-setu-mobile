@@ -60,31 +60,71 @@ export function calculateTara(fromNakshatraIndex: number, toNakshatraIndex: numb
   return ((toNakshatraIndex - fromNakshatraIndex + 27) % 27) % 9 + 1;
 }
 
-// Yoni pairs — same yoni animals are compatible
-export const YONI_COMPATIBILITY: Record<string, string[]> = {
-  horse:    ['horse'],
-  elephant: ['elephant'],
-  goat:     ['goat'],
-  serpent:  ['serpent'],
-  dog:      ['dog'],
-  cat:      ['cat'],
-  rat:      ['rat'],
-  cow:      ['cow'],
-  buffalo:  ['buffalo'],
-  tiger:    ['tiger'],
-  deer:     ['deer'],
-  monkey:   ['monkey'],
-  lion:     ['lion'],
-  mongoose: ['mongoose'],
-};
+/**
+ * The Yoni Koota matrix.
+ *
+ * Classical Yoni scoring is five-tiered: 4 for the same animal, 3 friendly,
+ * 2 neutral, 1 unfriendly, 0 for the sworn-enemy pairs. Which pairs are
+ * *friendly* is the part that varies between sources; the seven sworn-enemy
+ * pairs (horse/buffalo, elephant/lion, goat/monkey, serpent/mongoose,
+ * dog/deer, cat/rat, cow/tiger) are consistent everywhere and are the zeros
+ * on the anti-diagonal below.
+ *
+ * Transcribed from the Saravali table and cross-checked against
+ * findyourfate's per-animal friend/enemy lists, which reproduce the horse,
+ * elephant, goat, serpent and dog rows exactly. Two cells in the source grid
+ * disagreed with their mirror image and were resolved by that cross-check:
+ * horse/deer is 3 (horse's friends are serpent, deer and monkey) and
+ * buffalo/lion is 1 (lion is on buffalo's unfriendly list). One genuine
+ * source disagreement is left at Saravali's value: cat/mongoose is 2 here,
+ * where findyourfate makes it unfriendly.
+ *
+ * `goat` is Mesha and `deer` is Mriga; both animals are translated several
+ * ways (sheep, ram; hare, rabbit) and the names here follow the nakshatra
+ * table above.
+ *
+ * Symmetry and the all-4 diagonal are asserted in tests rather than trusted,
+ * because a hand-transcribed 14x14 grid is exactly the kind of table that
+ * rots silently.
+ */
+export const YONI_ORDER = [
+  'horse', 'elephant', 'goat', 'serpent', 'dog', 'cat', 'rat',
+  'cow', 'buffalo', 'tiger', 'deer', 'monkey', 'mongoose', 'lion',
+] as const;
 
-// Yoni enemies — incompatible pairs
-export const YONI_ENEMIES: [string, string][] = [
-  ['cow', 'tiger'],
-  ['elephant', 'lion'],
-  ['horse', 'buffalo'],
-  ['dog', 'deer'],
-  ['rat', 'cat'],
-  ['serpent', 'mongoose'],
-  ['goat', 'monkey'],
+export type Yoni = (typeof YONI_ORDER)[number];
+
+/* eslint-disable @stylistic/no-multi-spaces */
+export const YONI_MATRIX: readonly (readonly number[])[] = [
+  /*            hrs  ele  got  ser  dog  cat  rat  cow  buf  tig  dee  mon  mng  lio */
+  /* horse */    [4,   2,   2,   3,   2,   2,   2,   1,   0,   1,   3,   3,   2,   1],
+  /* elephant */ [2,   4,   3,   3,   2,   2,   2,   2,   3,   1,   2,   3,   2,   0],
+  /* goat */     [2,   3,   4,   2,   1,   2,   1,   3,   3,   1,   2,   0,   3,   1],
+  /* serpent */  [3,   3,   2,   4,   2,   1,   1,   1,   1,   2,   2,   2,   0,   2],
+  /* dog */      [2,   2,   1,   2,   4,   2,   1,   2,   2,   1,   0,   2,   1,   1],
+  /* cat */      [2,   2,   2,   1,   2,   4,   0,   2,   2,   1,   3,   3,   2,   1],
+  /* rat */      [2,   2,   1,   1,   1,   0,   4,   2,   2,   2,   2,   2,   1,   2],
+  /* cow */      [1,   2,   3,   1,   2,   2,   2,   4,   3,   0,   3,   2,   2,   1],
+  /* buffalo */  [0,   3,   3,   1,   2,   2,   2,   3,   4,   1,   2,   2,   2,   1],
+  /* tiger */    [1,   1,   1,   2,   1,   1,   2,   0,   1,   4,   1,   1,   2,   1],
+  /* deer */     [3,   2,   2,   2,   0,   3,   2,   3,   2,   1,   4,   2,   2,   1],
+  /* monkey */   [3,   3,   0,   2,   2,   3,   2,   2,   2,   1,   2,   4,   3,   2],
+  /* mongoose */ [2,   2,   3,   0,   1,   2,   1,   2,   2,   2,   2,   3,   4,   2],
+  /* lion */     [1,   0,   1,   2,   1,   1,   2,   1,   1,   1,   1,   2,   2,   4],
 ];
+/* eslint-enable @stylistic/no-multi-spaces */
+
+/** Score for a yoni pair, or undefined if either animal is unrecognised. */
+export function getYoniScore(a: string, b: string): number | undefined {
+  const i = YONI_ORDER.indexOf(a as Yoni);
+  const j = YONI_ORDER.indexOf(b as Yoni);
+  if (i < 0 || j < 0) return undefined;
+  return YONI_MATRIX[i]![j];
+}
+
+/** The seven sworn-enemy pairs, derived from the matrix rather than restated. */
+export const YONI_ENEMIES: [string, string][] = YONI_ORDER.flatMap((a, i) =>
+  YONI_ORDER.slice(i + 1)
+    .map((b, offset): [string, string] | null =>
+      YONI_MATRIX[i]![i + 1 + offset] === 0 ? [a, b] : null)
+    .filter((pair): pair is [string, string] => pair !== null));
