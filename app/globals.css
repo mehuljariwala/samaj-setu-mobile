@@ -337,6 +337,17 @@ button:disabled { cursor: not-allowed; }
   font-size: 14px; font-weight: 600;
 }
 .text-button.muted { color: var(--ink-2); font-weight: 500; }
+/* A link drawn as a row, for when centred brand text on its own would be taken
+   for a heading. Subordinate to .primary and .secondary: hairline, not solid. */
+.text-button.bordered {
+  width: 100%;
+  padding: 4px 14px;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.text-button.bordered:hover { background: var(--surface-2); }
 
 .sample-link {
   display: inline-flex; align-items: center; gap: 6px;
@@ -620,40 +631,66 @@ button:disabled { cursor: not-allowed; }
 }
 .welcome-hero h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.25; margin: 11px 0 7px; }
 .welcome-hero p { font-size: 13.5px; line-height: 1.55; color: rgb(255 255 255 / 82%); }
-.welcome-mark {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 18px; font-weight: 700;
-}
-.welcome-mark > svg { color: #fff; }
 
-.steps-card { margin-top: 14px; overflow: hidden; }
-.steps-card > div { display: flex; align-items: center; gap: 11px; padding: 10px 12px; }
-.steps-card > div:not(:last-child) { border-bottom: 1px solid var(--line); }
-.steps-card .n {
+/* Both ways in. The caption between them is what the outlined button answers,
+   so the two read as a pair rather than as a button and an afterthought. */
+.welcome-actions { display: grid; gap: 9px; margin-top: 16px; }
+.actions-divider {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12.5px; color: var(--ink-3);
+}
+.actions-divider::before, .actions-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
+/* Three promises. No item background, no borders, no dividers — nothing here
+   should read as something to press. */
+.assurances {
+  list-style: none;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 16px; padding: 13px 8px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.assurances > li {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center;
+  font-size: 11.5px; font-weight: 600; line-height: 1.35;
+  color: var(--ink-2);
+}
+.assurances svg { color: var(--brand); }
+
+/* The joining steps, drawn as a process: numbered dots strung on a rule. The
+   card-with-dividers version this replaces was indistinguishable from a menu. */
+.join-steps { list-style: none; margin-top: 2px; }
+.join-steps > li {
+  position: relative;
+  display: grid; grid-template-columns: 26px 1fr; gap: 12px;
+  padding-bottom: 15px;
+}
+.join-steps > li:last-child { padding-bottom: 0; }
+.join-steps > li:not(:last-child)::before {
+  content: '';
+  position: absolute; left: 12px; top: 30px; bottom: 1px;
+  width: 2px; border-radius: 1px;
+  background: var(--line);
+}
+.join-steps .n {
   display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; flex-shrink: 0;
-  border-radius: var(--r-xs);
+  width: 26px; height: 26px;
+  border-radius: var(--r-full);
   background: var(--brand-tint); color: var(--brand);
-  font-size: 13px; font-weight: 700;
+  font-size: 12.5px; font-weight: 700;
 }
-.steps-card > div > div { flex: 1; min-width: 0; }
-.steps-card b { display: block; font-size: 13.5px; font-weight: 600; }
-.steps-card p { font-size: 12px; line-height: 1.5; color: var(--ink-2); margin-top: 2px; }
-.steps-card > div > svg:last-child { color: var(--ink-3); }
+.join-steps b { display: block; font-size: 14px; font-weight: 600; }
+.join-steps p { margin-top: 2px; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
 
-.welcome .primary { margin-top: 15px; }
 .signin {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   margin-top: 7px;
   font-size: 14px; color: var(--ink-2);
 }
 .signin button { color: var(--brand); font-weight: 700; min-height: 40px; }
-.welcome-foot {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  margin-top: 12px; padding-top: 11px;
-  border-top: 1px solid var(--line);
-  font-size: 12.5px; color: var(--ink-3);
-}
 
 /* ==========================================================================
    6. REGISTRATION
@@ -1215,8 +1252,8 @@ button:disabled { cursor: not-allowed; }
 /* Muted trailing chevrons -------------------------------------------------- */
 .queue-top > svg, .doc-row > svg:last-child, .managing > svg { color: var(--ink-3); }
 
-/* Screen-jump list reuses the steps card ----------------------------------- */
-.steps-card .text-button { flex-shrink: 0; min-height: 40px; }
+/* Welcome: the help link closes the screen -------------------------------- */
+.welcome .text-button.bordered { margin-top: 18px; }
 
 /* --------------------------------------------------------------- biodata --
    The form lives inside the app's single scrolling surface, so its action bar
@@ -1333,12 +1370,11 @@ html[data-booting] .welcome { visibility: hidden; }
   .welcome-hero h1 { font-size: 21px; margin: 8px 0 5px; }
   .welcome-hero p { font-size: 12.5px; line-height: 1.5; }
   .welcome-hero .eyebrow { margin-top: 9px; }
-  .welcome-mark { font-size: 17px; }
-  .steps-card { margin-top: 11px; }
-  .steps-card > div { padding: 8px 11px; }
-  .steps-card p { font-size: 11.5px; }
-  .welcome .primary { margin-top: 12px; }
-  .welcome-foot { margin-top: 9px; padding-top: 9px; }
+  .welcome-actions { margin-top: 13px; gap: 8px; }
+  .assurances { margin-top: 13px; padding: 11px 6px; }
+  .join-steps > li { padding-bottom: 12px; }
+  .join-steps p { font-size: 12px; }
+  .welcome .text-button.bordered { margin-top: 14px; }
 
   /* Registration */
   .reg-top { padding: 5px 0; }
@@ -1406,8 +1442,8 @@ html[data-booting] .welcome { visibility: hidden; }
   .timeline > div { padding-bottom: 9px; }
   .row-card { margin: 8px 0; }
   .welcome-hero h1 { font-size: 19px; }
-  .welcome-hero p, .steps-card p { display: none; }
-  .steps-card > div { padding: 7px 10px; }
+  .welcome-hero p, .join-steps p { display: none; }
+  .join-steps > li { padding-bottom: 10px; }
   .page-title p { display: none; }
   .progress-card > p { display: none; }
   .tiles small { display: none; }
