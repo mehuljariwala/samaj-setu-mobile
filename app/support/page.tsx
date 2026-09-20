@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, Check, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, LockKeyhole, MapPin, Phone, ShieldCheck } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import { loadPublicPage } from '@/lib/data/guards';
 import { translator } from '@/lib/i18n';
-import { TRUST } from '@/lib/org';
+import { TRUST, formatPhone } from '@/lib/org';
 
 /**
  * Reachable signed out, because spec §2 allows "essential policy and support
@@ -77,7 +77,12 @@ export default async function SupportPage() {
 
         <div className="note brand">
           <Check size={19} />
-          <p>{t('મુખ્ય સેવાઓ સમાજ માટે હંમેશાં નિઃશુલ્ક છે.', 'The core service is, and stays, free for our community.')}</p>
+          <p>
+            {t(
+              'મુખ્ય સેવાઓ સમાજ માટે હંમેશાં નિઃશુલ્ક છે. કોઈપણ પ્રકારનો ચાર્જ લેવામાં આવતો નથી.',
+              'The core service is, and stays, free for our community. No charge of any kind is taken.',
+            )}
+          </p>
         </div>
 
         <div className="section-head">
@@ -102,6 +107,27 @@ export default async function SupportPage() {
             </div>
           )}
         </div>
+
+        {/* The samaj's own notice lists volunteers rather than one office line,
+            so each is a row you can call from — the number is the whole point
+            of the section, and on a phone reading it out to dial is absurd. */}
+        <div className="section-head">
+          <h2>{t('સંપર્ક માટે', 'Who to call')}</h2>
+          <span>{t('સમાજના સ્વયંસેવકો', 'Samaj volunteers')}</span>
+        </div>
+        <ul className="call-list">
+          {TRUST.helpline.map((person) => (
+            <li key={person.phone}>
+              <a href={`tel:+91${person.phone}`}>
+                <span>
+                  <b>{t(person.name.gu, person.name.en)}</b>
+                  <small>{formatPhone(person.phone)}</small>
+                </span>
+                <Phone size={17} strokeWidth={1.8} />
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
     </AppShell>
   );
