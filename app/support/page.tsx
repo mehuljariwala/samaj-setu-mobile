@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, Check, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import { loadPublicPage } from '@/lib/data/guards';
 import { translator } from '@/lib/i18n';
+import { TRUST } from '@/lib/org';
 
 /**
  * Reachable signed out, because spec §2 allows "essential policy and support
@@ -13,6 +14,16 @@ export default async function SupportPage() {
   const { context, lang, acting } = await loadPublicPage();
   const t = translator(lang);
   const member = context.access_state === 'approved';
+
+  // The trust is who a member writes to when the app itself cannot help, so its
+  // details belong on this screen. Rows with nothing filled in are dropped.
+  const address = t(TRUST.address.gu, TRUST.address.en);
+  const contactRows: [string, string][] = [
+    [t('ટ્રસ્ટ', 'Trust'), t(TRUST.name.gu, TRUST.name.en)],
+    [t('રજિ. નં.', 'Reg. No.'), TRUST.registrationNumber],
+    [t('ફોન', 'Phone'), TRUST.phone && `+91 ${TRUST.phone}`],
+    [t('ઈમેલ', 'Email'), TRUST.email],
+  ];
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member={member}>
@@ -67,6 +78,29 @@ export default async function SupportPage() {
         <div className="note brand">
           <Check size={19} />
           <p>{t('મુખ્ય સેવાઓ સમાજ માટે હંમેશાં નિઃશુલ્ક છે.', 'The core service is, and stays, free for our community.')}</p>
+        </div>
+
+        <div className="section-head">
+          <h2>{t('સંપર્ક', 'Contact')}</h2>
+        </div>
+        <div className="detail-list spaced">
+          {contactRows
+            .filter(([, value]) => value)
+            .map(([label, value]) => (
+              <div key={label}>
+                <span>{label}</span>
+                <b>{value}</b>
+              </div>
+            ))}
+          {address && (
+            <div>
+              <span className="inline-icon">
+                <MapPin size={13} />
+                {t('સરનામું', 'Address')}
+              </span>
+              <b className="address">{address}</b>
+            </div>
+          )}
         </div>
       </section>
     </AppShell>

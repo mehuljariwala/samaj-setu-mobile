@@ -7,6 +7,7 @@ import type { CandidateSummary, MyContext } from '@/lib/data/session';
 import { LangToggle } from './lang-toggle';
 import { SignOutButton } from './sign-out-button';
 import { TabBar } from './tabbar';
+import { TrustCredit } from './trust-credit';
 
 type Props = {
   lang: Lang;
@@ -84,7 +85,10 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
           </div>
         </header>
 
-        <div className="screen">{children}</div>
+        <div className="screen">
+          {children}
+          <TrustCredit lang={lang} />
+        </div>
 
         {member && <TabBar lang={lang} pendingInterests={pendingInterests} />}
       </div>
