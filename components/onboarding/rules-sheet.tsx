@@ -5,7 +5,7 @@ import { ArrowRight, Check, ScrollText, X } from 'lucide-react';
 
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
-import { RULES, RULES_INTRO, RULES_TITLE } from '@/lib/rules';
+import { DISCLAIMER, DISCLAIMER_TITLE, NON_COMMERCIAL, RULES, RULES_INTRO, RULES_TITLE } from '@/lib/rules';
 
 /**
  * The bureau's rules, as a sheet that rises over the account screen when
@@ -68,6 +68,14 @@ export function RulesSheet({
               <li key={i}><span>{i + 1}</span><p>{rule}</p></li>
             ))}
           </ol>
+
+          <h3 className="rules-section">{DISCLAIMER_TITLE}</h3>
+          <p className="rules-intro">{NON_COMMERCIAL}</p>
+          <ol className="rules-list">
+            {DISCLAIMER.map((point, i) => (
+              <li key={i}><span>{i + 1}</span><p>{point}</p></li>
+            ))}
+          </ol>
         </div>
 
         <div className="rules-foot">
@@ -76,13 +84,13 @@ export function RulesSheet({
             <span className="rules-box" aria-hidden="true"><Check size={15} strokeWidth={3.2} /></span>
             <span>
               {t(
-                'મેં ઉપરના તમામ નિયમો વાંચ્યા છે અને હું તેની સાથે સંમત છું.',
-                'I have read all the rules above and I agree to them.',
+                'મેં ઉપરના તમામ નિયમો અને કાનૂની સ્પષ્ટતા વાંચ્યા છે અને હું તેની સાથે સંમત છું.',
+                'I have read all the rules and the disclaimer above and I agree to them.',
               )}
             </span>
           </label>
           {agreed && !atEnd && (
-            <p className="rules-hint">{t('બધા 9 નિયમો નીચે સુધી વાંચી લેજો.', 'Do scroll down and read all 9 rules.')}</p>
+            <p className="rules-hint">{t('બધા નિયમો અને કાનૂની સ્પષ્ટતા નીચે સુધી વાંચી લેજો.', 'Do scroll down and read all the rules and the disclaimer.')}</p>
           )}
           <button
             type="button"

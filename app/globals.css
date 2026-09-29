@@ -778,6 +778,7 @@ button:disabled { cursor: not-allowed; }
 }
 .intro-login > svg { color: var(--ink-3); }
 .intro-login b { color: var(--brand); font-weight: 800; }
+.intro-free { margin-top: 6px; color: var(--ink-3); font-size: 12.5px; line-height: 1.5; text-align: center; }
 
 /* --- Illustrations --------------------------------------------------------- */
 .art { position: absolute; inset: 0; }
@@ -1227,6 +1228,11 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   font-size: 14px; font-weight: 800;
 }
 .rules-list p { color: var(--ink); font-size: 15.5px; line-height: 1.65; }
+.rules-section {
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 16.5px; font-weight: 800; line-height: 1.55;
+}
 .rules-foot {
   display: grid; gap: 10px;
   padding: 14px var(--pad);

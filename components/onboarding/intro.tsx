@@ -6,6 +6,7 @@ import { ArrowRight, LogIn } from 'lucide-react';
 
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
+import { NON_COMMERCIAL } from '@/lib/rules';
 import { CommunityArt, ConsentArt, VerifiedArt } from './art';
 
 /**
@@ -146,6 +147,14 @@ export function Intro({ lang }: { lang: Lang }) {
             {t('પહેલેથી સભ્ય છો?', 'Already a member?')} <b>{t('લૉગ ઇન કરો', 'Log in')}</b>
           </span>
         </Link>
+
+        {/* The samaj asked for this to be stated wherever people sign up. */}
+        <p className="intro-free">
+          {t(
+            NON_COMMERCIAL,
+            'We are a free social service and take no fee or commission of any kind.',
+          )}
+        </p>
       </div>
     </section>
   );
