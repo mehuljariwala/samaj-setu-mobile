@@ -196,16 +196,7 @@ export default async function RegistrationDetailPage({
           </>
         )}
 
-        {decidable ? (
-          <RegistrationDecision
-            lang={lang}
-            applicationId={application.id}
-            expectedStatus={application.status}
-            canDecide={isAdmin(context)}
-            openDuplicates={openDuplicates.length}
-            fields={CORRECTABLE.map((field) => ({ value: field, label: correctionFieldLabel(t, field) }))}
-          />
-        ) : (
+        {!decidable && (
           <p className="admin-alert soft">
             <CheckCheck size={18} />
             <span>
@@ -214,6 +205,19 @@ export default async function RegistrationDetailPage({
               {application.decision_reason ? ` — ${application.decision_reason}` : ''}
             </span>
           </p>
+        )}
+
+        {/* A rejection is final for the family, so an admin can still send it
+            back for a fix when it was something they could have put right. */}
+        {(decidable || (application.status === 'rejected' && isAdmin(context))) && (
+          <RegistrationDecision
+            lang={lang}
+            applicationId={application.id}
+            expectedStatus={application.status}
+            canDecide={isAdmin(context)}
+            openDuplicates={openDuplicates.length}
+            fields={CORRECTABLE.map((field) => ({ value: field, label: correctionFieldLabel(t, field) }))}
+          />
         )}
 
         {/* Spec §10: actor, timestamp, reason and affected revision, kept. */}

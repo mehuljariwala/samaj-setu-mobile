@@ -21,6 +21,10 @@ type Action = 'approve' | 'request_correction' | 'reject';
  *     who decided first wins and this one is told rather than overwritten.
  *
  * Internal notes are a separate box from the applicant message on purpose.
+ *
+ * A rejected application offers one choice only: send it back for a fix. A
+ * rejection is otherwise final, so this is how an admin undoes one that the
+ * family could have put right themselves.
  */
 export function RegistrationDecision({
   lang,
@@ -41,7 +45,8 @@ export function RegistrationDecision({
   const t = translator(lang);
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [action, setAction] = useState<Action | null>(null);
+  const reopening = expectedStatus === 'rejected';
+  const [action, setAction] = useState<Action | null>(reopening ? 'request_correction' : null);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -56,7 +61,7 @@ export function RegistrationDecision({
 
   // Each choice says what it does, so the guide card is no longer needed:
   // the explanation sits on the thing you are about to press.
-  const choices: { key: Action; tone: string; Icon: typeof Check; title: string; body: string; disabled: boolean }[] = [
+  const allChoices: { key: Action; tone: string; Icon: typeof Check; title: string; body: string; disabled: boolean }[] = [
     {
       key: 'approve', tone: 'ok', Icon: ShieldCheck,
       title: t('મંજૂર કરો', 'Approve'),
@@ -65,17 +70,21 @@ export function RegistrationDecision({
     },
     {
       key: 'request_correction', tone: 'warn', Icon: Pencil,
-      title: t('સુધારો માંગો', 'Ask for a fix'),
+      title: reopening ? t('સુધારા માટે પાછી મોકલો', 'Send back for a fix') : t('સુધારો માંગો', 'Ask for a fix'),
       body: t('અરજદાર વિગતો સુધારીને ફરી મોકલશે.', 'They update the details and send again.'),
-      disabled: false,
+      disabled: reopening && !canDecide,
     },
     {
       key: 'reject', tone: 'bad', Icon: X,
       title: t('નામંજૂર', 'Reject'),
-      body: t('ઍક્સેસ બંધ રહેશે; કારણ તેમને દેખાશે.', 'Access stays locked; they see your reason.'),
+      body: t(
+        'અંતિમ નિર્ણય: તેઓ સુધારીને ફરી મોકલી શકશે નહીં. ઝાંખો ફોટો કે ખોટી વિગત હોય તો સુધારો માંગો.',
+        'Final: they cannot fix it and send again. For a blurred photo or a wrong detail, ask for a fix.',
+      ),
       disabled: !canDecide,
     },
   ];
+  const choices = reopening ? allChoices.filter((choice) => choice.key === 'request_correction') : allChoices;
 
   function submit() {
     if (!action) return;
@@ -100,7 +109,7 @@ export function RegistrationDecision({
 
   return (
     <div className="decide">
-      <h2 className="admin-h2">{t('તમારો નિર્ણય', 'Your decision')}</h2>
+      <h2 className="admin-h2">{reopening ? t('નિર્ણય બદલો', 'Change the decision') : t('તમારો નિર્ણય', 'Your decision')}</h2>
 
       {openDuplicates > 0 && (
         <p className="admin-alert">

@@ -204,6 +204,14 @@ export default async function ReviewPage() {
               {t('વિગતો સુધારો', 'Update details')}
               <ArrowRight size={20} />
             </Link>
+          ) : tone === 'rejected' ? (
+            <p className="review-note">
+              <Pencil size={18} />
+              {t(
+                'ભૂલ લાગે છે? સ્વયંસેવકને ફોન કરો — તેઓ અરજી સુધારવા માટે ફરી ખોલી શકે છે.',
+                'Think this is a mistake? Call a volunteer. They can reopen the application so you can fix it.',
+              )}
+            </p>
           ) : tone === 'pending' ? (
             <p className="review-note">
               <Bell size={18} />
