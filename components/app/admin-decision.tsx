@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, CheckCheck, CircleHelp, Pencil, Send, ShieldCheck, X } from 'lucide-react';
+import { Check, CheckCheck, CircleHelp, Pencil, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { decideBiodataAction, decideRegistrationAction, resolveDuplicateAction } from '@/app/actions/admin';
 import type { ActionResult } from '@/lib/data/errors';
@@ -11,6 +11,33 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 
 type Action = 'approve' | 'request_correction' | 'reject';
+
+/**
+ * Ready-made messages for the fixes that come up most, so a family reads what
+ * is wrong and what to do about it rather than a two-word note. In Gujarati
+ * whatever language the admin is using, because that is what families read.
+ * Picking one also ticks the field it is about, where there is only one.
+ */
+const QUICK_FIXES: { label: [string, string]; text: string; field?: string }[] = [
+  {
+    label: ['ફોટો સ્પષ્ટ નથી', 'Photo not clear'],
+    text: 'ફોટો સ્પષ્ટ દેખાતો નથી. કૃપા કરીને સારા પ્રકાશમાં, આખો દસ્તાવેજ દેખાય એ રીતે નવો ફોટો અપલોડ કરો.',
+  },
+  {
+    label: ['નામ મેળ ખાતું નથી', 'Name doesn’t match'],
+    text: 'લખેલું નામ દસ્તાવેજ સાથે મેળ ખાતું નથી. દસ્તાવેજમાં છે એ પ્રમાણે જ પૂરું નામ લખો.',
+    field: 'full_name',
+  },
+  {
+    label: ['જન્મ તારીખ મેળ ખાતી નથી', 'Birth date doesn’t match'],
+    text: 'જન્મ તારીખ જન્મ પ્રમાણપત્ર સાથે મેળ ખાતી નથી. પ્રમાણપત્રમાં છે એ જ તારીખ લખો.',
+    field: 'date_of_birth',
+  },
+  {
+    label: ['ખોટો દસ્તાવેજ', 'Wrong document'],
+    text: 'અપલોડ કરેલો દસ્તાવેજ માંગેલો દસ્તાવેજ નથી. જન્મ પ્રમાણપત્ર અને આધાર કાર્ડ અથવા મતદાર ઓળખપત્ર અપલોડ કરો.',
+  },
+];
 
 /**
  * Spec §10's three review actions, plus the two rules that keep them honest:
@@ -85,6 +112,17 @@ export function RegistrationDecision({
     },
   ];
   const choices = reopening ? allChoices.filter((choice) => choice.key === 'request_correction') : allChoices;
+
+  const addQuickFix = (fix: (typeof QUICK_FIXES)[number]) => {
+    setReason((current) => {
+      if (current.includes(fix.text)) return current;
+      return current.trim() ? `${current.trim()}\n${fix.text}` : fix.text;
+    });
+    if (fix.field) {
+      const field = fix.field;
+      setSelected((current) => (current.includes(field) ? current : [...current, field]));
+    }
+  };
 
   function submit() {
     if (!action) return;
@@ -180,6 +218,22 @@ export function RegistrationDecision({
               <label className="auth-label spaced" htmlFor="reason">
                 {t('અરજદારને દેખાતો સંદેશ', 'Message the applicant will see')}
               </label>
+              {action === 'request_correction' && (
+                <div className="decide-quick" aria-label={t('તૈયાર સંદેશ', 'Ready-made messages')}>
+                  {QUICK_FIXES.map((fix) => (
+                    <button
+                      key={fix.text}
+                      type="button"
+                      aria-pressed={reason.includes(fix.text)}
+                      className={reason.includes(fix.text) ? 'on' : undefined}
+                      onClick={() => addQuickFix(fix)}
+                    >
+                      {reason.includes(fix.text) ? <Check size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={2.6} />}
+                      {t(...fix.label)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <textarea
                 id="reason"
                 className="decide-text"
@@ -188,7 +242,7 @@ export function RegistrationDecision({
                 onChange={(event) => setReason(event.target.value)}
                 placeholder={action === 'reject'
                   ? t('નામંજૂરીનું કારણ નમ્રતાથી લખો…', 'Explain the reason kindly…')
-                  : t('શું સુધારવાનું છે તે સ્પષ્ટ લખો…', 'Say clearly what needs to change…')}
+                  : t('શું ખોટું છે અને શું કરવાનું છે તે પૂરા વાક્યમાં લખો…', 'Say what is wrong and what to do, in a full sentence…')}
               />
             </>
           )}

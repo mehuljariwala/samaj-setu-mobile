@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  ArrowRight, Bell, Check, CircleHelp, Clock3, LockKeyhole, Pencil, ShieldCheck, X,
+  ArrowRight, Bell, Check, CircleHelp, Clock3, LockKeyhole, MessageSquareText, Pencil, ShieldCheck, X,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
@@ -53,12 +53,20 @@ export default async function ReviewPage() {
     pending: t('તમારી અરજી સમીક્ષા હેઠળ છે.', 'You’re in good hands.'),
   }[tone];
 
+  // The admin's own words go in a card of their own below the headline, not
+  // in this line: a short note like "Pic clear nathi" read as a subtitle is
+  // easy to miss, and it is the one thing the family most needs to read.
+  const reason = application?.decision_reason?.trim() || null;
+
   const body = {
     approved: t('તમારી ઓળખ ચકાસાઈ ગઈ છે. હવે બાયોડેટા પૂર્ણ કરો.', 'Your identity is verified. You can now complete your biodata.'),
-    correction: application?.decision_reason
-      ?? t('એડમિને થોડો સુધારો માંગ્યો છે.', 'An admin has asked for a correction.'),
-    rejected: application?.decision_reason
-      ?? t('કૃપા કરીને સહાય માટે એડમિનનો સંપર્ક કરો.', 'Please contact an admin for help.'),
+    correction: t(
+      'એડમિને તમારી અરજી તપાસી છે. નીચે લખેલી વિગતો સુધારીને ફરી મોકલો.',
+      'An admin has checked your application. Fix what is noted below and send it again.',
+    ),
+    rejected: reason
+      ? t('એડમિને તમારી અરજી તપાસી છે. કારણ નીચે લખેલું છે.', 'An admin has checked your application. Their reason is below.')
+      : t('કારણ જાણવા માટે સ્વયંસેવકને ફોન કરો.', 'Please call a volunteer to find out why.'),
     pending: overdue
       ? t(
         'સમીક્ષા અપેક્ષા કરતાં વધુ સમય લઈ રહી છે. તમારી અરજી એડમિન માટે ફ્લેગ કરી છે — તમારે કંઈ કરવાનું નથી.',
@@ -142,6 +150,31 @@ export default async function ReviewPage() {
           <p>{body}</p>
         </div>
 
+        {(tone === 'rejected' || tone === 'correction') && (reason || corrections.length > 0) && (
+          <div className="review-reason">
+            {reason && (
+              <>
+                <p className="review-reason-label">
+                  <MessageSquareText size={17} />
+                  {tone === 'rejected' ? t('એડમિનનું કારણ', 'Reason from the admin') : t('એડમિનનો સંદેશ', 'Message from the admin')}
+                </p>
+                <p className="review-reason-text">{reason}</p>
+              </>
+            )}
+            {corrections.length > 0 && (
+              <>
+                <p className="review-reason-label">
+                  <Pencil size={15} />
+                  {t('આ વિગતો સુધારવાની છે', 'These need changing')}
+                </p>
+                <ul>
+                  {corrections.map((field) => <li key={field}>{fieldName[field] ?? field}</li>)}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="review-card">
           <span className="avatar">{candidate.full_name.charAt(0)}</span>
           <div>
@@ -165,15 +198,6 @@ export default async function ReviewPage() {
             </li>
           ))}
         </ol>
-
-        {corrections.length > 0 && (
-          <div className="review-fix">
-            <p>{t('આ વિગતો સુધારવાની છે', 'These need changing')}</p>
-            <ul>
-              {corrections.map((field) => <li key={field}><Pencil size={13} />{fieldName[field] ?? field}</li>)}
-            </ul>
-          </div>
-        )}
 
         {/* A parent's other children each carry their own state (spec §2). */}
         {context.candidates.length > 1 && (

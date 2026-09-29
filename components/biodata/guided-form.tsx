@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Camera, Check, CircleAlert, CircleHelp, Clock3, GraduationCap, Heart,
-  Info, LockKeyhole, Minus, Pencil, Phone, Plus, Send, ShieldCheck, Sparkles, UserRound, Users,
+  Info, LockKeyhole, MessageSquareText, Minus, Pencil, Phone, Plus, Send, ShieldCheck, Sparkles,
+  UserRound, Users,
 } from 'lucide-react';
 import { MediaUploader, type UploadedMedia } from '@/components/app/media-uploader';
 import { saveBiodataDraftAction, submitBiodataAction } from '@/app/actions/biodata';
@@ -537,8 +538,8 @@ export function GuidedBiodata({
 
   const note = decisionReason && (
     <p className="auth-correction">
-      <CircleHelp size={18} />
-      <span>{decisionReason}</span>
+      <MessageSquareText size={18} />
+      <span><b>{t('એડમિનનો સંદેશ', 'Message from the admin')}</b>{decisionReason}</span>
     </p>
   );
 

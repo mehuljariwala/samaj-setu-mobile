@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRight, Check, CircleHelp, Eye, EyeOff, FileCheck2, FileStack, Heart,
-  LockKeyhole, ShieldCheck, Smartphone, Upload, UserRound, Users, X,
+  ArrowLeft, ArrowRight, Check, CircleHelp, Eye, EyeOff, FileCheck2, FileStack, Heart, LockKeyhole,
+  MessageSquareText, ShieldCheck, Smartphone, Upload, UserRound, Users, X,
 } from 'lucide-react';
 
 import { signUpAction } from '@/app/actions/auth';
@@ -416,8 +416,8 @@ export function JoinFlow({
         {/* What the admin asked for, above the fields they flagged. */}
         {step > 0 && existing?.decisionReason && (
           <p className="auth-correction">
-            <CircleHelp size={18} />
-            <span>{existing.decisionReason}</span>
+            <MessageSquareText size={18} />
+            <span><b>{t('એડમિનનો સંદેશ', 'Message from the admin')}</b>{existing.decisionReason}</span>
           </p>
         )}
 

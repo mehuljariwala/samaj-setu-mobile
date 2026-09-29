@@ -709,7 +709,7 @@ button:disabled { cursor: not-allowed; }
   box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--brand) 70%, transparent);
 }
 .cta:hover { background: var(--brand-strong); }
-.cta:focus-visible, .round-button:focus-visible, .admin-tile:focus-visible, .admin-row:focus-visible, .admin-tabs a:focus-visible, .decide-choice:has(input:focus-visible), .decide-fields button:focus-visible, .admin-account:focus-visible, .member-tile:focus-visible, .member-card a:focus-visible, .member-add:focus-visible, .member-chips .chip:focus-visible, .profile-open:focus-visible, .tabbar a:focus-visible, .intro-progress button:focus-visible, .intro-login:focus-visible {
+.cta:focus-visible, .round-button:focus-visible, .admin-tile:focus-visible, .admin-row:focus-visible, .admin-tabs a:focus-visible, .decide-choice:has(input:focus-visible), .decide-fields button:focus-visible, .decide-quick button:focus-visible, .admin-account:focus-visible, .member-tile:focus-visible, .member-card a:focus-visible, .member-add:focus-visible, .member-chips .chip:focus-visible, .profile-open:focus-visible, .tabbar a:focus-visible, .intro-progress button:focus-visible, .intro-login:focus-visible {
   outline: 3px solid var(--focus); outline-offset: 3px;
 }
 .cta:disabled { cursor: default; }
@@ -1019,6 +1019,9 @@ button:disabled { cursor: not-allowed; }
   font-size: 15px; font-weight: 600; line-height: 1.5;
 }
 .auth-correction > svg { flex-shrink: 0; margin-top: 2px; }
+.auth-correction b { display: block; margin-bottom: 2px; font-size: 13px; font-weight: 800; }
+.auth-correction span { color: var(--ink); font-size: 16px; white-space: pre-line; overflow-wrap: anywhere; }
+.auth-correction span b { color: var(--gold); }
 
 /* Big tap-anywhere choices — a radio button is too small a target to ask of
    an older hand, and the tile says the answer in words and a picture. */
@@ -1389,22 +1392,34 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .review-steps .next b { color: var(--ink-2); }
 .review-steps .now small, .review-steps .act small, .review-steps .open small { color: var(--tone); font-weight: 700; }
 
-.review-fix {
-  margin-top: 18px; padding: 14px;
-  border-radius: 18px;
-  background: var(--warn-tint);
+.review-reason {
+  margin-top: 18px; padding: 16px;
+  border: 1.5px solid color-mix(in srgb, var(--tone) 28%, transparent);
+  border-radius: 20px;
+  background: var(--tone-tint);
 }
-.review-fix p { color: var(--warn); font-size: 15px; font-weight: 800; }
-.review-fix ul { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; list-style: none; }
-.review-fix li {
-  display: inline-flex; align-items: center; gap: 6px;
+.review-reason-label {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--tone);
+  font-size: 14px; font-weight: 800;
+}
+.review-reason-label ~ .review-reason-label { margin-top: 16px; }
+.review-reason-text {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 18px; font-weight: 700; line-height: 1.55;
+  /* The admin's words as typed: keep their line breaks, and never let one
+     long word run off the side of the card. */
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.review-reason ul { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; list-style: none; }
+.review-reason li {
   padding: 7px 12px;
   border-radius: var(--r-full);
   background: var(--surface); color: var(--ink);
-  font-size: 14.5px; font-weight: 700;
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--warn) 30%, transparent);
+  font-size: 15px; font-weight: 700;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--tone) 30%, transparent);
 }
-.review-fix li > svg { color: var(--warn); }
 
 .review-others { margin-top: 20px; }
 .review-others > p { color: var(--ink-3); font-size: 14px; font-weight: 700; }
@@ -1764,6 +1779,16 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   font-size: 14.5px; font-weight: 700;
 }
 .decide-fields button.on { border-color: var(--warn); background: var(--warn-tint); color: var(--warn); }
+.decide-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.decide-quick button {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 0 12px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-full);
+  background: var(--surface); color: var(--ink-2);
+  font-size: 14px; font-weight: 700;
+}
+.decide-quick button.on { border-style: solid; border-color: var(--warn); background: var(--warn-tint); color: var(--warn); }
 .decide-text {
   display: block; width: 100%; padding: 14px 16px;
   border: 1.5px solid var(--line-strong);
@@ -2231,7 +2256,8 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   .review-copy > h1 { animation-delay: 220ms; }
   .review-copy > p { animation-delay: 290ms; }
   .review-badge.pending > i { animation: ob-ring 1.6s ease-out infinite; }
-  .review-card, .review-fix, .review-others, .review-actions { animation: ob-rise 480ms var(--ease) 360ms backwards; }
+  .review-reason { animation: ob-rise 480ms var(--ease) 330ms backwards; }
+  .review-card, .review-others, .review-actions { animation: ob-rise 480ms var(--ease) 360ms backwards; }
   .review-steps li { animation: ob-rise 460ms var(--ease) calc(440ms + var(--i) * 140ms) backwards; }
   .review-steps li > span { animation: ob-pop 460ms var(--spring) calc(520ms + var(--i) * 140ms) backwards; }
   .review-steps li:not(:last-child)::before { animation: ob-grow 420ms var(--ease) calc(640ms + var(--i) * 140ms) backwards; }
