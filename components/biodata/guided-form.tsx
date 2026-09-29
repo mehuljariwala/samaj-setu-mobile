@@ -105,6 +105,8 @@ export function GuidedBiodata({
   const [errors, setErrors] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [shake, setShake] = useState(0);
+  /** The missing field to bring into view; `n` re-runs the jump for the same field. */
+  const [jump, setJump] = useState<{ key: string; n: number } | null>(null);
   const [busy, setBusy] = useState('');
 
   const root = useRef<HTMLDivElement>(null);
@@ -167,20 +169,38 @@ export function GuidedBiodata({
     setMessage('');
   }
 
-  function go(to: number) {
+  /** `toField` skips the jump to the top when a missing field is about to be shown instead. */
+  function go(to: number, toField = false) {
     setDirection(to < step ? 'back' : 'next');
     setStep(to);
     setErrors([]);
     setMessage('');
-    requestAnimationFrame(() => root.current?.scrollIntoView({ block: 'start', behavior: 'instant' }));
+    setJump(null);
+    if (!toField) requestAnimationFrame(() => root.current?.scrollIntoView({ block: 'start', behavior: 'instant' }));
   }
 
   function fail(keys: string[], text: string) {
     setErrors(keys);
     setMessage(text);
     setShake((n) => n + 1);
-    requestAnimationFrame(() => document.getElementById(`bio-${keys[0]}`)?.focus({ preventScroll: false }));
+    setJump((j) => ({ key: keys[0], n: (j?.n ?? 0) + 1 }));
   }
+
+  // Brings the first missing field to the middle of the screen — clear of the
+  // sticky Continue bar — once it is on the page, then focuses and pulses it.
+  // Runs after commit, so it also works when Send opens an earlier step.
+  useEffect(() => {
+    if (!jump) return;
+    const field = root.current?.querySelector<HTMLElement>(`[data-field="${jump.key}"]`);
+    if (!field) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    field.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    const target = field.querySelector<HTMLElement>(`#bio-${jump.key}`)
+      ?? field.querySelector<HTMLElement>('input, select, textarea, button');
+    target?.focus({ preventScroll: true });
+    const done = window.setTimeout(() => setJump((j) => (j === jump ? null : j)), 1600);
+    return () => window.clearTimeout(done);
+  }, [jump]);
 
   function next() {
     const invalid = validateKeys(visibleKeys(STEPS[step]), data);
@@ -221,11 +241,11 @@ export function GuidedBiodata({
     const gap = firstGap();
     if (gap !== null) {
       setFromReview(true);
-      go(gap);
-      requestAnimationFrame(() => fail(
+      go(gap, true);
+      fail(
         validateKeys(visibleKeys(STEPS[gap]), data),
         t('આ વિગત હજી બાકી છે.', 'This detail is still missing.'),
-      ));
+      );
       return;
     }
 
@@ -247,8 +267,8 @@ export function GuidedBiodata({
       const at = result.code === 'incomplete' ? firstGap(result.detail) : null;
       if (at !== null) {
         setFromReview(true);
-        go(at);
-        requestAnimationFrame(() => fail(result.detail, t('આ વિગત હજી બાકી છે.', 'This detail is still missing.')));
+        go(at, true);
+        fail(result.detail.filter((k) => visibleKeys(STEPS[at]).includes(k)), t('આ વિગત હજી બાકી છે.', 'This detail is still missing.'));
       } else {
         setMessage(result.message);
       }
@@ -361,7 +381,7 @@ export function GuidedBiodata({
     if (f.options && key !== 'rashi') {
       const count = f.options.length;
       return (
-        <fieldset key={key} className="bio-field">
+        <fieldset key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <legend className="auth-label">{label(f)}{optionalMark(f, s)}</legend>
           <div className={`bio-options n${count <= 3 ? count : 'x'}${bad}`}>
             {f.options.map(([v, gu, english], i) => (
@@ -393,7 +413,7 @@ export function GuidedBiodata({
           .map((h) => [h.cm, `${h.label}  ·  ${h.cm} ${t('સે.મી.', 'cm')}`])
         : f.options!.map(([v, gu, english]) => [v, en ? english : gu]);
       return (
-        <div key={key} className="bio-field">
+        <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <label className="auth-label" htmlFor={id}>
             {key === 'height' ? t('ઊંચાઈ', 'Height') : label(f)}{optionalMark(f, s)}
           </label>
@@ -411,7 +431,7 @@ export function GuidedBiodata({
     if (f.type === 'number') {
       const n = value === '' ? null : Number(value);
       return (
-        <fieldset key={key} className="bio-field">
+        <fieldset key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <legend className="auth-label">{key === 'brothers' ? t('ભાઈઓ', 'Brothers') : t('બહેનો', 'Sisters')}</legend>
           <div className="bio-stepper">
             <button
@@ -438,7 +458,7 @@ export function GuidedBiodata({
 
     if (key === 'phone' || key === 'extraPhone') {
       return (
-        <div key={key} className="bio-field">
+        <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <label className="auth-label" htmlFor={id}>{label(f)}{optionalMark(f, s)}</label>
           <div className={`auth-phone${bad}${isValidLocalPhone(value) ? ' valid' : ''}`}>
             <span>+91</span>
@@ -463,7 +483,7 @@ export function GuidedBiodata({
     if (key === 'birthtime') {
       const unknown = data.birthUnknown === 'yes';
       return (
-        <div key={key} className="bio-field">
+        <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <label className="auth-label" htmlFor={id}>{label(f)}</label>
           <div className="bio-time">
             <div className={`auth-input${bad}${unknown ? ' off' : ''}`}>
@@ -480,7 +500,7 @@ export function GuidedBiodata({
     }
 
     return (
-      <div key={key} className="bio-field">
+      <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
         <label className="auth-label" htmlFor={id}>{label(f)}{optionalMark(f, s)}</label>
         <div className={`auth-input${bad}`}>
           <input

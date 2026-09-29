@@ -3544,6 +3544,8 @@ body:has(.capture-dialog[open]) { overflow: hidden; }
 .bio-fields { margin-top: 22px; }
 .bio-field { margin: 0; padding: 0; border: 0; min-width: 0; }
 .bio-field legend { padding: 0; }
+/* The field Continue found missing: a soft wash behind it, so the eye lands there. */
+.bio-field.attention { border-radius: 18px; box-shadow: 0 0 0 10px var(--brand-tint); background: var(--brand-tint); }
 .bio-fields > * + * { margin-top: 22px; }
 .bio-field-error { margin-top: 8px; }
 
@@ -3703,4 +3705,29 @@ button.bio-summary-card:focus-visible { outline: 3px solid var(--focus); outline
     transition: transform 160ms ease, background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
   }
   .bio-options .auth-choice:active, .bio-stepper button:active:not(:disabled), button.bio-summary-card:active { transform: scale(0.97); }
+  .bio-fields > .bio-field.attention { animation: bio-attention 1.6s var(--ease) both; }
+}
+@keyframes bio-attention {
+  0%, 100% { background: transparent; box-shadow: 0 0 0 10px transparent; }
+  15%, 60% { background: var(--brand-tint); box-shadow: 0 0 0 10px var(--brand-tint); }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Route loading (app/loading.tsx)                                          */
+/* ------------------------------------------------------------------------ */
+
+.route-loading { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px var(--pad); background: linear-gradient(180deg, var(--brand-tint), transparent 260px); }
+.route-loading-bar { position: absolute; inset: 0 0 auto; height: 3px; overflow: hidden; }
+.route-loading-bar::after { content: ''; position: absolute; inset: 0; width: 40%; border-radius: 3px; background: var(--brand); animation: route-bar 1.1s var(--ease) infinite; }
+.skel { display: block; border-radius: 18px; background: linear-gradient(90deg, var(--line) 0%, var(--surface-2) 50%, var(--line) 100%) 0 0 / 200% 100%; animation: skel-shine 1.3s linear infinite; }
+.skel-pill { width: 84px; height: 36px; border-radius: 999px; }
+.skel-hero { height: 150px; border-radius: 26px; background-color: var(--surface); }
+.skel-line { width: 55%; height: 14px; border-radius: 7px; }
+.skel-line.wide { width: 80%; height: 22px; margin-top: 6px; }
+.skel-card { height: 76px; }
+.skel-card.short { width: 70%; }
+@keyframes route-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+@keyframes skel-shine { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel, .route-loading-bar::after { animation-duration: 3s; }
 }
