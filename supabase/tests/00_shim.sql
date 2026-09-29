@@ -54,8 +54,18 @@ create table if not exists auth.users (
   email_confirmed_at  timestamptz,
   raw_user_meta_data  jsonb not null default '{}'::jsonb,
   raw_app_meta_data   jsonb not null default '{}'::jsonb,
+  last_sign_in_at     timestamptz,
+  banned_until        timestamptz,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
+);
+
+-- Only what admin_set_account_status and admin_reset_password touch: they end
+-- a person's sessions by deleting these rows.
+create table if not exists auth.sessions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
 );
 
 -- Mirrors supabase/auth's definitions: the request's JWT arrives as a GUC that

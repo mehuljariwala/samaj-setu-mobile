@@ -127,12 +127,12 @@ export function ConsentControl({
         </p>
       </div>
       <button
-        className="primary"
+        className="cta"
         disabled={pending}
         onClick={() => run(async () => grantConsentAction(candidate.id))}
       >
+        {pending ? <span className="cta-spinner" aria-hidden="true" /> : <Check size={19} strokeWidth={2.6} />}
         {t('હું પ્રકાશન માટે સંમતિ આપું છું', 'I consent to publication')}
-        <Check size={18} />
       </button>
       {error && <p role="alert" className="error"><CircleHelp size={17} />{error}</p>}
     </>

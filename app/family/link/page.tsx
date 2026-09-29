@@ -5,6 +5,7 @@ import { AppShell } from '@/components/app/shell';
 import { LinkExistingForm } from '@/components/app/link-existing-form';
 import { loadApplicantPage } from '@/lib/data/guards';
 import { listMyAccessRequests } from '@/lib/data/registration';
+import { accessRequestStatusLabel, relationshipLabel } from '@/lib/admin-labels';
 import { timeAgo, translator } from '@/lib/i18n';
 
 /**
@@ -20,14 +21,15 @@ export default async function LinkExistingPage() {
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member={context.access_state === 'approved'}>
-      <section className="screen-pad">
-        <Link className="back-link" href="/family">
-          <ArrowLeft size={17} />
-          {t('પરિવાર પર પાછા', 'Back to Family')}
-        </Link>
+      <section className="member-screen tone-green">
+        <div className="admin-detail-top">
+          <Link className="round-button" href="/family" aria-label={t('પરિવાર પર પાછા', 'Back to Family')}>
+            <ArrowLeft size={20} />
+          </Link>
+          <span>{t('એક ઉમેદવાર, એક પ્રોફાઇલ', 'One candidate, one profile')}</span>
+        </div>
 
-        <div className="page-title">
-          <span className="eyebrow">{t('એક ઉમેદવાર, એક પ્રોફાઇલ', 'One candidate, one profile')}</span>
+        <div className="member-title">
           <h1>{t('હાજર પ્રોફાઇલ સાથે જોડાઓ', 'Link to an existing profile')}</h1>
           <p>
             {t(
@@ -37,25 +39,30 @@ export default async function LinkExistingPage() {
           </p>
         </div>
 
-        <LinkExistingForm lang={lang} />
+        <div className="member-group member-form">
+          <LinkExistingForm lang={lang} />
+        </div>
 
         {requests.length > 0 && (
           <>
-            <div className="section-head">
-              <h2>{t('તમારી વિનંતીઓ', 'Your requests')}</h2>
-            </div>
-            {requests.map((request) => (
-              <div className="card row-card" key={request.id}>
-                <span className="avatar"><Users size={18} /></span>
-                <div>
-                  <b>{request.claimed_relationship}</b>
-                  <small>
-                    {request.status} · {timeAgo(request.created_at, lang)}
-                  </small>
-                  {request.decision_reason && <small>{request.decision_reason}</small>}
+            <h2 className="admin-h2">{t('તમારી વિનંતીઓ', 'Your requests')}</h2>
+            <div className="admin-accounts">
+              {requests.map((request) => (
+                <div className="admin-account" key={request.id}>
+                  <span className="admin-account-icon"><Users size={18} /></span>
+                  <span>
+                    <b>{relationshipLabel(t, request.claimed_relationship)}</b>
+                    <small>
+                      {timeAgo(request.created_at, lang)}
+                      {request.decision_reason ? ` · ${request.decision_reason}` : ''}
+                    </small>
+                  </span>
+                  <span className={`member-status ${request.status === 'approved' ? 'ok' : request.status === 'rejected' ? 'bad' : 'gold'}`}>
+                    {accessRequestStatusLabel(t, request.status)}
+                  </span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </>
         )}
       </section>

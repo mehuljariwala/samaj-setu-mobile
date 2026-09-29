@@ -1,167 +1,188 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CircleHelp, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleHelp, Eye, EyeOff, LogIn } from 'lucide-react';
 
-import { signInAction, signUpAction } from '@/app/actions/auth';
+import { signInAction } from '@/app/actions/auth';
 import type { ActionResult } from '@/lib/data/errors';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
+import { isValidLocalPhone } from '@/lib/phone';
 
 type Result = ActionResult<{ accountId: string }> | null;
+type Field = 'phone' | 'password';
 
 /**
- * Sign-up and sign-in share a form because they collect the same two fields.
- *
- * There is no OTP: identity is established later by admin review of the birth
- * certificate. The password exists so an account is not takeable over by
- * anyone who knows the number — and the copy says exactly that rather than
- * implying the number has been verified.
+ * Sign-in: number and password on one screen, in the same style as the
+ * three-step join flow (`JoinFlow`), which is where accounts are created.
  */
-export function AuthForm({ lang, mode }: { lang: Lang; mode: 'sign-in' | 'sign-up' }) {
+export function AuthForm({ lang }: { lang: Lang }) {
   const t = translator(lang);
   const router = useRouter();
 
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState<{ field: Field; message: string } | null>(null);
+  const [shake, setShake] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   const [state, submit, pending] = useActionState<Result, FormData>(
     async (previous, formData) => {
-      const result = mode === 'sign-up'
-        ? await signUpAction(previous, formData)
-        : await signInAction(previous, formData);
-
+      const result = await signInAction(previous, formData);
       if (result.ok) {
+        setDone(true);
         // Where to go next is a question about access state, which the server
         // already answered. Land on the root and let it route.
         router.replace('/');
+      } else {
+        setShake((n) => n + 1);
       }
       return result;
     },
     null,
   );
 
-  const failedField = state && !state.ok ? state.detail[0] : undefined;
+  const phoneOk = isValidLocalPhone(phone);
+  const serverError = state && !state.ok ? state : null;
 
-  /**
-   * The browser's own constraint messages are in the browser's language, not
-   * the app's — a Gujarati-first screen interrupting in English. Worse, a
-   * client-side block means the request never reaches the server, so someone
-   * who already has an account never sees "sign in instead" and is left
-   * arguing with a character count. These say the useful thing in the right
-   * language; the server still re-validates everything.
-   */
-  const localised = (message: string) => ({
-    onInvalid: (event: React.InvalidEvent<HTMLInputElement>) =>
-      event.currentTarget.setCustomValidity(message),
-    onInput: (event: { currentTarget: HTMLInputElement }) =>
-      event.currentTarget.setCustomValidity(''),
-  });
+  // The server speaks in codes; the one a member actually meets here is said
+  // in their language. Anything else falls back to the server's own wording.
+  const switchedOff = serverError?.detail[0] === 'switched_off';
+  const serverMessage = switchedOff
+    ? t('આ એકાઉન્ટ બંધ કરવામાં આવ્યું છે. કૃપા કરીને સમાજના સ્વયંસેવકને ફોન કરો.', 'This account is switched off. Please call a samaj volunteer.')
+    : serverError?.code === 'forbidden'
+      ? t('મોબાઇલ નંબર અને પાસવર્ડ મેળ ખાતા નથી.', 'That mobile number and password do not match.')
+      : serverError?.message ?? '';
+
+  const error = localError
+    ?? (serverError
+      ? { field: switchedOff ? 'password' : (serverError.detail[0] as Field | undefined) ?? 'password', message: serverMessage }
+      : null);
+
+  const fail = (field: Field, message: string) => {
+    setLocalError({ field, message });
+    setShake((n) => n + 1);
+    (field === 'phone' ? phoneRef : passwordRef).current?.focus();
+  };
+
+  const invalid = (field: Field) => (error?.field === field ? ' invalid' : '');
 
   return (
-    <form action={submit}>
-      <label className="field-label" htmlFor="phone">
-        {t('તમારો મોબાઇલ નંબર', 'Your mobile number')} <span>*</span>
-      </label>
-      <div className="phone-input">
-        <span>+91</span>
-        <input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel-national"
-          maxLength={14}
-          placeholder="98765 43210"
-          aria-invalid={failedField === 'phone'}
-          required
-          {...localised(t(
-            'દસ અંકનો મોબાઇલ નંબર લખો.',
-            'Enter a ten-digit mobile number.',
-          ))}
-        />
-      </div>
-
-      <label className="field-label" htmlFor="password">
-        {t('પાસવર્ડ', 'Password')} <span>*</span>
-      </label>
-      <input
-        className="field"
-        id="password"
-        name="password"
-        type="password"
-        autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-        // Only when choosing one. Enforcing it at sign-in would reject a
-        // perfectly valid existing password for being short.
-        minLength={mode === 'sign-up' ? 8 : undefined}
-        aria-invalid={failedField === 'password'}
-        required
-        {...localised(mode === 'sign-up'
-          ? t(
-            'પાસવર્ડ ઓછામાં ઓછા 8 અક્ષરનો રાખો. પહેલેથી ખાતું હોય તો નીચે “લૉગ ઇન કરો” વાપરો.',
-            'Use at least 8 characters. If you already have an account, use “Log in” below instead.',
-          )
-          : t('પાસવર્ડ લખો.', 'Enter your password.'))}
-      />
-      {mode === 'sign-up' && (
-        <p className="field-hint">
-          {t('ઓછામાં ઓછા 8 અક્ષર.', 'At least 8 characters.')}{' '}
-          <Link href="/sign-in">
-            {t('પહેલેથી ખાતું છે? લૉગ ઇન કરો.', 'Already have an account? Log in.')}
-          </Link>
-        </p>
-      )}
-
-      {mode === 'sign-up' && (
-        <>
-          <label className="field-label" htmlFor="displayName">
-            {t('તમારું નામ', 'Your name')}
-          </label>
-          <input
-            className="field"
-            id="displayName"
-            name="displayName"
-            autoComplete="name"
-            placeholder={t('જેમ કે રાજેશભાઈ', 'For example Rajeshbhai')}
-          />
-          <p className="field-hint">
-            {t(
-              'આ તમારું નામ છે — ઉમેદવારનું નામ પછીના પગલામાં પૂછીશું.',
-              'This is your name. We will ask for the candidate’s name in the next step.',
-            )}
-          </p>
-        </>
-      )}
-
-      {state && !state.ok && (
-        <p role="alert" className="error">
-          <CircleHelp size={17} />
-          {state.message}
-        </p>
-      )}
-
-      <div className="form-foot">
-        <button className="primary" type="submit" disabled={pending}>
-          {pending
-            ? t('રાહ જુઓ…', 'One moment…')
-            : mode === 'sign-up'
-              ? t('ખાતું બનાવો', 'Create account')
-              : t('લૉગ ઇન કરો', 'Log in')}
-          <ArrowRight size={19} />
-        </button>
-        <p>
-          <ShieldCheck size={13} />
-          {t('તમારી માહિતી, તમારી સુરક્ષા.', 'Your information, protected.')}
-        </p>
-      </div>
-
-      <p className="signin">
-        {mode === 'sign-up'
-          ? t('પહેલેથી ખાતું છે?', 'Already have an account?')
-          : t('નવા છો?', 'New here?')}
-        <Link href={mode === 'sign-up' ? '/sign-in' : '/sign-up'}>
-          {mode === 'sign-up' ? t('લૉગ ઇન કરો', 'Log in') : t('ખાતું બનાવો', 'Create one')}
+    <form
+      className="auth"
+      noValidate
+      action={submit}
+      onSubmit={(event) => {
+        if (!phoneOk) {
+          event.preventDefault();
+          return fail('phone', t('દસ અંકનો મોબાઇલ નંબર લખો.', 'Enter a ten-digit mobile number.'));
+        }
+        if (!password) {
+          event.preventDefault();
+          return fail('password', t('પાસવર્ડ લખો.', 'Enter your password.'));
+        }
+        setLocalError(null);
+      }}
+    >
+      <div className="auth-top">
+        <Link className="round-button" href="/" aria-label={t('પાછળ', 'Back')}>
+          <ArrowLeft size={20} />
         </Link>
-      </p>
+        <span className="auth-top-fill" />
+      </div>
+
+      <div className="auth-step from-next">
+        <span className="auth-badge"><LogIn size={26} /></span>
+        <h1>{t('ફરી સ્વાગત છે', 'Welcome back')}</h1>
+        <p className="auth-lead">{t('જે નંબરથી નોંધણી કરી હતી, એ જ નંબર લખો.', 'Use the number you registered with.')}</p>
+      </div>
+
+      {/* The shake alternates between two class names to replay, because
+          remounting would drop focus. */}
+      <div className={`auth-fields${shake ? ` shake${shake % 2 ? '' : ' again'}` : ''}`}>
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="phone">{t('મોબાઇલ નંબર', 'Mobile number')}</label>
+          <div className={`auth-phone${invalid('phone')}${phoneOk ? ' valid' : ''}`}>
+            <span>+91</span>
+            <input
+              ref={phoneRef}
+              id="phone"
+              name="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              enterKeyHint="next"
+              maxLength={14}
+              placeholder="98765 43210"
+              value={phone}
+              onChange={(event) => { setPhone(event.target.value); setLocalError(null); }}
+              aria-invalid={error?.field === 'phone'}
+            />
+            <i className="auth-tick" aria-hidden="true"><Check size={16} strokeWidth={3} /></i>
+          </div>
+
+          <label className="auth-label spaced" htmlFor="password">{t('પાસવર્ડ', 'Password')}</label>
+          <div className={`auth-input${invalid('password')}`}>
+            <input
+              ref={passwordRef}
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              enterKeyHint="go"
+              value={password}
+              onChange={(event) => { setPassword(event.target.value); setLocalError(null); }}
+              aria-invalid={error?.field === 'password'}
+            />
+            <button
+              type="button"
+              className="auth-eye"
+              aria-label={showPassword ? t('પાસવર્ડ છુપાવો', 'Hide password') : t('પાસવર્ડ બતાવો', 'Show password')}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((s) => !s)}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="auth-error">
+            <CircleHelp size={18} />
+            <span>{error.message}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="auth-actions">
+        <button className={`cta${done ? ' done' : ''}`} type="submit" disabled={pending || done}>
+          {done ? (
+            <Check size={24} strokeWidth={3} className="cta-check" />
+          ) : pending ? (
+            <><span className="cta-spinner" aria-hidden="true" />{t('રાહ જુઓ…', 'One moment…')}</>
+          ) : (
+            <>{t('લૉગ ઇન કરો', 'Log in')}<ArrowRight size={20} /></>
+          )}
+        </button>
+
+        <p className="auth-switch">
+          {t('નવા છો?', 'New here?')} <Link href="/register">{t('નોંધણી કરો', 'Register')}</Link>
+        </p>
+
+        <p className="auth-note muted">
+          {t(
+            'પાસવર્ડ ભૂલી ગયા? સમાજના સ્વયંસેવકનો સંપર્ક કરો.',
+            'Forgot your password? Call a samaj volunteer.',
+          )}{' '}
+          <Link href="/support">{t('કોને ફોન કરવો', 'Who to call')}</Link>
+        </p>
+      </div>
     </form>
   );
 }

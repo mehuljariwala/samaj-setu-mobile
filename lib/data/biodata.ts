@@ -132,7 +132,7 @@ export type OpenRevision = {
   issues: Tables<'revision_field_issues'>[];
   /** The identity-verified core, shown above the form and not editable in it. */
   candidate: Pick<Tables<'candidates'>,
-    'id' | 'full_name' | 'date_of_birth' | 'father_name' | 'city'>;
+    'id' | 'full_name' | 'date_of_birth' | 'father_name' | 'city' | 'gender'>;
 };
 
 /** Everything the biodata screen needs: the draft, its issues, and the state. */
@@ -170,7 +170,7 @@ export async function getEditableBiodata(candidateId: string): Promise<OpenRevis
   const candidate = unwrap(
     await supabase
       .from('candidates')
-      .select('id, full_name, date_of_birth, father_name, city')
+      .select('id, full_name, date_of_birth, father_name, city, gender')
       .eq('id', candidateId)
       .single(),
   );

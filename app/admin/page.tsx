@@ -1,17 +1,29 @@
 import Link from 'next/link';
-import { ChevronRight, Clock3, FileCheck2, Shield, UserRound, Users } from 'lucide-react';
+import {
+  AlarmClock, ChevronRight, CopyCheck, FileCheck2, FileWarning, Hourglass, MapPin, Pencil, RotateCcw,
+  Search, Shield, Sparkles, UserRound, Users,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
+import { AdminCaughtUpArt } from '@/components/onboarding/art';
 import { loadAdminPage } from '@/lib/data/guards';
 import { getDashboard, getRegistrationQueue } from '@/lib/data/admin';
+import { applicationStatusLabel, reviewSla, slaLabel } from '@/lib/admin-labels';
 import { timeAgo, translator } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
 const OPEN: Enums<'application_status'>[] = ['submitted', 'under_review', 'correction_requested'];
+const WAITING_ON_US: Enums<'application_status'>[] = ['submitted', 'under_review'];
+
+type Tab = 'open' | 'overdue' | 'correction' | 'all';
 
 /**
  * Spec §10's dashboard and registration queue: open work, approaching and
  * overdue targets, and corrections awaiting resubmission.
+ *
+ * Drawn in the onboarding style: one pastel panel that says how the day looks,
+ * tiles that are also the filters, and a queue where each family's place
+ * against the 24-hour target is a bar you can read at a glance.
  *
  * The queue never shows a certificate — not as a thumbnail, not as a filename.
  * It shows only that one exists.
@@ -25,123 +37,226 @@ export default async function AdminPage({
   const params = await searchParams;
   const t = translator(lang);
 
-  const tab = params.tab === 'all' ? 'all' : 'open';
+  const tab: Tab = params.tab === 'all' || params.tab === 'overdue' || params.tab === 'correction'
+    ? params.tab
+    : 'open';
   const query = typeof params.q === 'string' ? params.q : undefined;
 
   const [dashboard, queue] = await Promise.all([
     getDashboard(),
-    getRegistrationQueue({ statuses: tab === 'open' ? OPEN : undefined, query }),
+    getRegistrationQueue({
+      statuses: tab === 'all' ? undefined
+        : tab === 'correction' ? ['correction_requested']
+          : tab === 'overdue' ? WAITING_ON_US
+            : OPEN,
+      overdueOnly: tab === 'overdue',
+      query,
+    }),
   ]);
+
+  const { verification } = dashboard;
+  const waiting = verification.open;
+  const mood = verification.overdue > 0 ? 'bad' : verification.approaching > 0 ? 'gold' : waiting > 0 ? 'rose' : 'green';
+  const firstName = context.account?.display_name?.split(' ')[0];
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: 'open', label: t('બાકી', 'To do'), count: verification.open + verification.awaiting_resubmission },
+    { key: 'overdue', label: t('મોડું', 'Overdue'), count: verification.overdue },
+    { key: 'correction', label: t('સુધારો', 'Corrections'), count: verification.awaiting_resubmission },
+    { key: 'all', label: t('બધી', 'All') },
+  ];
+  const hrefFor = (key: Tab) => (key === 'open' ? '/admin' : `/admin?tab=${key}`);
 
   return (
     <AppShell lang={lang} context={context} admin>
-      <section className="screen-pad">
-        <div className="page-title">
-          <span className="eyebrow">{t('સમાજના વિશ્વાસની સંભાળ', 'Looking after our community')}</span>
-          <h1>{t('નોંધણી સમીક્ષા', 'Registration review')}</h1>
-          <p>{t('દરેક નવી શરૂઆત પાછળ એક પરિવાર છે.', 'Behind every application is a family.')}</p>
+      <section className={`admin-screen tone-${mood}`}>
+        {/* How the day looks, in one sentence and one number. */}
+        <div className="admin-hero">
+          <div className="admin-hero-copy">
+            <span className="admin-hello">
+              <Sparkles size={15} />
+              {firstName ? t(`નમસ્તે, ${firstName}`, `Namaste, ${firstName}`) : t('નમસ્તે', 'Namaste')}
+            </span>
+            <h1>
+              {waiting === 0
+                ? t('આજનું કામ પૂરું!', 'All caught up!')
+                : waiting === 1
+                  ? t('1 પરિવાર રાહ જુએ છે', '1 family is waiting')
+                  : t(`${waiting} પરિવાર રાહ જુએ છે`, `${waiting} families are waiting`)}
+            </h1>
+            <p>
+              {verification.overdue > 0
+                ? t(`${verification.overdue} અરજી 24 કલાકથી વધુ જૂની છે — પહેલાં તે જુઓ.`, `${verification.overdue} past the 24-hour target — start there.`)
+                : verification.approaching > 0
+                  ? t(`${verification.approaching} અરજીની મુદત નજીક છે.`, `${verification.approaching} close to the 24-hour target.`)
+                  : waiting > 0
+                    ? t('બધી અરજી સમયમર્યાદામાં છે.', 'Everything is inside the 24-hour target.')
+                    : t('નવી અરજી આવશે ત્યારે અહીં દેખાશે.', 'New applications will appear here.')}
+            </p>
+          </div>
+          <span className="admin-dial" aria-hidden="true">
+            {verification.overdue > 0 && <span className="art-ripple" />}
+            <b>{waiting}</b>
+            <small>{t('બાકી', 'open')}</small>
+          </span>
         </div>
 
-        <div className="admin-stats">
-          <div className={dashboard.verification.open > 0 ? 'hot' : ''}>
-            <b>{dashboard.verification.open}</b>
-            <span>{t('બાકી', 'Open')}</span>
-          </div>
-          <div className={dashboard.verification.overdue > 0 ? 'hot' : ''}>
-            <b>{dashboard.verification.overdue}</b>
-            <span>{t('મુદત વીતી', 'Overdue')}</span>
-          </div>
-          <div>
-            <b>{dashboard.verification.awaiting_resubmission}</b>
-            <span>{t('સુધારો', 'Correction')}</span>
-          </div>
-          <div>
-            <b>{dashboard.duplicates_open}</b>
-            <span>{t('ડુપ્લિકેટ', 'Duplicates')}</span>
-          </div>
+        {/* The numbers double as filters, so a tap on "Overdue" is the list. */}
+        <div className="admin-tiles">
+          <Link href={hrefFor('overdue')} className={`admin-tile bad${verification.overdue ? ' hot' : ''}`} style={{ '--i': 0 } as React.CSSProperties}>
+            <span><AlarmClock size={18} /></span>
+            <b>{verification.overdue}</b>
+            <small>{t('મોડું', 'Overdue')}</small>
+          </Link>
+          <Link href={hrefFor('open')} className={`admin-tile gold${verification.approaching ? ' hot' : ''}`} style={{ '--i': 1 } as React.CSSProperties}>
+            <span><Hourglass size={18} /></span>
+            <b>{verification.approaching}</b>
+            <small>{t('મુદત નજીક', 'Due soon')}</small>
+          </Link>
+          <Link href={hrefFor('correction')} className="admin-tile warn" style={{ '--i': 2 } as React.CSSProperties}>
+            <span><Pencil size={17} /></span>
+            <b>{verification.awaiting_resubmission}</b>
+            <small>{t('સુધારાની રાહ', 'Awaiting fix')}</small>
+          </Link>
+          <Link href="/admin/publication" className="admin-tile rose" style={{ '--i': 3 } as React.CSSProperties}>
+            <span><FileCheck2 size={18} /></span>
+            <b>{dashboard.publication.open}</b>
+            <small>{t('બાયોડેટા', 'Biodata')}</small>
+          </Link>
         </div>
 
-        <div className="sla">
-          <Clock3 size={16} />
-          {t('દરેક અરજીની સમીક્ષા 24 કલાકમાં કરવાનો લક્ષ્ય', 'Aim to review every application within 24 hours')}
-        </div>
+        <Link className="admin-link-row" href="/admin/users">
+          <span className="admin-account-icon"><Users size={18} /></span>
+          <span>
+            <b>{t('યુઝર મેનેજમેન્ટ', 'User management')}</b>
+            <small>{t('ચાલુ / બંધ / બ્લૉક, પાસવર્ડ રીસેટ, પ્રવૃત્તિ', 'Enable, disable, block, reset passwords, activity')}</small>
+          </span>
+          <ChevronRight size={19} />
+        </Link>
 
-        <div className="chips">
-          <Link className={`chip ${tab === 'open' ? 'on' : ''}`} href="/admin">
-            {t('ખુલ્લી', 'Needs action')}
-          </Link>
-          <Link className={`chip ${tab === 'all' ? 'on' : ''}`} href="/admin?tab=all">
-            {t('બધી નોંધણી', 'All registrations')}
-          </Link>
-          <Link className="chip ghost" href="/admin/publication">
-            {t('બાયોડેટા સમીક્ષા', 'Biodata review')} {dashboard.publication.open}
-          </Link>
-        </div>
+        {dashboard.duplicates_open > 0 && (
+          <p className="admin-alert">
+            <CopyCheck size={18} />
+            {t(
+              `${dashboard.duplicates_open} સંભવિત ડુપ્લિકેટ ઉકેલવાના બાકી છે — ત્યાં સુધી તે અરજી મંજૂર થઈ શકશે નહીં.`,
+              `${dashboard.duplicates_open} possible duplicate(s) to resolve — those applications can’t be approved until then.`,
+            )}
+          </p>
+        )}
+
+        {/* A plain GET form: works without JavaScript, and the URL is the state. */}
+        <search>
+          <form className="admin-search" action="/admin">
+            {tab !== 'open' && <input type="hidden" name="tab" value={tab} />}
+            <Search size={19} />
+            <input
+              name="q"
+              type="search"
+              defaultValue={query}
+              placeholder={t('નામ, SS-કોડ અથવા નંબર શોધો', 'Search name, SS-code or phone')}
+              aria-label={t('શોધો', 'Search')}
+              enterKeyHint="search"
+            />
+          </form>
+        </search>
+
+        <nav className="admin-tabs" aria-label={t('નોંધણી ફિલ્ટર', 'Registration filter')}>
+          {tabs.map((item) => (
+            <Link
+              key={item.key}
+              href={hrefFor(item.key) + (query ? `${item.key === 'open' ? '?' : '&'}q=${encodeURIComponent(query)}` : '')}
+              className={tab === item.key ? 'on' : undefined}
+              aria-current={tab === item.key ? 'page' : undefined}
+            >
+              {item.label}
+              {item.count ? <i>{item.count}</i> : null}
+            </Link>
+          ))}
+        </nav>
+
+        {queue.length === 0 ? (
+          <div className="admin-empty">
+            <div className="admin-empty-stage"><AdminCaughtUpArt /></div>
+            <h2>
+              {query
+                ? t('કોઈ મળ્યું નહીં', 'No one found')
+                : t('બધું પૂરું થઈ ગયું', 'You’re all caught up')}
+            </h2>
+            <p>
+              {query
+                ? t(`“${query}” માટે કોઈ અરજી નથી.`, `No application matches “${query}”.`)
+                : t('નવી અરજી આવશે ત્યારે અહીં દેખાશે.', 'New applications appear here as they arrive.')}
+            </p>
+            {query && <Link className="intro-login" href={hrefFor(tab)}><RotateCcw size={17} /><b>{t('શોધ સાફ કરો', 'Clear search')}</b></Link>}
+          </div>
+        ) : (
+          <ul className="admin-queue">
+            {queue.map((row, i) => {
+              const sla = row.status === 'correction_requested'
+                ? { state: 'none' as const, hours: 0, used: 0 }
+                : reviewSla(row.submitted_at, row.review_due_at, row.overdue);
+              return (
+                <li key={row.application_id!} style={{ '--i': Math.min(i, 8) } as React.CSSProperties}>
+                  <Link className={`admin-row sla-${sla.state}`} href={`/admin/registrations/${row.application_id}`}>
+                    <div className="admin-row-top">
+                      <span className="avatar">{row.full_name?.charAt(0)}</span>
+                      <span className="admin-row-name">
+                        <b>{row.full_name}</b>
+                        <small>{row.public_code} · {timeAgo(row.submitted_at, lang)}</small>
+                      </span>
+                      {sla.state !== 'none' ? (
+                        <span className="admin-sla">{sla.state === 'overdue' ? <AlarmClock size={14} /> : <Hourglass size={14} />}{slaLabel(t, sla)}</span>
+                      ) : (
+                        <span className="admin-status">{applicationStatusLabel(t, row.status)}</span>
+                      )}
+                      <ChevronRight size={19} className="admin-row-go" />
+                    </div>
+
+                    {sla.state !== 'none' && (
+                      <span className="admin-bar" aria-hidden="true">
+                        <i style={{ '--used': sla.used } as React.CSSProperties} />
+                      </span>
+                    )}
+
+                    <div className="admin-facts">
+                      {row.city && <span><MapPin size={13} />{row.city}</span>}
+                      <span>
+                        <Users size={13} />
+                        {row.relationship === 'self' ? t('પોતે', 'Self') : t('વાલી દ્વારા', 'By a parent')}
+                      </span>
+                      <span className={row.has_certificate ? 'ok' : 'bad'}>
+                        {row.has_certificate ? <FileCheck2 size={13} /> : <FileWarning size={13} />}
+                        {row.has_certificate ? t('દસ્તાવેજ', 'Documents') : t('પ્રમાણપત્ર નથી', 'No certificate')}
+                      </span>
+                      {(row.open_duplicates ?? 0) > 0 && (
+                        <span className="bad"><CopyCheck size={13} />{t('ડુપ્લિકેટ', 'Duplicate')} {row.open_duplicates}</span>
+                      )}
+                      {(row.resubmit_count ?? 0) > 0 && (
+                        <span><RotateCcw size={13} />{t(`${row.resubmit_count}× ફરી`, `Resent ${row.resubmit_count}×`)}</span>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
         {/* Approved but invisible is the queue most easily forgotten. */}
         {dashboard.publication.awaiting_consent > 0 && (
-          <div className="note">
-            <Users size={19} />
-            <p>
-              {t(
-                `${dashboard.publication.awaiting_consent} પ્રોફાઇલ મંજૂર છે પણ ઉમેદવારની સંમતિ બાકી હોવાથી દેખાતી નથી.`,
-                `${dashboard.publication.awaiting_consent} profile(s) are approved but invisible, waiting on the candidate’s own consent.`,
-              )}
-            </p>
-          </div>
+          <p className="admin-alert soft">
+            <UserRound size={18} />
+            {t(
+              `${dashboard.publication.awaiting_consent} પ્રોફાઇલ મંજૂર છે પણ ઉમેદવારની સંમતિ બાકી હોવાથી દેખાતી નથી.`,
+              `${dashboard.publication.awaiting_consent} profile(s) are approved but invisible, waiting on the candidate’s own consent.`,
+            )}
+          </p>
         )}
 
-        {queue.length === 0 ? (
-          <div className="empty">
-            <UserRound size={34} />
-            <h3>{t('બાકી સમીક્ષા પૂર્ણ થઈ', 'You’re all caught up')}</h3>
-            <p>{t('નવી અરજી આવશે ત્યારે અહીં દેખાશે.', 'New applications appear here as they arrive.')}</p>
-          </div>
-        ) : (
-          queue.map((row) => (
-            <Link className="queue-card card" key={row.application_id!} href={`/admin/registrations/${row.application_id}`}>
-              <div className="queue-top">
-                <span className="avatar">{row.full_name?.charAt(0)}</span>
-                <span>
-                  <b>{row.full_name}</b>
-                  <small>{row.public_code}</small>
-                </span>
-                <ChevronRight size={19} />
-              </div>
-              <div className="queue-facts">
-                <span>
-                  <Users size={14} />
-                  {row.relationship === 'self'
-                    ? t('સ્વયં નોંધણી', 'Self registration')
-                    : t('વાલી દ્વારા', 'Registered by a parent')}
-                </span>
-                <span>
-                  <FileCheck2 size={14} />
-                  {row.has_certificate
-                    ? t('પ્રમાણપત્ર જોડાયેલું', 'Certificate attached')
-                    : t('પ્રમાણપત્ર નથી', 'No certificate')}
-                </span>
-                {(row.open_duplicates ?? 0) > 0 && (
-                  <span><Shield size={14} />{t('ડુપ્લિકેટ', 'Duplicate')} {row.open_duplicates}</span>
-                )}
-              </div>
-              <div className="queue-foot">
-                <span className={`badge ${row.overdue ? 'rejected' : 'pending'}`}>
-                  {row.overdue ? t('મુદત વીતી', 'Overdue') : row.status}
-                </span>
-                <span>{timeAgo(row.submitted_at, lang)}</span>
-              </div>
-            </Link>
-          ))
-        )}
-
-        <div className="trust-card neutral">
-          <Shield size={24} strokeWidth={1.5} />
-          <div>
-            <h3>{t('ખાનગી દસ્તાવેજો', 'Private documents')}</h3>
-            <p>{t('પ્રમાણપત્ર ફક્ત ચકાસણી માટે ખોલો. દરેક વખત નોંધાય છે.', 'Open a certificate only to verify. Every time is recorded.')}</p>
-          </div>
-        </div>
+        <p className="admin-privacy">
+          <Shield size={15} />{' '}
+          {t('દસ્તાવેજ ફક્ત ચકાસણી માટે ખોલો. દરેક વખત નોંધાય છે.', 'Open documents only to verify. Every view is recorded.')}
+        </p>
       </section>
     </AppShell>
   );

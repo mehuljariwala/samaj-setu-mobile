@@ -36,11 +36,11 @@ export function TabBar({ lang, pendingInterests }: { lang: Lang; pendingInterest
             className={active ? 'active' : ''}
             aria-current={active ? 'page' : undefined}
           >
-            <Icon size={21} strokeWidth={active ? 2.2 : 1.7} />
-            <span>
-              {label}
-              {count ? ` ${count}` : ''}
+            <span className="tab-icon">
+              <Icon size={21} strokeWidth={active ? 2.2 : 1.7} />
+              {count ? <i aria-label={t(`${count} બાકી`, `${count} waiting`)}>{count > 9 ? '9+' : count}</i> : null}
             </span>
+            <span>{label}</span>
           </Link>
         );
       })}

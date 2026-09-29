@@ -69,7 +69,7 @@ export function LinkExistingForm({ lang }: { lang: Lang }) {
         <p role="alert" className="error"><CircleHelp size={17} />{state.message}</p>
       )}
 
-      <button className="primary" type="submit" disabled={pending}>
+      <button className="cta" type="submit" disabled={pending}>
         {t('ઍક્સેસ માટે વિનંતી કરો', 'Request access')}
         <ArrowRight size={18} />
       </button>

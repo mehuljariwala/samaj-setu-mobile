@@ -20,11 +20,11 @@ export function TrustCredit({ lang }: { lang: Lang }) {
       <p>
         {t('સહયોગ: ', 'Supported by ')}
         <b>{t(TRUST.name.gu, TRUST.name.en)}</b>
-        {TRUST.registrationNumber && (
+        {TRUST.registrationNumber.gu && (
           <>
             <br />
-            {t('રજિ. નં. ', 'Reg. No. ')}
-            {TRUST.registrationNumber}
+            {t('રજી. નં.: ', 'Reg. No. ')}
+            {t(TRUST.registrationNumber.gu, TRUST.registrationNumber.en)}
           </>
         )}
       </p>

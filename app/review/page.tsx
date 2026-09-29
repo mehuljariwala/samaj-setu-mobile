@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  ArrowRight, Bell, Check, CircleHelp, Clock3, FileText, Pencil, ShieldCheck,
+  ArrowRight, Bell, Check, CircleHelp, Clock3, LockKeyhole, Pencil, ShieldCheck, X,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
+import { ReviewArt, type ReviewState } from '@/components/onboarding/art';
+import { AutoRefresh } from '@/components/onboarding/auto-refresh';
 import { loadApplicantPage } from '@/lib/data/guards';
 import { timeAgo, translator } from '@/lib/i18n';
 import type { CandidateSummary } from '@/lib/data/session';
@@ -31,7 +33,7 @@ export default async function ReviewPage() {
   const status = application?.status ?? 'draft';
   const overdue = application?.overdue ?? false;
 
-  const tone =
+  const tone: ReviewState =
     candidate.identity_status === 'verified' ? 'approved'
       : status === 'correction_requested' ? 'correction'
         : status === 'rejected' ? 'rejected'
@@ -68,103 +70,155 @@ export default async function ReviewPage() {
       ),
   }[tone];
 
+  // Spec §10: a correction names the fields, so the applicant knows what to
+  // change rather than re-reading the whole form.
+  const fieldName: Record<string, string> = {
+    full_name: t('પૂરું નામ', 'Full name'),
+    date_of_birth: t('જન્મ તારીખ', 'Date of birth'),
+    father_name: t('પિતાનું નામ', 'Father’s name'),
+    city: t('શહેર', 'City'),
+    birth_certificate: t('જન્મ પ્રમાણપત્ર', 'Birth certificate'),
+    identity_document: t('આધાર / મતદાર કાર્ડ', 'Aadhaar / Voter ID'),
+  };
+  const corrections = tone === 'correction' ? application?.correction_fields ?? [] : [];
+
+  // Three steps, so a family can see there is exactly one wait between them
+  // and the biodata — not an open-ended queue.
+  const reviewStep = {
+    approved: { state: 'done', note: t('ઓળખ ચકાસાઈ ગઈ', 'Identity verified') },
+    correction: { state: 'act', note: t('તમારા સુધારાની રાહ છે', 'Waiting for your update') },
+    rejected: { state: 'stop', note: t('મંજૂર થઈ શકી નથી', 'Not approved') },
+    pending: {
+      state: 'now',
+      note: overdue
+        ? t('ધાર્યા કરતાં વધુ સમય — એડમિનને જાણ કરી છે', 'Taking longer — an admin has been alerted')
+        : t('સામાન્ય રીતે 24 કલાકમાં', 'Usually within 24 hours'),
+    },
+  }[tone];
+
+  const steps = [
+    {
+      state: 'done',
+      title: t('વિગતો અને દસ્તાવેજ મળ્યાં', 'Details & documents received'),
+      note: t('જન્મ પ્રમાણપત્ર અને ફોટો ઓળખપત્ર — ફક્ત એડમિન જુએ છે', 'Birth certificate and photo ID — only an admin sees them'),
+    },
+    { state: reviewStep.state, title: t('એડમિન સમીક્ષા', 'Admin review'), note: reviewStep.note },
+    ...(tone === 'rejected' ? [] : [{
+      state: tone === 'approved' ? 'open' : 'next',
+      title: t('બાયોડેટા અને મેળ', 'Biodata & matches'),
+      note: tone === 'approved'
+        ? t('હવે ખુલ્લું છે', 'Open now')
+        : t('મંજૂરી મળતાં જ ખુલશે', 'Opens the moment you’re approved'),
+    }]),
+  ];
+
+  const stepIcon = (state: string) =>
+    state === 'done' ? <Check size={16} strokeWidth={3} />
+      : state === 'now' ? <Clock3 size={16} strokeWidth={2.4} />
+        : state === 'open' ? <ArrowRight size={16} strokeWidth={2.8} />
+          : state === 'act' ? <Pencil size={14} strokeWidth={2.6} />
+            : state === 'stop' ? <X size={16} strokeWidth={3} />
+              : <LockKeyhole size={14} strokeWidth={2.4} />;
+
+  const toneClass = { approved: 'green', correction: 'warn', rejected: 'bad', pending: 'gold' }[tone];
+
   return (
     <AppShell lang={lang} context={context}>
-      <section>
-        <div className="status-hero">
-          <div className={`status-ring ${tone}`}>
-            {tone === 'approved' ? <ShieldCheck size={40} strokeWidth={1.4} />
-              : tone === 'pending' ? <Clock3 size={40} strokeWidth={1.4} />
-                : tone === 'correction' ? <Pencil size={34} />
-                  : <FileText size={34} />}
-          </div>
-          <span className={`badge ${tone}`}>{badge}</span>
+      {/* Waiting is the only state that changes without the member doing
+          anything, so only then does the screen keep checking. */}
+      {tone === 'pending' && <AutoRefresh />}
+
+      <section className={`review-screen tone-${toneClass}`}>
+        <div className="review-stage">
+          <ReviewArt state={tone} />
+        </div>
+
+        <div className="review-copy">
+          <span className={`review-badge ${tone}`}>
+            <i />
+            {badge}
+          </span>
           <h1>{headline}</h1>
           <p>{body}</p>
         </div>
 
-        <div className="screen-pad">
-          <div className="card row-card">
-            <span className="avatar">{candidate.full_name.charAt(0)}</span>
-            <div>
-              <b>{candidate.full_name}</b>
-              <small>
-                {t('અરજી નંબર', 'Application')} {candidate.public_code}
-                {application?.submitted_at ? ` · ${timeAgo(application.submitted_at, lang)}` : ''}
-              </small>
-            </div>
-            <ShieldCheck size={21} className="ok-icon" />
+        <div className="review-card">
+          <span className="avatar">{candidate.full_name.charAt(0)}</span>
+          <div>
+            <b>{candidate.full_name}</b>
+            <small>
+              {candidate.public_code}
+              {application?.submitted_at ? ` · ${t('મોકલી', 'Sent')} ${timeAgo(application.submitted_at, lang)}` : ''}
+            </small>
           </div>
+          {tone !== 'rejected' && <ShieldCheck size={22} />}
+        </div>
 
-          <div className="timeline">
-            <div className="done">
-              <span><Check size={15} /></span>
+        <ol className="review-steps">
+          {steps.map((step, i) => (
+            <li key={step.title} className={step.state} style={{ '--i': i } as React.CSSProperties}>
+              <span>{stepIcon(step.state)}</span>
               <div>
-                <b>{t('વિગતો અને પ્રમાણપત્ર મળ્યાં', 'Details & certificate received')}</b>
-                <small>{t('ચકાસણી માટે સુરક્ષિત રીતે રજૂ કર્યું', 'Submitted for private verification')}</small>
+                <b>{step.title}</b>
+                <small>{step.note}</small>
               </div>
-            </div>
-            <div className={tone === 'approved' ? 'done' : 'now'}>
-              <span>{tone === 'approved' ? <Check size={15} /> : <Clock3 size={15} />}</span>
-              <div>
-                <b>{t('એડમિન સમીક્ષા', 'Admin review')}</b>
-                <small>{badge}</small>
-              </div>
-            </div>
+            </li>
+          ))}
+        </ol>
+
+        {corrections.length > 0 && (
+          <div className="review-fix">
+            <p>{t('આ વિગતો સુધારવાની છે', 'These need changing')}</p>
+            <ul>
+              {corrections.map((field) => <li key={field}><Pencil size={13} />{fieldName[field] ?? field}</li>)}
+            </ul>
           </div>
+        )}
 
-          {/* Spec §10: a correction names the fields, so the applicant knows
-              what to change rather than re-reading the whole form. */}
-          {tone === 'correction' && (application?.correction_fields.length ?? 0) > 0 && (
-            <div className="note">
-              <Pencil size={18} />
-              <p>
-                {t('આ વિગતો સુધારવાની છે: ', 'These details need changing: ')}
-                <b>{application!.correction_fields.join(', ')}</b>
-              </p>
-            </div>
-          )}
+        {/* A parent's other children each carry their own state (spec §2). */}
+        {context.candidates.length > 1 && (
+          <div className="review-others">
+            <p>{t('તમારા અન્ય ઉમેદવારો', 'Your other candidates')}</p>
+            {context.candidates
+              .filter((entry) => entry.id !== candidate.id)
+              .map((entry) => (
+                <div className="review-card small" key={entry.id}>
+                  <span className="avatar">{entry.full_name.charAt(0)}</span>
+                  <div>
+                    <b>{entry.full_name}</b>
+                    <small>{entry.public_code} · {entry.identity_status}</small>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
 
+        <div className="review-actions">
           {tone === 'approved' ? (
-            <Link className="primary" href="/home">
+            <Link className="cta" href="/home">
               {t('હોમ પર જાઓ', 'Go to member home')}
-              <ArrowRight size={19} />
+              <ArrowRight size={20} />
             </Link>
           ) : tone === 'correction' ? (
-            <Link className="primary" href="/register">
+            <Link className="cta" href="/register">
               {t('વિગતો સુધારો', 'Update details')}
-              <Pencil size={17} />
+              <ArrowRight size={20} />
             </Link>
-          ) : (
-            <div className="note">
+          ) : tone === 'pending' ? (
+            <p className="review-note">
               <Bell size={18} />
-              <p>{t('સ્થિતિ અહીં અપડેટ થશે. ફરી નોંધણી કરવાની જરૂર નથી.', 'Your status will update here. There’s no need to register again.')}</p>
-            </div>
-          )}
+              {t(
+                'સ્થિતિ અહીં આપોઆપ અપડેટ થશે. ફરી નોંધણી કરવાની જરૂર નથી.',
+                'This screen updates by itself. There’s no need to register again.',
+              )}
+            </p>
+          ) : null}
 
-          {/* A parent's other children each carry their own state (spec §2). */}
-          {context.candidates.length > 1 && (
-            <>
-              <div className="section-head">
-                <h2>{t('તમારા અન્ય ઉમેદવારો', 'Your other candidates')}</h2>
-              </div>
-              {context.candidates
-                .filter((entry) => entry.id !== candidate.id)
-                .map((entry) => (
-                  <div className="card row-card" key={entry.id}>
-                    <span className="avatar">{entry.full_name.charAt(0)}</span>
-                    <div>
-                      <b>{entry.full_name}</b>
-                      <small>{entry.public_code} · {entry.identity_status}</small>
-                    </div>
-                  </div>
-                ))}
-            </>
-          )}
-
-          <Link className="text-button muted center" href="/support">
-            <CircleHelp size={16} />
-            {t('મદદ જોઈએ છે?', 'Need a hand?')}
+          <Link className="intro-login" href="/support">
+            <CircleHelp size={18} />
+            <span>
+              {t('કોઈ પ્રશ્ન છે?', 'Any questions?')} <b>{t('સ્વયંસેવકને ફોન કરો', 'Call a volunteer')}</b>
+            </span>
           </Link>
         </div>
       </section>

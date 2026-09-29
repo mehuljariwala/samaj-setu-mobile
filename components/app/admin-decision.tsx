@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, CheckCheck, CircleHelp, Pencil, Send } from 'lucide-react';
+import { Check, CheckCheck, CircleHelp, Pencil, Send, ShieldCheck, X } from 'lucide-react';
 
 import { decideBiodataAction, decideRegistrationAction, resolveDuplicateAction } from '@/app/actions/admin';
 import type { ActionResult } from '@/lib/data/errors';
@@ -36,7 +36,7 @@ export function RegistrationDecision({
   /** Moderators may request corrections; approving and rejecting need admin. */
   canDecide: boolean;
   openDuplicates: number;
-  fields: string[];
+  fields: { value: string; label: string }[];
 }) {
   const t = translator(lang);
   const router = useRouter();
@@ -46,6 +46,7 @@ export function RegistrationDecision({
   const [note, setNote] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
 
   const needsReason = action === 'request_correction' || action === 'reject';
   const needsFields = action === 'request_correction';
@@ -53,8 +54,32 @@ export function RegistrationDecision({
     && (!needsReason || reason.trim().length > 0)
     && (!needsFields || selected.length > 0);
 
+  // Each choice says what it does, so the guide card is no longer needed:
+  // the explanation sits on the thing you are about to press.
+  const choices: { key: Action; tone: string; Icon: typeof Check; title: string; body: string; disabled: boolean }[] = [
+    {
+      key: 'approve', tone: 'ok', Icon: ShieldCheck,
+      title: t('મંજૂર કરો', 'Approve'),
+      body: t('સભ્યપદ ખૂલે છે. બાયોડેટાની સમીક્ષા અલગ થશે.', 'Unlocks membership. Biodata is reviewed separately.'),
+      disabled: !canDecide || openDuplicates > 0,
+    },
+    {
+      key: 'request_correction', tone: 'warn', Icon: Pencil,
+      title: t('સુધારો માંગો', 'Ask for a fix'),
+      body: t('અરજદાર વિગતો સુધારીને ફરી મોકલશે.', 'They update the details and send again.'),
+      disabled: false,
+    },
+    {
+      key: 'reject', tone: 'bad', Icon: X,
+      title: t('નામંજૂર', 'Reject'),
+      body: t('ઍક્સેસ બંધ રહેશે; કારણ તેમને દેખાશે.', 'Access stays locked; they see your reason.'),
+      disabled: !canDecide,
+    },
+  ];
+
   function submit() {
     if (!action) return;
+    setError('');
     start(async () => {
       const result: ActionResult<unknown> = await decideRegistrationAction({
         applicationId,
@@ -64,114 +89,138 @@ export function RegistrationDecision({
         fields: selected,
         internalNote: note.trim() || undefined,
       });
-      if (result.ok) router.push('/admin');
-      else setError(result.message);
+      if (result.ok) {
+        setDone(true);
+        router.push('/admin');
+      } else {
+        setError(result.message);
+      }
     });
   }
 
   return (
-    <>
-      <div className="decision-guide card">
-        <h3>{t('નિર્ણય પછી શું થશે?', 'What each decision does')}</h3>
-        <p><b>{t('મંજૂર:', 'Approve:')}</b> {t('સભ્યને ઍક્સેસ મળશે. બાયોડેટાની અલગ સમીક્ષા થશે.', 'Unlocks member access. Biodata is reviewed separately.')}</p>
-        <p><b>{t('સુધારો:', 'Correction:')}</b> {t('અરજદાર વિગતો સુધારી ફરી મોકલશે.', 'The applicant updates details and resubmits.')}</p>
-        <p><b>{t('નામંજૂર:', 'Reject:')}</b> {t('ઍક્સેસ બંધ રહેશે અને કારણ દેખાશે.', 'Access stays locked and the reason is shown.')}</p>
-      </div>
+    <div className="decide">
+      <h2 className="admin-h2">{t('તમારો નિર્ણય', 'Your decision')}</h2>
 
       {openDuplicates > 0 && (
-        <div className="note">
-          <CircleHelp size={19} />
-          <p>
-            {t(
-              `${openDuplicates} સંભવિત ડુપ્લિકેટ પહેલાં ઉકેલવા જરૂરી છે. ત્યાં સુધી મંજૂરી આપી શકાશે નહીં.`,
-              `${openDuplicates} possible duplicate(s) must be resolved first. Approval is blocked until then.`,
-            )}
-          </p>
-        </div>
+        <p className="admin-alert">
+          <CircleHelp size={18} />
+          {t(
+            `${openDuplicates} સંભવિત ડુપ્લિકેટ પહેલાં ઉકેલવા જરૂરી છે. ત્યાં સુધી મંજૂરી આપી શકાશે નહીં.`,
+            `${openDuplicates} possible duplicate(s) must be resolved first. Approval is blocked until then.`,
+          )}
+        </p>
       )}
 
-      <div className="admin-actions">
-        <button
-          className="primary"
-          disabled={!canDecide || openDuplicates > 0 || pending}
-          onClick={() => setAction('approve')}
-        >
-          <Check size={19} />
-          {t('મંજૂર કરો', 'Approve application')}
-        </button>
-        <button className="secondary" disabled={pending} onClick={() => setAction('request_correction')}>
-          <Pencil size={16} />
-          {t('સુધારો માંગો', 'Request correction')}
-        </button>
-        <button className="reject-button" disabled={!canDecide || pending} onClick={() => setAction('reject')}>
-          {t('અરજી નામંજૂર કરો', 'Reject application')}
-        </button>
+      <div className="decide-choices" role="radiogroup" aria-label={t('નિર્ણય', 'Decision')}>
+        {choices.map(({ key, tone, Icon, title, body, disabled }) => (
+          <label key={key} className={`decide-choice ${tone}${action === key ? ' on' : ''}`}>
+            <input
+              type="radio"
+              name="decision"
+              value={key}
+              checked={action === key}
+              disabled={disabled || pending || done}
+              onChange={() => { setAction(key); setError(''); }}
+            />
+            <span className="decide-icon"><Icon size={20} /></span>
+            <span>
+              <b>{title}</b>
+              <small>{body}</small>
+            </span>
+            <i className="decide-radio" aria-hidden="true"><Check size={13} strokeWidth={3.5} /></i>
+          </label>
+        ))}
       </div>
 
       {!canDecide && (
-        <p className="field-hint">
+        <p className="auth-hint">
+          <CircleHelp size={15} />
           {t('મૉડરેટર સુધારો માંગી શકે છે; મંજૂરી અને નામંજૂરી માટે એડમિન જોઈએ.', 'A moderator can request a correction; approving and rejecting need an admin.')}
         </p>
       )}
 
       {action && (
-        <>
+        <div className="decide-form" key={action}>
           {needsFields && (
-            <>
-              <label className="field-label flush">{t('કઈ વિગતો સુધારવાની છે?', 'Which details need correcting?')} <span>*</span></label>
-              <div className="chips">
-                {fields.map((field) => (
-                  <button
-                    key={field}
-                    className={`chip ${selected.includes(field) ? 'on' : ''}`}
-                    onClick={() => setSelected((current) =>
-                      current.includes(field)
-                        ? current.filter((value) => value !== field)
-                        : [...current, field])}
-                  >
-                    {field}
-                  </button>
-                ))}
+            <fieldset className="decide-fields">
+              <legend className="auth-label">{t('કઈ વિગતો સુધારવાની છે?', 'Which details need fixing?')}</legend>
+              <div>
+                {fields.map((field) => {
+                  const on = selected.includes(field.value);
+                  return (
+                    <button
+                      key={field.value}
+                      type="button"
+                      aria-pressed={on}
+                      className={on ? 'on' : undefined}
+                      onClick={() => setSelected((current) =>
+                        on ? current.filter((value) => value !== field.value) : [...current, field.value])}
+                    >
+                      {on ? <Check size={14} strokeWidth={3} /> : <Pencil size={13} />}
+                      {field.label}
+                    </button>
+                  );
+                })}
               </div>
-            </>
+            </fieldset>
           )}
 
           {needsReason && (
             <>
-              <label className="field-label" htmlFor="reason">
-                {t('અરજદારને દેખાતો સંદેશ', 'Message the applicant will see')} <span>*</span>
+              <label className="auth-label spaced" htmlFor="reason">
+                {t('અરજદારને દેખાતો સંદેશ', 'Message the applicant will see')}
               </label>
               <textarea
                 id="reason"
-                className="field textarea"
-                rows={4}
+                className="decide-text"
+                rows={3}
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder={t('શું સુધારવાનું છે તે સ્પષ્ટ લખો…', 'Explain clearly what needs to change…')}
+                placeholder={action === 'reject'
+                  ? t('નામંજૂરીનું કારણ નમ્રતાથી લખો…', 'Explain the reason kindly…')
+                  : t('શું સુધારવાનું છે તે સ્પષ્ટ લખો…', 'Say clearly what needs to change…')}
               />
             </>
           )}
 
           {/* Spec §10: internal notes stay separate from applicant messages, and
               members are not granted SELECT on this column at all. */}
-          <label className="field-label" htmlFor="note">{t('આંતરિક નોંધ (અરજદારને દેખાશે નહીં)', 'Internal note (never shown to the applicant)')}</label>
+          <label className="auth-label spaced" htmlFor="note">
+            {t('આંતરિક નોંધ', 'Internal note')} <small>{t('· અરજદારને દેખાશે નહીં', '· never shown to the applicant')}</small>
+          </label>
           <textarea
             id="note"
-            className="field textarea"
+            className="decide-text"
             rows={2}
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
 
-          <button className="primary" disabled={!ready || pending} onClick={submit}>
-            {pending ? t('સાચવી રહ્યા છીએ…', 'Saving…') : t('નિર્ણય નોંધો', 'Record the decision')}
-            <Send size={17} />
-          </button>
-        </>
-      )}
+          {error && <p role="alert" className="auth-error"><CircleHelp size={18} /><span>{error}</span></p>}
 
-      {error && <p role="alert" className="error"><CircleHelp size={17} />{error}</p>}
-    </>
+          <button
+            type="button"
+            className={`cta decide-submit ${action}${done ? ' done' : ''}`}
+            disabled={!ready || pending || done}
+            onClick={submit}
+          >
+            {done ? (
+              <Check size={24} strokeWidth={3} className="cta-check" />
+            ) : pending ? (
+              <><span className="cta-spinner" aria-hidden="true" />{t('સાચવી રહ્યા છીએ…', 'Saving…')}</>
+            ) : (
+              <>
+                {action === 'approve' ? t('મંજૂરી નોંધો', 'Confirm approval')
+                  : action === 'reject' ? t('નામંજૂરી નોંધો', 'Confirm rejection')
+                    : t('સુધારો મોકલો', 'Send the request')}
+                <Send size={18} />
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

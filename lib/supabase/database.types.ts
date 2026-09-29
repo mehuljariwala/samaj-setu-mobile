@@ -63,6 +63,48 @@ export type Database = {
           { foreignKeyName: "access_requests_decided_by_account_id_fkey"; columns: ["decided_by_account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
         ];
       };
+      account_activity: {
+        Row: {
+          id: number;
+          account_id: string;
+          occurred_at: string;
+          kind: string;
+          actor_account_id: string | null;
+          candidate_id: string | null;
+          target_candidate_id: string | null;
+          path: string | null;
+          detail: Json;
+          ip: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          id?: number;
+          account_id: string;
+          occurred_at?: string;
+          kind: string;
+          actor_account_id?: string | null;
+          candidate_id?: string | null;
+          target_candidate_id?: string | null;
+          path?: string | null;
+          detail?: Json;
+          ip?: string | null;
+          user_agent?: string | null;
+        };
+        Update: {
+          id?: number;
+          account_id?: string;
+          occurred_at?: string;
+          kind?: string;
+          actor_account_id?: string | null;
+          candidate_id?: string | null;
+          target_candidate_id?: string | null;
+          path?: string | null;
+          detail?: Json;
+          ip?: string | null;
+          user_agent?: string | null;
+        };
+        Relationships: [];
+      };
       account_roles: {
         Row: {
           account_id: string;
@@ -181,6 +223,7 @@ export type Database = {
           uploaded_at: string;
           retention_delete_after: string | null;
           deleted_at: string | null;
+          identity_type: string | null;
         };
         Insert: {
           id?: string;
@@ -196,6 +239,7 @@ export type Database = {
           uploaded_at?: string;
           retention_delete_after?: string | null;
           deleted_at?: string | null;
+          identity_type?: string | null;
         };
         Update: {
           id?: string;
@@ -211,6 +255,7 @@ export type Database = {
           uploaded_at?: string;
           retention_delete_after?: string | null;
           deleted_at?: string | null;
+          identity_type?: string | null;
         };
         Relationships: [
           { foreignKeyName: "application_documents_application_id_fkey"; columns: ["application_id"]; isOneToOne: true; referencedRelation: "registration_applications"; referencedColumns: ["id"] },
@@ -1388,6 +1433,20 @@ export type Database = {
       };
     };
     Functions: {
+      admin_account_activity: {
+        Args: {
+          p_account_id?: string;
+          p_before?: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      admin_account_detail: {
+        Args: {
+          p_account_id?: string;
+        };
+        Returns: Json;
+      };
       admin_biodata_detail: {
         Args: {
           p_revision_id?: string;
@@ -1450,6 +1509,22 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_document_reference: {
+        Args: {
+          p_application_id?: string;
+          p_kind?: string;
+        };
+        Returns: Json;
+      };
+      admin_list_accounts: {
+        Args: {
+          p_query?: string;
+          p_filter?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
       admin_member_detail: {
         Args: {
           p_candidate_id?: string;
@@ -1487,6 +1562,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_reset_password: {
+        Args: {
+          p_account_id?: string;
+          p_password?: string;
+        };
+        Returns: undefined;
+      };
       admin_resolve_duplicate: {
         Args: {
           p_id?: string;
@@ -1494,6 +1576,14 @@ export type Database = {
           p_note?: string;
         };
         Returns: undefined;
+      };
+      admin_set_account_status: {
+        Args: {
+          p_account_id?: string;
+          p_status?: Database["public"]["Enums"]["account_status"];
+          p_reason?: string;
+        };
+        Returns: Json;
       };
       admin_set_community_rule: {
         Args: {
@@ -1512,6 +1602,18 @@ export type Database = {
       attach_certificate: {
         Args: {
           p_application_id?: string;
+          p_storage_path?: string;
+          p_mime_type?: string;
+          p_size_bytes?: number;
+          p_checksum?: string;
+        };
+        Returns: string;
+      };
+      attach_identity_document: {
+        Args: {
+          p_application_id?: string;
+          p_side?: string;
+          p_identity_type?: string;
           p_storage_path?: string;
           p_mime_type?: string;
           p_size_bytes?: number;
@@ -1616,9 +1718,36 @@ export type Database = {
         };
         Returns: { id: string | null; bucket_id: string | null; storage_path: string | null; is_primary: boolean | null; sort_order: number | null }[];
       };
+      my_application_documents: {
+        Args: {
+          p_application_id?: string;
+        };
+        Returns: Json;
+      };
       my_context: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
+      };
+      record_activity: {
+        Args: {
+          p_kind?: string;
+          p_candidate_id?: string;
+          p_target_candidate_id?: string;
+          p_detail?: Json;
+          p_path?: string;
+          p_ip?: string;
+          p_user_agent?: string;
+        };
+        Returns: undefined;
+      };
+      record_failed_sign_in: {
+        Args: {
+          p_phone?: string;
+          p_reason?: string;
+          p_ip?: string;
+          p_user_agent?: string;
+        };
+        Returns: undefined;
       };
       register_media: {
         Args: {
@@ -1772,7 +1901,7 @@ export type Database = {
     Enums: {
       access_request_status: "pending" | "approved" | "rejected" | "withdrawn";
       access_state: "signed_out" | "no_application" | "application_draft" | "awaiting_review" | "correction_requested" | "approved" | "rejected" | "suspended";
-      account_status: "active" | "suspended" | "closed";
+      account_status: "active" | "suspended" | "closed" | "disabled" | "blocked";
       app_role: "moderator" | "admin" | "superadmin";
       application_status: "draft" | "submitted" | "under_review" | "correction_requested" | "approved" | "rejected" | "withdrawn";
       contact_kind: "self" | "father" | "mother" | "guardian";

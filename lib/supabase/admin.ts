@@ -8,11 +8,13 @@ import { SUPABASE_URL } from './env';
 /**
  * The service-role client. It bypasses row level security completely.
  *
- * Used for exactly two things, both of which are impossible with a member's
+ * Used for exactly three things, all of which are impossible with a member's
  * session:
  *
  *   * minting short-lived signed URLs for private storage objects, after the
  *     database has already confirmed the caller may see them;
+ *   * recording a failed sign-in, which by definition has no session
+ *     (`record_failed_sign_in`, callable by the service role alone);
  *   * scheduled maintenance that runs with no user at all.
  *
  * It must never be used to serve a request on a member's behalf. If a read

@@ -11,7 +11,7 @@
 type TrustDetails = {
   name: { gu: string; en: string };
   /** Public charity registration number, printed under the credit line. */
-  registrationNumber: string;
+  registrationNumber: { gu: string; en: string };
   /** Postal address. Line breaks are preserved as written. */
   address: { gu: string; en: string };
   /** Landline or mobile, digits only, without the +91. */
@@ -26,7 +26,7 @@ type TrustDetails = {
 
 export const TRUST: TrustDetails = {
   name: { gu: 'ચંદન ચેરીટેબલ ટ્રસ્ટ', en: 'Chandan Charitable Trust' },
-  registrationNumber: '',
+  registrationNumber: { gu: 'ઈ/૧૦૪૨૫/સુરત', en: 'E/10425/Surat' },
   address: { gu: '', en: '' },
   phone: '',
   email: '',

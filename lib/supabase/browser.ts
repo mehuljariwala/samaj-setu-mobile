@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from './database.types';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, assertPublicEnv } from './env';
+import { supabaseFetch } from './fetch';
 
 /**
  * Browser client. Needed for two things only: signing in, and uploading a file
@@ -25,6 +26,7 @@ export function getSupabaseBrowserClient() {
   // `document.cookie` behaviour.
   client ??= createBrowserClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {},
+    global: { fetch: supabaseFetch },
   });
   return client;
 }

@@ -38,7 +38,11 @@ async function load(): Promise<PageContext> {
 
 /** Where an account belongs when it asks for a screen its state does not allow. */
 export function homeFor(context: MyContext): string {
-  // Staff first. An admin is a separate role, not a member access state
+  // Switched off by an admin comes before everything, staff included: a
+  // disabled admin's token stays valid for up to an hour after the switch.
+  if (context.access_state === 'suspended') return '/account-off';
+
+  // Staff next. An admin is a separate role, not a member access state
   // (spec §2) — without this, a community admin who has no candidate of their
   // own resolves to `no_application` and gets sent to the registration form.
   if (context.roles.some((role) => role === 'moderator' || role === 'admin' || role === 'superadmin')) {
@@ -55,7 +59,7 @@ export function homeFor(context: MyContext): string {
     case 'approved':
       return '/home';
     default:
-      // awaiting_review, correction_requested, rejected, suspended
+      // awaiting_review, correction_requested, rejected
       return '/review';
   }
 }
@@ -69,6 +73,7 @@ export async function loadPublicPage(): Promise<PageContext> {
 export async function loadApplicantPage(): Promise<PageContext> {
   const page = await load();
   if (page.context.access_state === 'signed_out') redirect('/sign-in');
+  if (page.context.access_state === 'suspended') redirect('/account-off');
   return page;
 }
 
@@ -97,6 +102,7 @@ export async function loadActingPage(): Promise<PageContext & { acting: Candidat
 export async function loadAdminPage(): Promise<PageContext & { staff: true }> {
   const page = await load();
   if (page.context.access_state === 'signed_out') redirect('/sign-in');
+  if (page.context.access_state === 'suspended') redirect('/account-off');
 
   const staff = page.context.roles.some(
     (role) => role === 'moderator' || role === 'admin' || role === 'superadmin',

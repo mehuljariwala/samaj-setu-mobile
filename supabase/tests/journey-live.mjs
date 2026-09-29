@@ -116,6 +116,19 @@ async function verifiedCandidate(account, admin, { name, dob, gender }) {
     p_application_id: start.application_id, p_storage_path: path,
     p_mime_type: 'application/pdf', p_size_bytes: 64,
   }, account.token);
+  for (const side of ['front', 'back']) {
+    const idPath = `${start.candidate_id}/id-${side}-${stamp}-${seq}.jpg`;
+    const idUpload = await fetch(`${URL_BASE}/storage/v1/object/certificates/${idPath}`, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: `Bearer ${account.token}`, 'Content-Type': 'image/jpeg' },
+      body: new Blob([`fictional ${name} id ${side}`], { type: 'image/jpeg' }),
+    });
+    if (!idUpload.ok) throw new Error(`id ${side} upload for ${name}: ${idUpload.status}`);
+    await rpc('attach_identity_document', {
+      p_application_id: start.application_id, p_side: side, p_identity_type: 'aadhaar',
+      p_storage_path: idPath, p_mime_type: 'image/jpeg', p_size_bytes: 64,
+    }, account.token);
+  }
   await rpc('submit_registration', { p_application_id: start.application_id }, account.token);
   await rpc('admin_decide_registration', {
     p_application_id: start.application_id, p_action: 'approve',

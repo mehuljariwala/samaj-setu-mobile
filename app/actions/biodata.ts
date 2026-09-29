@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { Enums } from '@/lib/supabase/database.types';
 import { actionResult, type ActionResult } from '@/lib/data/errors';
 import * as biodata from '@/lib/data/biodata';
+import { track } from '@/lib/data/activity';
 
 export async function saveBiodataDraftAction(
   candidateId: string,
@@ -12,6 +13,8 @@ export async function saveBiodataDraftAction(
 ): Promise<ActionResult<biodata.SaveDraftResult>> {
   return actionResult(async () => {
     const result = await biodata.saveBiodataDraft(candidateId, values);
+    // The database keeps one of these per ten minutes, not one per keystroke.
+    track('biodata.draft_saved', { candidateId });
     // No revalidate: this is the autosave path and fires on every pause in
     // typing. The form already holds the answer it needs.
     return result;
@@ -24,6 +27,7 @@ export async function stageImportedBiodataAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof biodata.stageImportedBiodata>>>> {
   return actionResult(async () => {
     const result = await biodata.stageImportedBiodata(candidateId, values);
+    track('biodata.imported', { candidateId });
     revalidatePath('/', 'layout');
     return result;
   });
@@ -33,9 +37,11 @@ export async function confirmBiodataFieldsAction(
   revisionId: string,
   fields: string[],
 ): Promise<ActionResult<{ unconfirmedFields: string[] }>> {
-  return actionResult(async () => ({
-    unconfirmedFields: await biodata.confirmBiodataFields(revisionId, fields),
-  }));
+  return actionResult(async () => {
+    const unconfirmedFields = await biodata.confirmBiodataFields(revisionId, fields);
+    track('biodata.fields_confirmed', { detail: { revision_id: revisionId, fields } });
+    return { unconfirmedFields };
+  });
 }
 
 export async function confirmCommunityDetailsAction(
@@ -43,6 +49,7 @@ export async function confirmCommunityDetailsAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.confirmCommunityDetails(candidateId);
+    track('biodata.community_confirmed', { candidateId });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -55,6 +62,7 @@ export async function confirmCommunityDetailsAction(
 export async function submitBiodataAction(revisionId: string): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.submitBiodata(revisionId);
+    track('biodata.submitted', { detail: { revision_id: revisionId } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -64,6 +72,7 @@ export async function submitBiodataAction(revisionId: string): Promise<ActionRes
 export async function grantConsentAction(candidateId: string): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.grantPublicationConsent(candidateId);
+    track('consent.granted', { candidateId });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -72,6 +81,7 @@ export async function grantConsentAction(candidateId: string): Promise<ActionRes
 export async function withdrawConsentAction(candidateId: string): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.withdrawPublicationConsent(candidateId);
+    track('consent.withdrawn', { candidateId });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -83,6 +93,7 @@ export async function setCandidateSwitchesAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.setCandidateSwitches(candidateId, patch);
+    track('family.switches_changed', { candidateId, detail: patch });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -98,6 +109,7 @@ export async function setPrivacyAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.setPrivacy(candidateId, patch);
+    track('privacy.changed', { candidateId, detail: patch });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -109,6 +121,7 @@ export async function setFamilyPreferencesAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.setFamilyPreferences(candidateId, patch);
+    track('family.preferences_changed', { candidateId, detail: { fields: Object.keys(patch) } });
     revalidatePath('/', 'layout');
     return null;
   });

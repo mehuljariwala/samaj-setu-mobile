@@ -30,6 +30,7 @@ export default async function BiodataPage() {
     dob: candidate.date_of_birth,
     father: candidate.father_name ?? '',
     city: candidate.city ?? '',
+    gender: candidate.gender,
   };
 
   return (

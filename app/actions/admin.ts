@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { Enums, Json } from '@/lib/supabase/database.types';
 import { actionResult, type ActionResult } from '@/lib/data/errors';
 import * as admin from '@/lib/data/admin';
+import { track } from '@/lib/data/activity';
 
 /**
  * Admin actions. Each one re-checks the caller's role through the data access
@@ -92,7 +93,23 @@ export async function releaseReviewAction(
 export async function certificateUrlAction(
   applicationId: string,
 ): Promise<ActionResult<{ url: string | null }>> {
-  return actionResult(async () => ({ url: await admin.getCertificateUrl(applicationId) }));
+  return actionResult(async () => {
+    const url = await admin.getCertificateUrl(applicationId);
+    track('admin.certificate_viewed', { detail: { application_id: applicationId } });
+    return { url };
+  });
+}
+
+/** Either side of the photo ID; the same two-minute, recorded link. */
+export async function documentUrlAction(
+  applicationId: string,
+  kind: 'identity_front' | 'identity_back',
+): Promise<ActionResult<{ url: string | null }>> {
+  return actionResult(async () => {
+    const url = await admin.getDocumentUrl(applicationId, kind);
+    track('admin.document_viewed', { detail: { application_id: applicationId, kind } });
+    return { url };
+  });
 }
 
 /** Enabling a rule ratifies it. Superadmin only, stamped and audited. */
@@ -103,6 +120,7 @@ export async function setCommunityRuleAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await admin.setCommunityRule(code, enabled, definition);
+    track('admin.rule_changed', { detail: { code, enabled } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -113,6 +131,7 @@ export async function updateSettingsAction(
 ): Promise<ActionResult<unknown>> {
   return actionResult(async () => {
     const result = await admin.updateSettings(patch);
+    track('admin.settings_changed', { detail: { fields: Object.keys(patch) } });
     revalidatePath('/', 'layout');
     return result;
   });
@@ -124,6 +143,7 @@ export async function grantRoleAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await admin.grantRole(accountId, role);
+    track('admin.role_granted', { detail: { account_id: accountId, role } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -135,6 +155,7 @@ export async function revokeRoleAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await admin.revokeRole(accountId, role);
+    track('admin.role_revoked', { detail: { account_id: accountId, role } });
     revalidatePath('/', 'layout');
     return null;
   });

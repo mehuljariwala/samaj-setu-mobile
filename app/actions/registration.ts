@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import type { Enums } from '@/lib/supabase/database.types';
 import { actionResult, type ActionResult } from '@/lib/data/errors';
+import { track } from '@/lib/data/activity';
 import { enumField, trimmedField } from '@/lib/data/form';
 import * as registration from '@/lib/data/registration';
 import { resolveActingCandidate } from '@/lib/data/session';
@@ -28,8 +29,9 @@ export async function startRegistrationAction(
   formData: FormData,
 ): Promise<ActionResult<registration.StartRegistrationResult>> {
   return actionResult(async () => {
+    const relationship = enumField(formData, 'relationship', RELATIONSHIPS, 'self');
     const result = await registration.startRegistration({
-      relationship: enumField(formData, 'relationship', RELATIONSHIPS, 'self'),
+      relationship,
       fullName: trimmedField(formData, 'fullName'),
       dateOfBirth: trimmedField(formData, 'dateOfBirth'),
       gender: enumField(formData, 'gender', GENDERS, 'female'),
@@ -39,6 +41,10 @@ export async function startRegistrationAction(
       nativePlace: trimmedField(formData, 'nativePlace'),
     });
 
+    track('registration.started', {
+      candidateId: result.candidateId,
+      detail: { relationship, possible_duplicates: result.possibleDuplicates },
+    });
     revalidatePath('/', 'layout');
     return result;
   });
@@ -50,6 +56,7 @@ export async function updateRegistrationAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await registration.updateRegistration(applicationId, patch);
+    track('registration.updated', { detail: { application_id: applicationId, fields: Object.keys(patch) } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -60,6 +67,18 @@ export async function attachCertificateAction(
 ): Promise<ActionResult<{ documentId: string }>> {
   return actionResult(async () => {
     const documentId = await registration.attachCertificate(input);
+    track('registration.certificate_uploaded', { candidateId: input.candidateId });
+    revalidatePath('/', 'layout');
+    return { documentId };
+  });
+}
+
+export async function attachIdentityDocumentAction(
+  input: Parameters<typeof registration.attachIdentityDocument>[0],
+): Promise<ActionResult<{ documentId: string }>> {
+  return actionResult(async () => {
+    const documentId = await registration.attachIdentityDocument(input);
+    track('registration.identity_uploaded', { candidateId: input.candidateId, detail: { type: input.identityType, side: input.side } });
     revalidatePath('/', 'layout');
     return { documentId };
   });
@@ -70,6 +89,7 @@ export async function submitRegistrationAction(
 ): Promise<ActionResult<registration.SubmissionReceipt>> {
   return actionResult(async () => {
     const receipt = await registration.submitRegistration(applicationId);
+    track('registration.submitted', { detail: { application_id: applicationId } });
     revalidatePath('/', 'layout');
     return receipt;
   });
@@ -80,6 +100,7 @@ export async function withdrawRegistrationAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await registration.withdrawRegistration(applicationId);
+    track('registration.withdrawn', { detail: { application_id: applicationId } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -94,6 +115,7 @@ export async function requestIdentityChangeAction(
   return actionResult(async () => {
     await resolveActingCandidate(candidateId);
     await registration.requestIdentityChange(candidateId, fields, reason);
+    track('registration.change_requested', { candidateId, detail: { fields } });
     revalidatePath('/', 'layout');
     return null;
   });
@@ -104,11 +126,13 @@ export async function requestCandidateAccessAction(
   formData: FormData,
 ): Promise<ActionResult<{ requestId: string }>> {
   return actionResult(async () => {
+    const relationship = enumField(formData, 'relationship', RELATIONSHIPS, 'other');
     const requestId = await registration.requestCandidateAccess(
       trimmedField(formData, 'publicCode'),
-      enumField(formData, 'relationship', RELATIONSHIPS, 'other'),
+      relationship,
       trimmedField(formData, 'note'),
     );
+    track('family.access_requested', { detail: { relationship } });
     revalidatePath('/', 'layout');
     return { requestId };
   });
@@ -119,6 +143,7 @@ export async function updateAccountProfileAction(
 ): Promise<ActionResult> {
   return actionResult(async () => {
     await registration.updateAccountProfile(patch);
+    track('profile.updated', { detail: { fields: Object.keys(patch) } });
     revalidatePath('/', 'layout');
     return null;
   });

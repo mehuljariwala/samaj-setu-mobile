@@ -120,6 +120,61 @@ export async function attachCertificate(input: {
   ) as string;
 }
 
+export type IdentityType = 'aadhaar' | 'voter_id';
+
+/**
+ * One side of the photo ID, uploaded and recorded the same way as the
+ * certificate. Switching to a different kind of ID supersedes the other side
+ * as well, so a front and back can never belong to two different cards.
+ */
+export async function attachIdentityDocument(input: {
+  applicationId: string;
+  candidateId: string;
+  side: 'front' | 'back';
+  identityType: IdentityType;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+}): Promise<string> {
+  if (!input.storagePath.startsWith(`${input.candidateId}/`)) {
+    throw new AppError('invalid', 'The ID was uploaded to the wrong place.');
+  }
+
+  const supabase = await createSupabaseServerClient();
+  return unwrap(
+    await supabase.rpc('attach_identity_document', {
+      p_application_id: input.applicationId,
+      p_side: input.side,
+      p_identity_type: input.identityType,
+      p_storage_path: input.storagePath,
+      p_mime_type: input.mimeType,
+      p_size_bytes: input.sizeBytes,
+    }),
+  ) as string;
+}
+
+export type AttachedDocuments = {
+  certificate: boolean;
+  identityFront: boolean;
+  identityBack: boolean;
+  identityType: IdentityType | null;
+};
+
+/** Which files an application already has — yes/no only, never a path. */
+export async function getAttachedDocuments(applicationId: string): Promise<AttachedDocuments> {
+  const supabase = await createSupabaseServerClient();
+  const found = unwrap(
+    await supabase.rpc('my_application_documents', { p_application_id: applicationId }),
+  ) as { certificate?: boolean; identity_front?: boolean; identity_back?: boolean; identity_type?: IdentityType } | null;
+
+  return {
+    certificate: Boolean(found?.certificate),
+    identityFront: Boolean(found?.identity_front),
+    identityBack: Boolean(found?.identity_back),
+    identityType: found?.identity_type ?? null,
+  };
+}
+
 export type SubmissionReceipt = {
   status: 'submitted';
   reviewDueAt: string;

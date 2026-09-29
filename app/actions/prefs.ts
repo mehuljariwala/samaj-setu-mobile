@@ -7,6 +7,7 @@ import { CANDIDATE_COOKIE, COOKIE_MAX_AGE, LANG_COOKIE, isLang } from '@/lib/i18
 import { actionResult, type ActionResult } from '@/lib/data/errors';
 import { getMyContext } from '@/lib/data/session';
 import { updateAccountProfile } from '@/lib/data/registration';
+import { track } from '@/lib/data/activity';
 
 /**
  * Switching language must preserve progress (spec §11), so it writes a cookie
@@ -27,6 +28,7 @@ export async function setLanguageAction(value: string): Promise<ActionResult> {
     const context = await getMyContext();
     if (context.account && context.account.preferred_language !== lang) {
       await updateAccountProfile({ preferredLanguage: lang });
+      track('settings.language', { detail: { language: lang } });
     }
 
     revalidatePath('/', 'layout');
@@ -50,6 +52,7 @@ export async function setActingCandidateAction(candidateId: string): Promise<Act
         sameSite: 'lax',
         path: '/',
       });
+      track('family.switched_candidate', { candidateId });
     }
 
     revalidatePath('/', 'layout');

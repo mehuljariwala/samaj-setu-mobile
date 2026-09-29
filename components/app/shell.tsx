@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, ChevronDown, Shield, Sprout } from 'lucide-react';
+import { Bell, ChevronDown, LifeBuoy, Shield, Sprout } from 'lucide-react';
 
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -17,6 +17,8 @@ type Props = {
   /** Member screens get the tab bar and the managing-profile selector. */
   member?: boolean;
   admin?: boolean;
+  /** Off on the support screen itself, where the button would lead nowhere. */
+  help?: boolean;
   children: React.ReactNode;
 };
 
@@ -25,7 +27,7 @@ type Props = {
  * bar. Same markup and the same classes as the prototype, so `app/globals.css`
  * needed no changes — only where the data comes from has changed.
  */
-export function AppShell({ lang, context, acting, member = false, admin = false, children }: Props) {
+export function AppShell({ lang, context, acting, member = false, admin = false, help = true, children }: Props) {
   const t = translator(lang);
 
   // Spec §2 keeps admin a separate role, so staff may hold no candidate at all
@@ -68,6 +70,16 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
             {staff && !admin && (
               <Link className="icon-button" aria-label={t('એડમિન', 'Admin')} href="/admin">
                 <Shield size={19} />
+              </Link>
+            )}
+            {/* Help sits in every header, so a family that is stuck anywhere —
+                signed out, waiting on review, or switched off — is one tap from
+                a volunteer's number. Member screens are crowded with the
+                managing selector, so there it shrinks to the icon. */}
+            {help && (
+              <Link className={`help-pill${member ? ' icon-only' : ''}`} href="/support" aria-label={t('મદદ', 'Help')}>
+                <LifeBuoy size={18} />
+                <span>{t('મદદ', 'Help')}</span>
               </Link>
             )}
             <LangToggle lang={lang} />

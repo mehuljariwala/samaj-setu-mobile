@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 
 import type { Database } from './database.types';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, assertPublicEnv } from './env';
+import { supabaseFetch } from './fetch';
 
 /**
  * A request-scoped Supabase client that carries the signed-in member's session.
@@ -22,6 +23,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: { fetch: supabaseFetch },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {

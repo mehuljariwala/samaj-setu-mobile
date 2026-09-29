@@ -80,6 +80,21 @@ export async function getCertificateUrl(applicationId: string): Promise<string |
   return signedUrl(reference.bucket_id, reference.storage_path, 120);
 }
 
+/** The same, for either side of the photo ID. Audited as `document_viewed`. */
+export async function getDocumentUrl(
+  applicationId: string,
+  kind: 'identity_front' | 'identity_back',
+): Promise<string | null> {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+
+  const reference = unwrap(
+    await supabase.rpc('admin_document_reference', { p_application_id: applicationId, p_kind: kind }),
+  ) as unknown as { bucket_id: string; storage_path: string };
+
+  return signedUrl(reference.bucket_id, reference.storage_path, 120);
+}
+
 /**
  * `expectedStatus` is what the reviewer was shown. If another admin has decided
  * in the meantime the call fails rather than overwriting them (spec §10).

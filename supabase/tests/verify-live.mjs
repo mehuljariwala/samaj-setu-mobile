@@ -287,6 +287,35 @@ const objectPath = `${candidateId}/verify-${stamp}.pdf`;
 }
 
 {
+  const { status, body } = await rpc('submit_registration', { p_application_id: applicationId }, parent.token);
+  check('submission is refused without a photo ID', status >= 400
+    && String(body?.message ?? '').includes('identity_front'), JSON.stringify(body).slice(0, 120));
+}
+
+for (const side of ['front', 'back']) {
+  const idPath = `${candidateId}/verify-id-${side}-${stamp}.jpg`;
+  const response = await fetch(`${URL_BASE}/storage/v1/object/certificates/${idPath}`, {
+    method: 'POST',
+    headers: { apikey: KEY, Authorization: `Bearer ${parent.token}`, 'Content-Type': 'image/jpeg' },
+    body: new Blob([`fictional id ${side} ${stamp}`], { type: 'image/jpeg' }),
+  });
+  const { status, body } = await rpc('attach_identity_document', {
+    p_application_id: applicationId, p_side: side, p_identity_type: 'voter_id',
+    p_storage_path: idPath, p_mime_type: 'image/jpeg', p_size_bytes: 1024,
+  }, parent.token);
+  check(`attach_identity_document records the ${side}`, response.ok && status === 200,
+    JSON.stringify(body).slice(0, 120));
+}
+
+{
+  const { body } = await rpc('my_application_documents', { p_application_id: applicationId }, parent.token);
+  check('the operator is told which documents exist, and nothing more',
+    body?.certificate === true && body?.identity_front === true && body?.identity_back === true
+      && body?.identity_type === 'voter_id' && !JSON.stringify(body).includes('/'),
+    JSON.stringify(body).slice(0, 160));
+}
+
+{
   const { body } = await rpc('submit_registration', { p_application_id: applicationId }, parent.token);
   check('submission now succeeds', body?.status === 'submitted', JSON.stringify(body).slice(0, 120));
   check('it sets a 24-hour review target', Boolean(body?.review_due_at) && body?.target_hours === 24);

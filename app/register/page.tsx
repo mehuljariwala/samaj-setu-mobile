@@ -1,41 +1,42 @@
 import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app/shell';
-import { RegistrationForm } from '@/components/app/registration-form';
-import { loadApplicantPage } from '@/lib/data/guards';
-import { getOpenApplication } from '@/lib/data/registration';
+import { JoinFlow } from '@/components/onboarding/join-flow';
+import { homeFor, loadPublicPage } from '@/lib/data/guards';
+import { getAttachedDocuments, getOpenApplication } from '@/lib/data/registration';
 
 /**
- * Spec §2: registration is open in two states only — no application at all, or
- * a correction the admin has asked for. Anything else lands on the status
- * screen, which is the screen that state owns.
+ * Joining, as one page of three steps: the account, who the profile is for,
+ * and the documents.
+ *
+ * Open to a visitor who is signed out (they start at step 1) and, per spec §2,
+ * to an account with no application, a draft, or a correction the admin has
+ * asked for (they start at step 2). Anything else lands on the screen its
+ * state owns.
  */
 export default async function RegisterPage() {
-  const { context, lang } = await loadApplicantPage();
+  const { context, lang } = await loadPublicPage();
 
   const state = context.access_state;
-  if (state !== 'no_application' && state !== 'application_draft' && state !== 'correction_requested') {
-    redirect('/review');
+  const signedIn = state !== 'signed_out';
+  if (signedIn && state !== 'no_application' && state !== 'application_draft' && state !== 'correction_requested') {
+    redirect(homeFor(context));
   }
 
-  const open = await getOpenApplication();
-
-  // `has_certificate` comes from my_context(): members are not granted SELECT
-  // on application_documents, so the document row itself is unreadable to them.
-  const candidate = open
-    ? context.candidates.find((entry) => entry.id === open.candidateId)
-    : undefined;
+  const open = signedIn ? await getOpenApplication() : null;
+  // Which files are already in. Members cannot read application_documents,
+  // so this comes from an RPC that answers yes or no per document.
+  const documents = open ? await getAttachedDocuments(open.applicationId) : null;
 
   return (
     <AppShell lang={lang} context={context}>
-      <RegistrationForm
-        lang={lang}
-        existing={
-          open
-            ? { ...open, hasCertificate: candidate?.application?.has_certificate ?? false }
-            : null
-        }
-      />
+      <section className="auth-screen">
+        <JoinFlow
+          lang={lang}
+          signedIn={signedIn}
+          existing={open && documents ? { ...open, documents } : null}
+        />
+      </section>
     </AppShell>
   );
 }

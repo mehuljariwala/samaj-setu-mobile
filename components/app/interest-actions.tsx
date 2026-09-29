@@ -32,9 +32,9 @@ export function InterestReply({ lang, interestId }: { lang: Lang; interestId: st
 
   return (
     <>
-      <div className="admin-actions">
+      <div className="member-reply">
         <button
-          className="primary"
+          className="cta"
           disabled={pending}
           onClick={() => {
             if (!confirm(t(
@@ -76,9 +76,9 @@ export function PhotoRequestReply({ lang, requestId }: { lang: Lang; requestId: 
 
   return (
     <>
-      <div className="admin-actions">
+      <div className="member-reply">
         <button
-          className="primary"
+          className="cta"
           disabled={pending}
           onClick={() => run(async () => decideMediaAccessAction(requestId, true))}
         >

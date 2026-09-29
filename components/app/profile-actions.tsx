@@ -134,13 +134,14 @@ export function ProfileActions({ lang, actingId, canSendInterest, profile }: Pro
             placeholder={t('બે વાક્યમાં પરિચય…', 'A line or two about your family…')}
           />
           <button
-            className="primary"
+            className="cta"
             disabled={pending}
             onClick={() => run(async () =>
               sendInterestAction(actingId, profile.id!, message))}
           >
+            {pending ? <span className="cta-spinner" aria-hidden="true" /> : null}
             {pending ? t('મોકલી રહ્યા છીએ…', 'Sending…') : t('પરિચય મોકલો', 'Send introduction')}
-            <ArrowRight size={18} />
+            {!pending && <ArrowRight size={20} />}
           </button>
           <p className="field-hint inline-icon">
             <LockKeyhole size={12} />
