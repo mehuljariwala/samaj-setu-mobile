@@ -30,7 +30,7 @@ export default async function SupportPage() {
     {
       Icon: FileLock2,
       title: t('પ્રમાણપત્ર ફક્ત એડમિન માટે', 'Certificates are for admins only'),
-      body: t('જન્મ પ્રમાણપત્ર ફક્ત ચકાસણી એડમિન જોઈ શકે — તમે પણ નહીં.', 'Only verification admins can open your birth certificate — not even you.'),
+      body: t('જન્મ પ્રમાણપત્ર કે લિવિંગ સર્ટિફિકેટ ફક્ત ચકાસણી એડમિન જોઈ શકે — તમે પણ નહીં.', 'Only verification admins can open your birth or leaving certificate — not even you.'),
     },
     {
       Icon: Camera,
@@ -66,8 +66,8 @@ export default async function SupportPage() {
       Icon: Phone,
       q: t('OTP કેમ નથી આવતો?', 'Why is there no OTP?'),
       a: t(
-        'OTP મોકલાતો નથી. સમાજના એડમિન તમારા જન્મ પ્રમાણપત્ર અને ઓળખપત્રથી ઓળખ ચકાસે છે.',
-        'No OTP is sent. A samaj admin verifies you from your birth certificate and photo ID instead.',
+        'OTP મોકલાતો નથી. સમાજના એડમિન તમારા જન્મ પ્રમાણપત્ર (અથવા લિવિંગ સર્ટિફિકેટ) અને ઓળખપત્રથી ઓળખ ચકાસે છે.',
+        'No OTP is sent. A samaj admin verifies you from your birth or leaving certificate and photo ID instead.',
       ),
     },
     {

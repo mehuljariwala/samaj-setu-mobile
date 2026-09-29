@@ -99,6 +99,7 @@ export async function updateRegistration(
 export async function attachCertificate(input: {
   applicationId: string;
   candidateId: string;
+  certificateType: CertificateType;
   storagePath: string;
   mimeType: string;
   sizeBytes: number;
@@ -116,9 +117,16 @@ export async function attachCertificate(input: {
       p_mime_type: input.mimeType,
       p_size_bytes: input.sizeBytes,
       p_checksum: input.checksumSha256,
+      p_certificate_type: input.certificateType,
     }),
   ) as string;
 }
+
+/**
+ * The proof of birth date: a birth certificate, or the leaving certificate a
+ * school or college issued, which carries the same birth date and father's name.
+ */
+export type CertificateType = 'birth' | 'leaving';
 
 export type IdentityType = 'aadhaar' | 'voter_id';
 
@@ -155,6 +163,7 @@ export async function attachIdentityDocument(input: {
 
 export type AttachedDocuments = {
   certificate: boolean;
+  certificateType: CertificateType | null;
   identityFront: boolean;
   identityBack: boolean;
   identityType: IdentityType | null;
@@ -165,10 +174,14 @@ export async function getAttachedDocuments(applicationId: string): Promise<Attac
   const supabase = await createSupabaseServerClient();
   const found = unwrap(
     await supabase.rpc('my_application_documents', { p_application_id: applicationId }),
-  ) as { certificate?: boolean; identity_front?: boolean; identity_back?: boolean; identity_type?: IdentityType } | null;
+  ) as {
+    certificate?: boolean; certificate_type?: CertificateType;
+    identity_front?: boolean; identity_back?: boolean; identity_type?: IdentityType;
+  } | null;
 
   return {
     certificate: Boolean(found?.certificate),
+    certificateType: found?.certificate_type ?? null,
     identityFront: Boolean(found?.identity_front),
     identityBack: Boolean(found?.identity_back),
     identityType: found?.identity_type ?? null,

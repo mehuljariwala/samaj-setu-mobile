@@ -75,7 +75,7 @@ export function accountStatusWord(t: T, status: string) {
 const ACTIONS: Record<string, [gu: string, en: string]> = {
   'registration.started': ['નોંધણી શરૂ કરી', 'Started a registration'],
   'registration.updated': ['નોંધણીની વિગતો બદલી', 'Edited registration details'],
-  'registration.certificate_uploaded': ['જન્મ પ્રમાણપત્ર અપલોડ કર્યું', 'Uploaded the birth certificate'],
+  'registration.certificate_uploaded': ['જન્મ / લિવિંગ સર્ટિફિકેટ અપલોડ કર્યું', 'Uploaded the birth or leaving certificate'],
   'registration.identity_uploaded': ['ઓળખપત્ર અપલોડ કર્યું', 'Uploaded a photo ID'],
   'registration.submitted': ['અરજી મોકલી', 'Submitted the application'],
   'registration.withdrawn': ['અરજી પાછી ખેંચી', 'Withdrew the application'],
@@ -111,7 +111,7 @@ const ACTIONS: Record<string, [gu: string, en: string]> = {
   'share.created': ['શેર લિંક બનાવી', 'Created a share link'],
   'share.revoked': ['શેર લિંક બંધ કરી', 'Turned off a share link'],
   'settings.language': ['ભાષા બદલી', 'Changed language'],
-  'admin.certificate_viewed': ['જન્મ પ્રમાણપત્ર ખોલ્યું', 'Opened a birth certificate'],
+  'admin.certificate_viewed': ['જન્મ / લિવિંગ સર્ટિફિકેટ ખોલ્યું', 'Opened a birth or leaving certificate'],
   'admin.document_viewed': ['ઓળખપત્ર ખોલ્યું', 'Opened a photo ID'],
   'admin.rule_changed': ['સમાજનો નિયમ બદલ્યો', 'Changed a community rule'],
   'admin.settings_changed': ['સેટિંગ્સ બદલ્યાં', 'Changed settings'],

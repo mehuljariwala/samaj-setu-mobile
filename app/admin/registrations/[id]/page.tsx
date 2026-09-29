@@ -9,7 +9,7 @@ import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getRegistrationDetail } from '@/lib/data/admin';
 import {
-  applicationStatusLabel, correctionFieldLabel, identityStatusLabel, relationshipLabel, reviewActionLabel, reviewSla, slaLabel,
+  applicationStatusLabel, certificateLabel, correctionFieldLabel, identityStatusLabel, relationshipLabel, reviewActionLabel, reviewSla, slaLabel,
 } from '@/lib/admin-labels';
 import { timeAgo, translator, type Lang } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
@@ -31,7 +31,7 @@ type Detail = {
   };
   candidate: { id: string; full_name: string; date_of_birth: string; father_name: string | null; city: string | null; public_code: string; identity_status: string };
   operators: { account_id: string; phone: string; display_name: string | null; relationship: string; role: string; phone_verified: boolean }[];
-  certificate: DocumentMeta | null;
+  certificate: (DocumentMeta & { type: 'birth' | 'leaving' }) | null;
   identity: { type: 'aadhaar' | 'voter_id'; front: DocumentMeta | null; back: DocumentMeta | null } | null;
   duplicates: {
     id: string; status: string; similarity: number; reasons: string[];
@@ -139,7 +139,13 @@ export default async function RegistrationDetailPage({
           <span className={documentCount === 3 ? 'ok' : 'bad'}>{documentCount} / 3</span>
         </div>
         <div className="admin-docs">
-          <CertificateViewer lang={lang} applicationId={application.id} meta={detail.certificate} hint={false} />
+          <CertificateViewer
+            lang={lang}
+            applicationId={application.id}
+            meta={detail.certificate}
+            title={certificateLabel(t, detail.certificate?.type)}
+            hint={false}
+          />
           <CertificateViewer
             lang={lang}
             applicationId={application.id}
@@ -161,7 +167,9 @@ export default async function RegistrationDetailPage({
           <p><ListChecks size={17} />{t('મંજૂરી પહેલાં તપાસો', 'Before you approve, check')}</p>
           <ul>
             <li>{t('નામ, જન્મ તારીખ અને પિતાનું નામ પ્રમાણપત્ર સાથે મેળ ખાય છે', 'Name, birth date and father match the certificate')}</li>
+            <li>{t('પ્રમાણપત્ર ઓરિજિનલનો ફોટો છે, ઝેરોક્સનો નહીં', 'The certificate is a photo of the original, not a photocopy')}</li>
             <li>{t('ઓળખપત્ર પરનું નામ અને ફોટો એ જ વ્યક્તિના છે', 'The name and photo on the ID are the same person')}</li>
+            <li>{t('ઓળખપત્ર પર સરનામું વાંચી શકાય છે', 'The address on the ID can be read')}</li>
             <li>{t('આગળ અને પાછળની બાજુ એક જ કાર્ડની છે', 'Front and back are of the same card')}</li>
           </ul>
         </div>

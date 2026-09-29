@@ -67,7 +67,7 @@ export async function attachCertificateAction(
 ): Promise<ActionResult<{ documentId: string }>> {
   return actionResult(async () => {
     const documentId = await registration.attachCertificate(input);
-    track('registration.certificate_uploaded', { candidateId: input.candidateId });
+    track('registration.certificate_uploaded', { candidateId: input.candidateId, detail: { type: input.certificateType } });
     revalidatePath('/', 'layout');
     return { documentId };
   });

@@ -85,7 +85,7 @@ export default async function ReviewPage() {
     date_of_birth: t('જન્મ તારીખ', 'Date of birth'),
     father_name: t('પિતાનું નામ', 'Father’s name'),
     city: t('શહેર', 'City'),
-    birth_certificate: t('જન્મ પ્રમાણપત્ર', 'Birth certificate'),
+    birth_certificate: t('જન્મ / લિવિંગ સર્ટિફિકેટ', 'Birth / leaving certificate'),
     identity_document: t('આધાર / મતદાર કાર્ડ', 'Aadhaar / Voter ID'),
   };
   const corrections = tone === 'correction' ? application?.correction_fields ?? [] : [];
@@ -108,7 +108,7 @@ export default async function ReviewPage() {
     {
       state: 'done',
       title: t('વિગતો અને દસ્તાવેજ મળ્યાં', 'Details & documents received'),
-      note: t('જન્મ પ્રમાણપત્ર અને ફોટો ઓળખપત્ર — ફક્ત એડમિન જુએ છે', 'Birth certificate and photo ID — only an admin sees them'),
+      note: t('પ્રમાણપત્ર અને ઓળખપત્ર — ફક્ત એડમિન જુએ છે', 'Certificate and photo ID — only an admin sees them'),
     },
     { state: reviewStep.state, title: t('એડમિન સમીક્ષા', 'Admin review'), note: reviewStep.note },
     ...(tone === 'rejected' ? [] : [{

@@ -41,7 +41,7 @@ export function Intro({ lang }: { lang: Lang }) {
       tone: 'gold',
       Art: VerifiedArt,
       title: t('દરેક સભ્ય ચકાસાયેલ છે', 'Every member is verified'),
-      body: t('એડમિન જન્મ પ્રમાણપત્રથી દરેકની ઓળખ ચકાસે છે.', 'An admin checks every birth certificate before anyone can join.'),
+      body: t('એડમિન દસ્તાવેજથી દરેકની ઓળખ ચકાસે છે.', 'An admin checks everyone’s documents before anyone can join.'),
     },
     {
       tone: 'green',

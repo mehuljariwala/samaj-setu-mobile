@@ -1052,6 +1052,8 @@ button:disabled { cursor: not-allowed; }
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
 }
 .auth-choice.on > svg { color: var(--brand); }
+.auth-choice small { display: block; margin-top: 2px; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.auth-choice.on small { color: var(--brand-strong); opacity: .8; }
 .auth-choice:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 .auth-input input[type=date] { font-size: 18px; }

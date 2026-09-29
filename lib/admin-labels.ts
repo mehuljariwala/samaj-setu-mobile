@@ -84,10 +84,17 @@ export function correctionFieldLabel(t: T, field: string) {
     case 'date_of_birth': return t('જન્મ તારીખ', 'Date of birth');
     case 'father_name': return t('પિતાનું નામ', 'Father’s name');
     case 'city': return t('શહેર', 'City');
-    case 'birth_certificate': return t('જન્મ પ્રમાણપત્ર', 'Birth certificate');
+    case 'birth_certificate': return t('જન્મ / લિવિંગ સર્ટિફિકેટ', 'Birth / leaving certificate');
     case 'identity_document': return t('આધાર / મતદાર કાર્ડ', 'Aadhaar / Voter ID');
     default: return field;
   }
+}
+
+/** Which proof of birth date was uploaded; certificates from before the choice existed are birth certificates. */
+export function certificateLabel(t: T, type: string | null | undefined) {
+  return type === 'leaving'
+    ? t('સ્કૂલ / કૉલેજ લિવિંગ સર્ટિફિકેટ', 'School or college leaving certificate')
+    : t('જન્મ પ્રમાણપત્ર', 'Birth certificate');
 }
 
 export type Sla = {

@@ -224,6 +224,7 @@ export type Database = {
           retention_delete_after: string | null;
           deleted_at: string | null;
           identity_type: string | null;
+          certificate_type: string | null;
         };
         Insert: {
           id?: string;
@@ -240,6 +241,7 @@ export type Database = {
           retention_delete_after?: string | null;
           deleted_at?: string | null;
           identity_type?: string | null;
+          certificate_type?: string | null;
         };
         Update: {
           id?: string;
@@ -256,6 +258,7 @@ export type Database = {
           retention_delete_after?: string | null;
           deleted_at?: string | null;
           identity_type?: string | null;
+          certificate_type?: string | null;
         };
         Relationships: [
           { foreignKeyName: "application_documents_application_id_fkey"; columns: ["application_id"]; isOneToOne: true; referencedRelation: "registration_applications"; referencedColumns: ["id"] },
@@ -1606,6 +1609,7 @@ export type Database = {
           p_mime_type?: string;
           p_size_bytes?: number;
           p_checksum?: string;
+          p_certificate_type?: string;
         };
         Returns: string;
       };

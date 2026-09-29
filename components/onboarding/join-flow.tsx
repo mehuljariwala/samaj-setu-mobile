@@ -17,7 +17,7 @@ import { DocumentCapture } from '@/components/app/document-capture';
 import { RulesSheet } from '@/components/onboarding/rules-sheet';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { BUCKETS, CERTIFICATE_TYPES, MAX_UPLOAD_BYTES, objectPath } from '@/lib/storage';
-import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
+import type { AttachedDocuments, CertificateType, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { isValidLocalPhone } from '@/lib/phone';
@@ -83,8 +83,9 @@ function pick(file: File | null | undefined, previous: Picked | null): Picked | 
  *
  *   1. your account      mobile number and password
  *   2. who it is for     relationship, name, birth date, father's name, city
- *   3. documents         the birth certificate, and both sides of an Aadhaar
- *                        card or voter ID
+ *   3. documents         a birth certificate or a school or college leaving
+ *                        certificate, and both sides of an Aadhaar card or
+ *                        voter ID
  *
  * It used to be five screens on two pages — three on /sign-up for the
  * account, then a separate two-step /register that felt like being asked to
@@ -134,6 +135,7 @@ export function JoinFlow({
   const [dateOfBirth, setDateOfBirth] = useState(existing?.dateOfBirth ?? '');
   const [fatherName, setFatherName] = useState(existing?.fatherName ?? '');
   const [city, setCity] = useState(existing?.city || 'Surat');
+  const [certType, setCertType] = useState<CertificateType>(existing?.documents.certificateType ?? 'birth');
   const [certificate, setCertificate] = useState<Picked | null>(null);
   const [idType, setIdType] = useState<IdentityType>(existing?.documents.identityType ?? 'aadhaar');
   const [idFront, setIdFront] = useState<Picked | null>(null);
@@ -163,8 +165,11 @@ export function JoinFlow({
   // A side already on file only counts if it is the kind of ID chosen now;
   // switching kind supersedes it on the server too.
   const sameCard = docs?.identityType === idType;
+  // The same for the certificate: a birth certificate on file is not the
+  // leaving certificate someone has just said they will send.
+  const sameCertificate = (docs?.certificateType ?? 'birth') === certType;
   const onFile = {
-    certificate: Boolean(docs?.certificate),
+    certificate: Boolean(docs?.certificate && sameCertificate),
     identityFront: Boolean(docs?.identityFront && sameCard),
     identityBack: Boolean(docs?.identityBack && sameCard),
   };
@@ -182,7 +187,7 @@ export function JoinFlow({
     {
       Icon: Users,
       title: t('પ્રોફાઇલ કોના માટે છે?', 'Who is this profile for?'),
-      lead: t('ઉમેદવારની વિગતો — જન્મ પ્રમાણપત્ર મુજબ.', 'The candidate’s details, as on the birth certificate.'),
+      lead: t('ઉમેદવારની વિગતો — જન્મ પ્રમાણપત્ર અથવા લિવિંગ સર્ટિફિકેટ મુજબ.', 'The candidate’s details, as on the birth or leaving certificate.'),
     },
     {
       Icon: FileStack,
@@ -222,7 +227,9 @@ export function JoinFlow({
     }
     if (at === 2) {
       const files: [Field, Picked | null, boolean, string][] = [
-        ['certificate', certificate, onFile.certificate, t('જન્મ પ્રમાણપત્ર જોડો.', 'Add the birth certificate.')],
+        ['certificate', certificate, onFile.certificate, certType === 'leaving'
+          ? t('લિવિંગ સર્ટિફિકેટ જોડો.', 'Add the leaving certificate.')
+          : t('જન્મ પ્રમાણપત્ર જોડો.', 'Add the birth certificate.')],
         ['identityFront', idFront, onFile.identityFront, t('ઓળખપત્રની આગળની બાજુનો ફોટો જોડો.', 'Add a photo of the front of the ID.')],
         ['identityBack', idBack, onFile.identityBack, t('ઓળખપત્રની પાછળની બાજુનો ફોટો જોડો.', 'Add a photo of the back of the ID.')],
       ];
@@ -326,7 +333,7 @@ export function JoinFlow({
 
         const upload = { applicationId, candidateId, storagePath: path, mimeType: file.type, sizeBytes: file.size };
         const attached = field === 'certificate'
-          ? await attachCertificateAction(upload)
+          ? await attachCertificateAction({ ...upload, certificateType: certType })
           : await attachIdentityDocumentAction({
             ...upload, side: field === 'identityFront' ? 'front' : 'back', identityType: idType,
           });
@@ -573,7 +580,27 @@ export function JoinFlow({
 
           {step === 2 && (
             <div key="documents" className="auth-field">
-              <p className="auth-label">{t('જન્મ પ્રમાણપત્ર', 'Birth certificate')}</p>
+              {/* A school or college leaving certificate carries the same birth
+                  date and father's name, and many families have that rather
+                  than a birth certificate. */}
+              <fieldset className="auth-choices two">
+                <legend className="auth-label">{t('જન્મ તારીખનો પુરાવો', 'Proof of birth date')}</legend>
+                {([
+                  ['birth', t('જન્મ પ્રમાણપત્ર', 'Birth certificate'), null],
+                  ['leaving', t('લિવિંગ સર્ટિફિકેટ', 'Leaving certificate'), t('સ્કૂલ / કૉલેજનું', 'School or college')],
+                ] as const).map(([value, label, from]) => (
+                  <label key={value} className={`auth-choice${certType === value ? ' on' : ''}`}>
+                    <input
+                      type="radio"
+                      name="certificate-type"
+                      value={value}
+                      checked={certType === value}
+                      onChange={() => { setCertType(value); setError(null); }}
+                    />
+                    <span>{label}{from && <small>{from}</small>}</span>
+                  </label>
+                ))}
+              </fieldset>
               <UploadTile
                 id="certificate"
                 picked={certificate}
@@ -583,7 +610,7 @@ export function JoinFlow({
                   ?? (onFile.certificate ? t('પ્રમાણપત્ર જોડાયેલું છે', 'Certificate attached') : t('ફાઇલ અથવા ફોટો પસંદ કરો', 'Choose a file or photo'))}
                 detail={onFile.certificate && !certificate
                   ? t('બદલવા માટે નવી ફાઇલ પસંદ કરો.', 'Choose a new file to replace it.')
-                  : t('PDF અથવા ફોટો, 10 MB સુધી.', 'PDF or photo, up to 10 MB.')}
+                  : t('ઓરિજિનલનો ફોટો, ઝેરોક્સ નહીં. PDF અથવા ફોટો, 10 MB સુધી.', 'Of the original, not a photocopy. PDF or photo, up to 10 MB.')}
                 clearLabel={t('દૂર કરો', 'Remove')}
                 onPick={(next) => { setCertificate(pick(next, certificate)); setError(null); }}
               />
@@ -600,7 +627,10 @@ export function JoinFlow({
               {/* Either card will do; both sides, so the admin sees the photo,
                   the name and the address together. */}
               <fieldset className="auth-choices two spaced">
-                <legend className="auth-label">{t('ઓળખપત્ર', 'Photo ID')}</legend>
+                <legend className="auth-label">
+                  {t('સરનામાવાળું ઓળખપત્ર', 'Photo ID with address')}
+                  <small> {t('— બંને બાજુ', '— both sides')}</small>
+                </legend>
                 {([
                   ['aadhaar', t('આધાર કાર્ડ', 'Aadhaar card')],
                   ['voter_id', t('મતદાર ઓળખપત્ર', 'Voter ID')],
@@ -665,8 +695,8 @@ export function JoinFlow({
             <p className="auth-note">
               <ShieldCheck size={16} />
               {t(
-                'કોઈ OTP નથી — એડમિન જન્મ પ્રમાણપત્રથી ઓળખ ચકાસે છે.',
-                'No OTP. An admin verifies you from your birth certificate.',
+                'કોઈ OTP નથી — એડમિન તમારા દસ્તાવેજથી ઓળખ ચકાસે છે.',
+                'No OTP. An admin verifies you from your documents.',
               )}
             </p>
           )}
