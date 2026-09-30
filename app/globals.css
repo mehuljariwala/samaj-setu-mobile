@@ -599,6 +599,7 @@ button:disabled { cursor: not-allowed; }
   box-shadow: var(--sh-2);
 }
 .toast > svg { color: #6ee7b7; }
+.toast.offline > svg { flex-shrink: 0; color: #fcd34d; }
 .toast button { display: flex; width: 26px; height: 26px; align-items: center; justify-content: center; color: #fff; }
 
 /* Sheet */

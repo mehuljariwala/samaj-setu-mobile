@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 
+import { OfflineNotice } from '@/components/app/offline-notice';
 import { Splash } from '@/components/app/splash';
 import { LANG_COOKIE, SPLASH_COOKIE, isLang } from '@/lib/i18n';
 import './globals.css';
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {!jar.has(SPLASH_COOKIE) && <Splash lang={lang} />}
         {children}
+        <OfflineNotice lang={lang} />
       </body>
     </html>
   );

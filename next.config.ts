@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
     // builds. A restored cache shipped the previous globals.css with new
     // markup, leaving the welcome screen unstyled, so builds start cold.
     turbopackFileSystemCacheForBuild: false,
+    // Phones drop their connection — a lift, a weak signal, a tab left in the
+    // background — and a tap made on a dead connection used to fail outright:
+    // a failed Server Action threw to Next's built-in "This page couldn't
+    // load" screen. With this, a navigation, prefetch or Server Action whose
+    // fetch fails waits for the connection and then runs once, and
+    // `useOffline()` tells `OfflineNotice` to say so.
+    useOffline: true,
   },
 };
 
