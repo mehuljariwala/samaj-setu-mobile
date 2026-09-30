@@ -41,6 +41,20 @@ export const TRUST: TrustDetails = {
   ],
 };
 
+/**
+ * The samaj the app serves. Its name sits under the app's own in the header,
+ * and its slogan opens the app and can be heard on the welcome screen.
+ *
+ * The slogan is the samaj's own wording, so like the rules it is shown in
+ * Gujarati in both languages.
+ */
+export const SAMAJ = {
+  name: { gu: 'ગુજરાતી ખત્રી સમાજ', en: 'Gujarati Khatri Samaj' },
+  slogan: ['એક ખત્રી એક સમાજ', 'ગુજરાતી ખત્રી એક સમાજ'],
+  /** The same words in Devanagari, for a phone with a Hindi voice but no Gujarati one. */
+  sloganDevanagari: ['एक खत्री एक समाज', 'गुजराती खत्री एक समाज'],
+} as const;
+
 /** `9909599945` → `+91 99095 99945`, the way an Indian mobile is read aloud. */
 export function formatPhone(phone: string): string {
   return phone.length === 10 ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : `+91 ${phone}`;

@@ -4,6 +4,7 @@ import { Bell, ChevronDown, LifeBuoy, Shield, Sprout } from 'lucide-react';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import type { CandidateSummary, MyContext } from '@/lib/data/session';
+import { SAMAJ } from '@/lib/org';
 import { LangToggle } from './lang-toggle';
 import { SignOutButton } from './sign-out-button';
 import { TabBar } from './tabbar';
@@ -62,7 +63,12 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
           ) : (
             <div className="topbar-brand">
               <Sprout size={22} strokeWidth={1.8} />
-              <b>{admin ? t('એડમિન સેતુ', 'Admin Setu') : t('સમાજ સેતુ', 'Samaj Setu')}</b>
+              {/* The samaj's name under the app's, so whoever opens it sees
+                  whose app it is before anything else. */}
+              <span>
+                <b>{admin ? t('એડમિન સેતુ', 'Admin Setu') : t('સમાજ સેતુ', 'Samaj Setu')}</b>
+                <small>{t(SAMAJ.name.gu, SAMAJ.name.en)}</small>
+              </span>
             </div>
           )}
 

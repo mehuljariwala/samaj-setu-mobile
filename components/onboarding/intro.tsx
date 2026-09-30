@@ -8,6 +8,7 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { NON_COMMERCIAL } from '@/lib/rules';
 import { CommunityArt, ConsentArt, VerifiedArt } from './art';
+import { Slogan } from './slogan';
 
 /**
  * The welcome screen: three short slides that turn by themselves — who it is
@@ -81,6 +82,8 @@ export function Intro({ lang }: { lang: Lang }) {
       aria-roledescription="carousel"
       aria-label={t('સમાજ સેતુનો પરિચય', 'About Samaj Setu')}
     >
+      <Slogan t={t} />
+
       <ol className="intro-progress">
         {slides.map((item, i) => (
           <li key={item.tone} className={i < index ? 'on' : i === index ? 'now' : undefined}>

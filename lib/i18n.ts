@@ -16,6 +16,9 @@ export const CANDIDATE_COOKIE = 'samaj-setu-candidate';
 
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
+/** Set once the opening card has shown. A session cookie, so every visit opens with it. */
+export const SPLASH_COOKIE = 'samaj-setu-splash';
+
 export function isLang(value: unknown): value is Lang {
   return value === 'gu' || value === 'en';
 }

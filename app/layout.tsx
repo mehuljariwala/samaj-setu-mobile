@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 
-import { LANG_COOKIE, isLang } from '@/lib/i18n';
+import { Splash } from '@/components/app/splash';
+import { LANG_COOKIE, SPLASH_COOKIE, isLang } from '@/lib/i18n';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'સમાજ સેતુ · Samaj Setu',
+  title: 'સમાજ સેતુ · ગુજરાતી ખત્રી સમાજ',
   description: 'A private Gujarati-first matrimonial directory for the Khatri Kshatriya community.',
   icons: { icon: '/favicon.svg' },
   appleWebApp: { capable: true, title: 'Samaj Setu', statusBarStyle: 'default' },
@@ -31,12 +32,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // That removed the prototype's boot script, its `data-booting` flag and the
   // hydration mismatch that came with them — there is no longer a moment where
   // the client knows something about the visitor that the server did not.
-  const cookie = (await cookies()).get(LANG_COOKIE)?.value;
+  const jar = await cookies();
+  const cookie = jar.get(LANG_COOKIE)?.value;
   const lang = isLang(cookie) ? cookie : 'gu';
 
   return (
     <html lang={lang}>
-      <body>{children}</body>
+      <body>
+        {!jar.has(SPLASH_COOKIE) && <Splash lang={lang} />}
+        {children}
+      </body>
     </html>
   );
 }

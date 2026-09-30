@@ -199,7 +199,13 @@ button:disabled { cursor: not-allowed; }
 }
 .topbar-brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .topbar-brand > svg { color: var(--brand); }
+.topbar-brand > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .topbar-brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; white-space: nowrap; }
+.topbar-brand small {
+  color: var(--brand);
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .topbar-actions { display: flex; align-items: center; gap: 4px; }
 
 .lang-pill {
@@ -641,7 +647,7 @@ button:disabled { cursor: not-allowed; }
 /* A dial's fill, 0–100. Registered so it can animate from empty. */
 @property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
 
-.intro, .auth-screen, .review-screen, .admin-screen, .member-screen, .compact-bio { --spring: cubic-bezier(.34, 1.56, .64, 1); --ease: cubic-bezier(.2, .7, .2, 1); }
+.intro, .auth-screen, .review-screen, .admin-screen, .member-screen, .compact-bio, .splash { --spring: cubic-bezier(.34, 1.56, .64, 1); --ease: cubic-bezier(.2, .7, .2, 1); }
 .intro.tone-rose { --tone: var(--brand); --tone-tint: var(--brand-tint); }
 .intro.tone-gold { --tone: var(--gold); --tone-tint: var(--gold-tint); }
 .intro.tone-green { --tone: var(--ok); --tone-tint: var(--ok-tint); }
@@ -738,6 +744,35 @@ button:disabled { cursor: not-allowed; }
   overflow: hidden;
 }
 
+/* The samaj's slogan heads the screen, above the slides rather than in them,
+   so it stays put while they turn. The line being read aloud lights up. */
+.intro-slogan {
+  flex: none;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 6px;
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+}
+.intro-slogan p {
+  flex: 1; min-width: 0;
+  display: grid;
+  font-size: 16px; font-weight: 800; line-height: 1.45;
+}
+.intro-slogan p span:last-child { color: var(--brand); }
+.intro-slogan.speaking p span { color: var(--ink-3); }
+.intro-slogan.speaking p span.on { color: var(--brand); }
+.intro-slogan-play {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  min-height: 44px; padding: 0 14px;
+  border-radius: var(--r-full);
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 14.5px; font-weight: 800;
+}
+.intro-slogan-play:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
 .intro-slide { flex: 1; display: flex; flex-direction: column; gap: 20px; margin-top: 12px; }
 
 .intro-stage {
@@ -779,6 +814,48 @@ button:disabled { cursor: not-allowed; }
 .intro-login > svg { color: var(--ink-3); }
 .intro-login b { color: var(--brand); font-weight: 800; }
 .intro-free { margin-top: 6px; color: var(--ink-3); font-size: 12.5px; line-height: 1.5; text-align: center; }
+
+/* --- Opening card ---------------------------------------------------------- */
+/* Once per visit: the app's name, the samaj's and its slogan, then out of the
+   way. The exit sits outside the motion query on purpose — without it the card
+   would never leave — and the reduced-motion reset lets it through too. */
+.splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 40%, var(--brand-tint), transparent 72%),
+    var(--surface);
+  text-align: center;
+  cursor: pointer;
+  animation: splash-out 360ms ease 2500ms forwards;
+}
+.splash-mark {
+  display: flex; align-items: center; justify-content: center;
+  width: 76px; height: 76px;
+  margin-bottom: 14px;
+  border-radius: 24px;
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 16px 30px -12px color-mix(in srgb, var(--brand) 70%, transparent);
+}
+.splash-name { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.2; }
+.splash-samaj { color: var(--brand); font-size: 18px; font-weight: 700; }
+.splash-slogan {
+  display: grid; gap: 2px;
+  margin-top: 26px;
+  font-size: 21px; font-weight: 800; line-height: 1.45;
+}
+.splash-slogan::before {
+  content: '';
+  width: 40px; height: 3px;
+  margin: 0 auto 16px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--brand) 45%, transparent);
+}
+.splash-slogan span:last-child { color: var(--brand); }
+@keyframes splash-out { to { opacity: 0; visibility: hidden; } }
 
 /* --- Illustrations --------------------------------------------------------- */
 .art { position: absolute; inset: 0; }
@@ -2179,6 +2256,18 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 
   .intro-progress i, .auth-progress i { transition: transform 480ms var(--ease), background-color 500ms ease; }
 
+  /* The opening card builds: the mark, the two names, then the slogan a line
+     at a time, so it is read in the order it is said. */
+  .splash-mark { animation: ob-pop 560ms var(--spring) backwards; }
+  .splash-name { animation: ob-rise 460ms var(--ease) 140ms backwards; }
+  .splash-samaj { animation: ob-rise 460ms var(--ease) 240ms backwards; }
+  .splash-slogan::before { animation: ob-fill 420ms var(--ease) 520ms backwards; }
+  .splash-slogan span { animation: ob-rise 480ms var(--ease) 640ms backwards; }
+  .splash-slogan span:last-child { animation-delay: 1000ms; }
+
+  .intro-slogan p span { transition: color 200ms ease; }
+  .intro-slogan.speaking .intro-slogan-play > svg { animation: ob-beat 1.2s ease-in-out infinite; }
+
   /* The current bar fills over the slide's time on screen, and the end of
      that fill is what turns the page (see `Intro`). So pausing the fill
      pauses the carousel: while a finger rests on the picture, or a mouse
@@ -2843,6 +2932,9 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
     transition: none !important;
     scroll-behavior: auto !important;
   }
+  /* The one exception: the opening card still has to leave. It goes at the
+     same moment, just without the fade. */
+  .splash { animation: splash-out 1ms 2500ms forwards !important; }
 }
 
 /* ==========================================================================
