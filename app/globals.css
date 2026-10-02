@@ -200,7 +200,7 @@ button:disabled { cursor: not-allowed; }
 .topbar-brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .topbar-brand > svg { color: var(--brand); }
 .topbar-brand > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
-.topbar-brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; white-space: nowrap; }
+.topbar-brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-brand small {
   color: var(--brand);
   font-size: 12px; font-weight: 700;
@@ -1608,12 +1608,13 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   color: var(--ink);
   font-size: 16.5px; font-weight: 600;
 }
+.admin-search input { text-overflow: ellipsis; }
 .admin-search input::placeholder { color: var(--ink-3); font-weight: 400; }
 .admin-search input::-webkit-search-cancel-button { display: none; }
 
 /* A segmented control, not a row of loose chips: exactly one is on. */
 .admin-tabs {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  display: grid; grid-template-columns: repeat(4, auto); gap: 4px;
   margin-top: 12px; padding: 4px;
   border-radius: 16px;
   background: rgb(22 25 42 / 6%);
@@ -1623,7 +1624,7 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   min-height: 44px; padding: 0 4px;
   border-radius: 12px;
   color: var(--ink-2);
-  font-size: 14px; font-weight: 700; text-align: center; line-height: 1.2;
+  font-size: 14px; font-weight: 700; text-align: center; line-height: 1.2; white-space: nowrap;
 }
 .admin-tabs a.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-1); }
 .admin-tabs i {
@@ -1633,7 +1634,9 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   font-size: 11.5px; font-style: normal; font-weight: 800;
 }
 
-.admin-queue { display: grid; gap: 10px; margin-top: 14px; list-style: none; }
+/* minmax(0, …): a plain 1fr column grows to fit the longest unbroken name,
+   which pushed every row past the right edge of a phone. */
+.admin-queue { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; list-style: none; }
 .admin-row {
   --sla: var(--ok);
   display: block;
@@ -1910,6 +1913,17 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 @media (max-width: 370px) {
   .admin-tiles { grid-template-columns: 1fr 1fr; }
   .admin-tile { min-height: 0; }
+  .admin-tabs { gap: 2px; }
+  .admin-tabs a { gap: 4px; padding: 0 2px; font-size: 13px; }
+}
+
+/* On a phone, a pill beside the name leaves the name a few letters wide, so
+   the pill drops under it and the name gets the row. */
+@media (max-width: 440px) {
+  .admin-row-top:has(> .admin-sla, > .admin-status) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
+  .admin-row-top:has(> .admin-sla, > .admin-status) > .avatar { grid-row: 1 / span 2; }
+  .admin-row-top > :is(.admin-sla, .admin-status) { grid-column: 2; grid-row: 2; justify-self: start; margin-top: 6px; }
+  .admin-row-top:has(> .admin-sla, > .admin-status) > .admin-row-go { grid-column: 3; grid-row: 1 / span 2; }
 }
 
 /* --- Member ---------------------------------------------------------------- */
@@ -3511,6 +3525,12 @@ body:has(.capture-dialog[open]) { overflow: hidden; }
 .help-pill.icon-only { width: 40px; height: 40px; padding: 0; justify-content: center; background: none; }
 .help-pill.icon-only:hover { background: var(--surface-2); }
 .help-pill.icon-only > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* On the narrowest phones the word goes too, or it pushes the app's own name
+   out of the header. */
+@media (max-width: 359px) {
+  .help-pill { width: 40px; height: 40px; padding: 0; justify-content: center; background: none; }
+  .help-pill > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 /* --- Support ---------------------------------------------------------------- */
 /* Same hand as the status screen: a pastel stage, a centred promise, then the
