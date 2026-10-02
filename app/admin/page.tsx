@@ -1,18 +1,19 @@
 import Link from 'next/link';
 import {
-  AlarmClock, ChevronRight, CopyCheck, FileCheck2, FileWarning, Hourglass, MapPin, Pencil, RotateCcw,
-  Search, Shield, Sparkles, UserRound, Users,
+  AlarmClock, Check, ChevronRight, CopyCheck, FileCheck2, Hourglass, Pencil, RotateCcw,
+  Search, Shield, Sparkles, UserRound, Users, X, type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import { AdminCaughtUpArt } from '@/components/onboarding/art';
 import { loadAdminPage } from '@/lib/data/guards';
 import { getDashboard, getRegistrationQueue } from '@/lib/data/admin';
-import { applicationStatusLabel, reviewSla, slaLabel } from '@/lib/admin-labels';
-import { timeAgo, translator } from '@/lib/i18n';
+import { applicationStatusLabel, applicationStatusTone, reviewSla, slaLabel } from '@/lib/admin-labels';
+import { translator, type T } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
-const OPEN: Enums<'application_status'>[] = ['submitted', 'under_review', 'correction_requested'];
+// "To do" is what an admin can act on. A correction is waiting on the family,
+// so it lives under its own tab and never in this one.
 const WAITING_ON_US: Enums<'application_status'>[] = ['submitted', 'under_review'];
 
 type Tab = 'open' | 'overdue' | 'correction' | 'all';
@@ -22,8 +23,8 @@ type Tab = 'open' | 'overdue' | 'correction' | 'all';
  * overdue targets, and corrections awaiting resubmission.
  *
  * Drawn in the onboarding style: one pastel panel that says how the day looks,
- * tiles that are also the filters, and a queue where each family's place
- * against the 24-hour target is a bar you can read at a glance.
+ * tiles that are also the filters, and a plain list where every family gets
+ * one line of facts and one coloured tag saying where they stand.
  *
  * The queue never shows a certificate — not as a thumbnail, not as a filename.
  * It shows only that one exists.
@@ -47,8 +48,7 @@ export default async function AdminPage({
     getRegistrationQueue({
       statuses: tab === 'all' ? undefined
         : tab === 'correction' ? ['correction_requested']
-          : tab === 'overdue' ? WAITING_ON_US
-            : OPEN,
+          : WAITING_ON_US,
       overdueOnly: tab === 'overdue',
       query,
     }),
@@ -60,7 +60,7 @@ export default async function AdminPage({
   const firstName = context.account?.display_name?.split(' ')[0];
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: 'open', label: t('બાકી', 'To do'), count: verification.open + verification.awaiting_resubmission },
+    { key: 'open', label: t('બાકી', 'To do'), count: verification.open },
     { key: 'overdue', label: t('મોડું', 'Overdue'), count: verification.overdue },
     { key: 'correction', label: t('સુધારો', 'Corrections'), count: verification.awaiting_resubmission },
     { key: 'all', label: t('બધી', 'All') },
@@ -190,51 +190,30 @@ export default async function AdminPage({
             {query && <Link className="intro-login" href={hrefFor(tab)}><RotateCcw size={17} /><b>{t('શોધ સાફ કરો', 'Clear search')}</b></Link>}
           </div>
         ) : (
-          <ul className="admin-queue">
+          <ul className="queue-list">
             {queue.map((row, i) => {
-              const sla = row.status === 'correction_requested'
-                ? { state: 'none' as const, hours: 0, used: 0 }
-                : reviewSla(row.submitted_at, row.review_due_at, row.overdue);
+              const tag = queueTag(t, row.status, row.submitted_at, row.review_due_at, row.overdue);
               return (
                 <li key={row.application_id!} style={{ '--i': Math.min(i, 8) } as React.CSSProperties}>
-                  <Link className={`admin-row sla-${sla.state}`} href={`/admin/registrations/${row.application_id}`}>
-                    <div className="admin-row-top">
-                      <span className="avatar">{row.full_name?.charAt(0)}</span>
-                      <span className="admin-row-name">
-                        <b>{row.full_name}</b>
-                        <small>{row.public_code} · {timeAgo(row.submitted_at, lang)}</small>
+                  <Link className="queue-row" href={`/admin/registrations/${row.application_id}`}>
+                    <span className="avatar">{row.full_name?.charAt(0)}</span>
+                    <span className="queue-row-body">
+                      <b>{row.full_name}</b>
+                      {/* Only what changes the next step is named; a certificate
+                          on file is the normal case and goes unsaid. */}
+                      <small>
+                        {row.public_code}
+                        {row.city && ` · ${row.city}`}
+                        {!row.has_certificate && <> · <em>{t('પ્રમાણપત્ર નથી', 'No certificate')}</em></>}
+                        {(row.open_duplicates ?? 0) > 0 && <> · <em>{t('ડુપ્લિકેટ', 'Duplicate')} {row.open_duplicates}</em></>}
+                        {(row.resubmit_count ?? 0) > 0 && ` · ${t(`${row.resubmit_count}× ફરી મોકલી`, `Resent ${row.resubmit_count}×`)}`}
+                      </small>
+                      <span className={`queue-tag ${tag.tone}`}>
+                        {tag.Icon && <tag.Icon size={14} strokeWidth={2.4} />}
+                        {tag.label}
                       </span>
-                      {sla.state !== 'none' ? (
-                        <span className="admin-sla">{sla.state === 'overdue' ? <AlarmClock size={14} /> : <Hourglass size={14} />}{slaLabel(t, sla)}</span>
-                      ) : (
-                        <span className="admin-status">{applicationStatusLabel(t, row.status)}</span>
-                      )}
-                      <ChevronRight size={19} className="admin-row-go" />
-                    </div>
-
-                    {sla.state !== 'none' && (
-                      <span className="admin-bar" aria-hidden="true">
-                        <i style={{ '--used': sla.used } as React.CSSProperties} />
-                      </span>
-                    )}
-
-                    <div className="admin-facts">
-                      {row.city && <span><MapPin size={13} />{row.city}</span>}
-                      <span>
-                        <Users size={13} />
-                        {row.relationship === 'self' ? t('પોતે', 'Self') : t('વાલી દ્વારા', 'By a parent')}
-                      </span>
-                      <span className={row.has_certificate ? 'ok' : 'bad'}>
-                        {row.has_certificate ? <FileCheck2 size={13} /> : <FileWarning size={13} />}
-                        {row.has_certificate ? t('દસ્તાવેજ', 'Documents') : t('પ્રમાણપત્ર નથી', 'No certificate')}
-                      </span>
-                      {(row.open_duplicates ?? 0) > 0 && (
-                        <span className="bad"><CopyCheck size={13} />{t('ડુપ્લિકેટ', 'Duplicate')} {row.open_duplicates}</span>
-                      )}
-                      {(row.resubmit_count ?? 0) > 0 && (
-                        <span><RotateCcw size={13} />{t(`${row.resubmit_count}× ફરી`, `Resent ${row.resubmit_count}×`)}</span>
-                      )}
-                    </div>
+                    </span>
+                    <ChevronRight size={19} className="queue-row-go" />
                   </Link>
                 </li>
               );
@@ -260,4 +239,36 @@ export default async function AdminPage({
       </section>
     </AppShell>
   );
+}
+
+/**
+ * The one tag a row wears. While the family waits on us it is the clock
+ * against the 24-hour target; otherwise it is the status, in that status's
+ * own colour — an approval is never drawn in the colour of a correction.
+ */
+function queueTag(
+  t: T,
+  status: Enums<'application_status'> | null,
+  submittedAt: string | null,
+  dueAt: string | null,
+  overdue: boolean | null,
+): { tone: string; Icon: LucideIcon | null; label: string } {
+  if (status && WAITING_ON_US.includes(status)) {
+    const sla = reviewSla(submittedAt, dueAt, overdue);
+    if (sla.state !== 'none') {
+      return {
+        tone: sla.state === 'overdue' ? 'bad' : sla.state === 'soon' ? 'gold' : 'ok',
+        Icon: sla.state === 'overdue' ? AlarmClock : Hourglass,
+        label: slaLabel(t, sla),
+      };
+    }
+  }
+  const icons: Partial<Record<Enums<'application_status'>, LucideIcon>> = {
+    correction_requested: Pencil, approved: Check, rejected: X,
+  };
+  return {
+    tone: applicationStatusTone(status),
+    Icon: (status && icons[status]) ?? null,
+    label: applicationStatusLabel(t, status),
+  };
 }

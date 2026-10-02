@@ -20,6 +20,18 @@ export function applicationStatusLabel(t: T, status: Enums<'application_status'>
   }
 }
 
+/** The colour that goes with each status, so a tag reads before its words do. */
+export function applicationStatusTone(status: Enums<'application_status'> | null) {
+  switch (status) {
+    case 'approved': return 'ok';
+    case 'rejected': return 'bad';
+    case 'correction_requested': return 'warn';
+    case 'submitted':
+    case 'under_review': return 'gold';
+    default: return 'muted';
+  }
+}
+
 export function identityStatusLabel(t: T, status: string) {
   switch (status) {
     case 'unverified': return t('અચકાસાયેલ', 'Not verified');

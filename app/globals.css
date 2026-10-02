@@ -1646,22 +1646,18 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   background: var(--surface);
   box-shadow: var(--sh-1);
 }
-.admin-row.sla-soon { --sla: var(--gold); }
-.admin-row.sla-overdue { --sla: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 .admin-row-top { display: flex; align-items: center; gap: 12px; }
 .admin-row-name { flex: 1; min-width: 0; }
 .admin-row-name b { display: block; font-size: 16.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-row-name small { display: block; margin-top: 2px; color: var(--ink-3); font-size: 13.5px; }
 .admin-row-go { flex-shrink: 0; color: var(--ink-3); }
-.admin-sla, .admin-status {
+.admin-status {
   display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
   padding: 5px 10px;
   border-radius: var(--r-full);
   font-size: 12.5px; font-weight: 800; white-space: nowrap;
 }
-.admin-sla { background: color-mix(in srgb, var(--sla) 12%, var(--surface)); color: var(--sla); }
 .admin-status { background: var(--tone-tint, var(--surface-2)); color: var(--tone, var(--ink-2)); }
-.admin-row .admin-status { background: var(--warn-tint); color: var(--warn); }
 .admin-bar {
   display: block; height: 6px; margin-top: 12px;
   border-radius: var(--r-full);
@@ -1684,6 +1680,47 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 }
 .admin-facts > span.ok { background: var(--ok-tint); color: var(--ok); }
 .admin-facts > span.bad { background: var(--bad-tint); color: var(--bad); }
+
+/* The registration queue: one white panel, a thin line between families,
+   one line of facts and one tag each. Nothing to decode before tapping. */
+.queue-list {
+  margin-top: 14px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+}
+.queue-list > li + li { border-top: 1px solid var(--line); }
+.queue-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 14px;
+}
+.queue-row:active { background: var(--surface-2); }
+.queue-row:focus-visible { outline-offset: -3px; }
+.queue-row > .avatar { align-self: start; }
+.queue-row-body { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.queue-row-body b { font-size: 16.5px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+.queue-row-body small { margin-top: 2px; color: var(--ink-3); font-size: 13.5px; line-height: 1.4; }
+.queue-row-body em { color: var(--bad); font-style: normal; font-weight: 700; white-space: nowrap; }
+.queue-row-go { color: var(--ink-3); }
+.queue-tag {
+  --c: var(--ink-2); --c-tint: var(--surface-2);
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: var(--c-tint); color: var(--c);
+  font-size: 12.5px; font-weight: 800; white-space: nowrap;
+}
+.queue-tag.ok { --c: var(--ok); --c-tint: var(--ok-tint); }
+.queue-tag.gold { --c: var(--gold); --c-tint: var(--gold-tint); }
+.queue-tag.warn { --c: var(--warn); --c-tint: var(--warn-tint); }
+.queue-tag.bad { --c: var(--bad); --c-tint: var(--bad-tint); }
+@media (hover: hover) {
+  .queue-row:hover { background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+  .queue-row:hover .queue-row-go { translate: 3px 0; }
+}
 
 .admin-empty { margin-top: 14px; text-align: center; }
 .admin-empty-stage {
@@ -1915,15 +1952,6 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   .admin-tile { min-height: 0; }
   .admin-tabs { gap: 2px; }
   .admin-tabs a { gap: 4px; padding: 0 2px; font-size: 13px; }
-}
-
-/* On a phone, a pill beside the name leaves the name a few letters wide, so
-   the pill drops under it and the name gets the row. */
-@media (max-width: 440px) {
-  .admin-row-top:has(> .admin-sla, > .admin-status) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
-  .admin-row-top:has(> .admin-sla, > .admin-status) > .avatar { grid-row: 1 / span 2; }
-  .admin-row-top > :is(.admin-sla, .admin-status) { grid-column: 2; grid-row: 2; justify-self: start; margin-top: 6px; }
-  .admin-row-top:has(> .admin-sla, > .admin-status) > .admin-row-go { grid-column: 3; grid-row: 1 / span 2; }
 }
 
 /* --- Member ---------------------------------------------------------------- */
@@ -2381,7 +2409,9 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   .admin-tile.hot.bad > span { animation: ob-ring 1.8s ease-out 1s infinite; --tone: var(--bad); }
   .admin-search, .admin-tabs, .admin-alert, .admin-empty { animation: ob-rise 460ms var(--ease) 300ms backwards; }
   .admin-tabs a { transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
-  .admin-queue > li { animation: ob-rise 460ms var(--ease) calc(340ms + var(--i) * 70ms) backwards; }
+  :is(.admin-queue, .queue-list) > li { animation: ob-rise 460ms var(--ease) calc(340ms + var(--i) * 70ms) backwards; }
+  .queue-row { transition: background-color 160ms ease; }
+  .queue-row-go { transition: translate 200ms var(--spring); }
   .admin-row { transition: transform 160ms ease, box-shadow 200ms ease, border-color 200ms ease; }
   .admin-row:active { transform: scale(0.98); }
   @media (hover: hover) {
@@ -2390,7 +2420,6 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   }
   .admin-row-go { transition: translate 200ms var(--spring); }
   .admin-bar i { animation: ob-bar 900ms var(--ease) 500ms backwards; }
-  .admin-row.sla-overdue .admin-sla { animation: ob-ring 1.8s ease-out 1.2s infinite; --tone: var(--bad); }
   .admin-empty-stage .art-done path { animation: ob-draw 520ms ease-out 500ms backwards; }
 
   .admin-person .avatar.lg { animation: ob-pop 520ms var(--spring) 120ms backwards; }
