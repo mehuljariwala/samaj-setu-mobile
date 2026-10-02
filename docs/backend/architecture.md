@@ -77,7 +77,8 @@ states." So a candidate carries two status columns that never merge.
 ```
 identity_status      unverified → pending → verified
                                 ↘ correction_requested ↗
-                                ↘ rejected
+                                ↘ rejected → correction_requested
+                                  (an admin sends it back, or the family reopens it)
 
 publication_status   not_started → draft → in_review → published
                                           ↘ correction_requested ↗

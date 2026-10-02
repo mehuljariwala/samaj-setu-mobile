@@ -207,6 +207,16 @@ export async function submitRegistration(applicationId: string): Promise<Submiss
   };
 }
 
+/**
+ * A rejected application goes back to correction_requested, which reopens the
+ * registration form with the admin's reason above it. Only the family's own
+ * operators may do this, and only from a rejection.
+ */
+export async function reopenRegistration(applicationId: string): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('reopen_my_registration', { p_application_id: applicationId }));
+}
+
 export async function withdrawRegistration(applicationId: string): Promise<void> {
   const supabase = await createSupabaseServerClient();
   unwrap(await supabase.rpc('withdraw_registration', { p_application_id: applicationId }));

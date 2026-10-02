@@ -65,12 +65,19 @@ export function accessRequestStatusLabel(t: T, status: Enums<'access_request_sta
   }
 }
 
-export function reviewActionLabel(t: T, action: string) {
+/**
+ * `reopen` is recorded both when the family sends the application and when
+ * they reopen it themselves (after a rejection, or to change verified
+ * details); where it went tells the two apart.
+ */
+export function reviewActionLabel(t: T, action: string, toStatus?: string | null) {
   switch (action) {
     case 'approve': return t('મંજૂર કર્યું', 'Approved');
     case 'request_correction': return t('સુધારો માંગ્યો', 'Correction requested');
     case 'reject': return t('નામંજૂર કર્યું', 'Rejected');
-    case 'reopen': return t('અરજી મળી', 'Submitted');
+    case 'reopen': return toStatus === 'correction_requested'
+      ? t('પરિવારે સુધારવા ફરી ખોલી', 'Reopened by the family to fix')
+      : t('અરજી મળી', 'Submitted');
     case 'claim': return t('સમીક્ષા શરૂ', 'Review started');
     case 'release': return t('સમીક્ષા છોડી', 'Review released');
     default: return action;

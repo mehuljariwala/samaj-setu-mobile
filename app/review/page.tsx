@@ -7,6 +7,7 @@ import {
 import { AppShell } from '@/components/app/shell';
 import { ReviewArt, type ReviewState } from '@/components/onboarding/art';
 import { AutoRefresh } from '@/components/onboarding/auto-refresh';
+import { ReopenButton } from '@/components/onboarding/reopen-button';
 import { loadApplicantPage } from '@/lib/data/guards';
 import { timeAgo, translator } from '@/lib/i18n';
 import type { CandidateSummary } from '@/lib/data/session';
@@ -65,8 +66,14 @@ export default async function ReviewPage() {
       'An admin has checked your application. Fix what is noted below and send it again.',
     ),
     rejected: reason
-      ? t('એડમિને તમારી અરજી તપાસી છે. કારણ નીચે લખેલું છે.', 'An admin has checked your application. Their reason is below.')
-      : t('કારણ જાણવા માટે સ્વયંસેવકને ફોન કરો.', 'Please call a volunteer to find out why.'),
+      ? t(
+        'એડમિને તમારી અરજી તપાસી છે. કારણ નીચે લખેલું છે — તે સુધારીને અરજી ફરી મોકલી શકો છો.',
+        'An admin has checked your application. Their reason is below. You can fix it and send the application again.',
+      )
+      : t(
+        'કારણ જાણવા માટે સ્વયંસેવકને ફોન કરો, પછી સુધારીને અરજી ફરી મોકલો.',
+        'Call a volunteer to find out why, then fix it and send the application again.',
+      ),
     pending: overdue
       ? t(
         'સમીક્ષા અપેક્ષા કરતાં વધુ સમય લઈ રહી છે. તમારી અરજી એડમિન માટે ફ્લેગ કરી છે — તમારે કંઈ કરવાનું નથી.',
@@ -228,14 +235,10 @@ export default async function ReviewPage() {
               {t('વિગતો સુધારો', 'Update details')}
               <ArrowRight size={20} />
             </Link>
-          ) : tone === 'rejected' ? (
-            <p className="review-note">
-              <Pencil size={18} />
-              {t(
-                'ભૂલ લાગે છે? સ્વયંસેવકને ફોન કરો — તેઓ અરજી સુધારવા માટે ફરી ખોલી શકે છે.',
-                'Think this is a mistake? Call a volunteer. They can reopen the application so you can fix it.',
-              )}
-            </p>
+          ) : tone === 'rejected' && application ? (
+            // A rejection is not the end: the same application reopens, with
+            // the admin's reason above the form, and goes back to the queue.
+            <ReopenButton lang={lang} applicationId={application.id} />
           ) : tone === 'pending' ? (
             <p className="review-note">
               <Bell size={18} />

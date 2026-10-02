@@ -1764,6 +1764,12 @@ export type Database = {
         };
         Returns: string;
       };
+      reopen_my_registration: {
+        Args: {
+          p_application_id?: string;
+        };
+        Returns: Json;
+      };
       request_candidate_access: {
         Args: {
           p_public_code?: string;

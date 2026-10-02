@@ -115,8 +115,8 @@ export function RegistrationDecision({
       key: 'reject', tone: 'bad', Icon: X,
       title: t('નામંજૂર', 'Reject'),
       body: t(
-        'અંતિમ નિર્ણય: તેઓ સુધારીને ફરી મોકલી શકશે નહીં. ઝાંખો ફોટો કે ખોટી વિગત હોય તો સુધારો માંગો.',
-        'Final: they cannot fix it and send again. For a blurred photo or a wrong detail, ask for a fix.',
+        'મંજૂર નહીં. પરિવાર તમારું કારણ વાંચીને જાતે સુધારીને ફરી મોકલી શકે છે. ઝાંખો ફોટો કે ખોટી વિગત હોય તો સુધારો માંગો — તેમાં શું સુધારવું તે દેખાય છે.',
+        'Not approved. The family reads your reason and may fix it and send again on their own. For a blurred photo or a wrong detail, ask for a fix, which shows them exactly what to change.',
       ),
       disabled: !canDecide,
     },

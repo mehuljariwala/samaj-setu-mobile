@@ -95,6 +95,17 @@ export async function submitRegistrationAction(
   });
 }
 
+export async function reopenRegistrationAction(
+  applicationId: string,
+): Promise<ActionResult> {
+  return actionResult(async () => {
+    await registration.reopenRegistration(applicationId);
+    track('registration.reopened', { detail: { application_id: applicationId } });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
 export async function withdrawRegistrationAction(
   applicationId: string,
 ): Promise<ActionResult> {

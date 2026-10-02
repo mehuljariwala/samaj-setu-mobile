@@ -237,7 +237,7 @@ export default async function RegistrationDetailPage({
                 <li key={entry.id} className={entry.action}>
                   <span />
                   <div>
-                    <b>{reviewActionLabel(t, entry.action)}</b>
+                    <b>{reviewActionLabel(t, entry.action, entry.to_status)}</b>
                     <small>{timeAgo(entry.created_at, lang)}</small>
                     {(entry.reason_applicant || entry.internal_note) && (
                       <p>{entry.reason_applicant ?? entry.internal_note}</p>
