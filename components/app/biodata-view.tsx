@@ -11,11 +11,11 @@ import { formatPhone } from '@/lib/org';
  */
 const SECTIONS = [
   { id: 'about', gu: 'વ્યક્તિગત', en: 'About', Icon: UserRound, keys: ['gender', 'height', 'marital', 'diet'] },
-  { id: 'community', gu: 'સમાજ અને મોસાળ', en: 'Community and mosal', Icon: Users, keys: ['community', 'sect', 'surname', 'mosal'] },
+  { id: 'community', gu: 'સમાજ અને મોસાળ', en: 'Community and mosal', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'mosal'] },
   { id: 'work', gu: 'અભ્યાસ અને કામ', en: 'Studies and work', Icon: GraduationCap, keys: ['education', 'degree', 'work', 'role', 'employer'] },
-  { id: 'family', gu: 'પરિવાર', en: 'Family', Icon: Heart, keys: ['mother', 'native', 'brothers', 'sisters'] },
+  { id: 'family', gu: 'પરિવાર', en: 'Family', Icon: Heart, keys: ['mother', 'fatherWork', 'native', 'hometown', 'state', 'brothers', 'sisters'] },
   { id: 'birth', gu: 'જન્મ અને જ્યોતિષ', en: 'Birth and horoscope', Icon: Clock3, keys: ['birthplace', 'birthtime', 'rashi', 'gan', 'mangal'] },
-  { id: 'contact', gu: 'સંપર્ક', en: 'Contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone'] },
+  { id: 'contact', gu: 'સંપર્ક', en: 'Contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address'] },
 ] as const;
 
 /**
@@ -51,7 +51,7 @@ export function BiodataView({
       const inches = Math.round(Number(raw) / 2.54);
       return `${Math.floor(inches / 12)}′ ${inches % 12}″ · ${raw} ${t('સે.મી.', 'cm')}`;
     }
-    if (key === 'phone' || key === 'extraPhone') return formatPhone(raw);
+    if (key === 'phone' || key === 'extraPhone' || key === 'fatherPhone') return formatPhone(raw);
     const field = fieldByKey.get(key);
     return field ? displayValue(field, raw, en) : raw;
   };
@@ -65,7 +65,9 @@ export function BiodataView({
           <section key={section.id} className="bio-card">
             <h3>
               <span className="bio-card-icon"><section.Icon size={16} /></span>
-              {t(section.gu, section.en)}
+              {section.id === 'community' && data.origin === 'sanatan'
+                ? t('જ્ઞાતિ અને સંપ્રદાય', 'Caste and sect')
+                : t(section.gu, section.en)}
               {section.id === 'community' && communityConfirmed !== undefined && (
                 <em className={communityConfirmed ? 'ok' : 'warn'}>
                   {communityConfirmed ? <ShieldCheck size={13} /> : <TriangleAlert size={13} />}

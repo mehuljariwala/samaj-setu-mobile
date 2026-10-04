@@ -28,7 +28,7 @@ type Detail = {
   };
   candidate: {
     id: string; full_name: string; public_code: string; city: string | null;
-    date_of_birth: string; discoverable: boolean;
+    date_of_birth: string; discoverable: boolean; is_sanatan: boolean;
   };
   community: { confirmed_at: string | null } | null;
   history: { id: string; action: string; to_status: string | null; reason_applicant: string | null; created_at: string }[];
@@ -78,6 +78,7 @@ export default async function BiodataReviewPage({
             <small>{candidate.public_code}</small>
             <h1>{candidate.full_name}</h1>
             <span className={`queue-tag ${status.tone}`}><status.Icon size={14} strokeWidth={2.4} />{status.label}</span>
+            {candidate.is_sanatan && <span className="sanatan-tag">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>}
           </div>
           <p className="admin-person-facts">{facts}</p>
         </div>
@@ -127,6 +128,7 @@ export default async function BiodataReviewPage({
             revisionId={revision.id}
             expectedStatus={revision.status}
             canDecide={isAdmin(context)}
+            sanatan={candidate.is_sanatan}
           />
         ) : (
           <p className="admin-alert soft">

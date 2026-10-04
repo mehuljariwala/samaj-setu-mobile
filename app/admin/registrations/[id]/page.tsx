@@ -8,7 +8,7 @@ import { CertificateViewer } from '@/components/app/certificate-viewer';
 import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
-import { allFields } from '@/components/biodata/model';
+import { fieldsFor } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getLatestBiodata, getProfilePhotos, getRegistrationDetail } from '@/lib/data/admin';
 import {
@@ -33,7 +33,7 @@ type Detail = {
     resubmit_count: number;
     declared: Record<string, string | null>;
   };
-  candidate: { id: string; full_name: string; date_of_birth: string; father_name: string | null; city: string | null; public_code: string; identity_status: string };
+  candidate: { id: string; full_name: string; date_of_birth: string; father_name: string | null; city: string | null; public_code: string; identity_status: string; is_sanatan: boolean };
   operators: { account_id: string; phone: string; display_name: string | null; relationship: string; role: string; phone_verified: boolean }[];
   certificate: (DocumentMeta & { type: 'birth' | 'leaving' }) | null;
   identity: { type: 'aadhaar' | 'voter_id'; front: DocumentMeta | null; back: DocumentMeta | null } | null;
@@ -101,6 +101,7 @@ export default async function RegistrationDetailPage({
             <small>{candidate.public_code}</small>
             <h1>{candidate.full_name}</h1>
             <span className="admin-status">{applicationStatusLabel(t, application.status)}</span>
+            {candidate.is_sanatan && <span className="sanatan-tag">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>}
           </div>
           {sla && sla.state !== 'none' && (
             <div className={`admin-person-sla sla-${sla.state}`}>
@@ -267,7 +268,7 @@ export default async function RegistrationDetailPage({
             canDecide={isAdmin(context)}
             openDuplicates={openDuplicates.length}
             fields={CORRECTABLE.map((field) => ({ value: field, label: correctionFieldLabel(t, field) }))}
-            biodataFields={travelling ? allFields.map((field) => ({ value: field.key, label: t(field.gu, field.en) })) : []}
+            biodataFields={travelling ? fieldsFor(candidate.is_sanatan).map((field) => ({ value: field.key, label: t(field.gu, field.en) })) : []}
             withBiodata={travelling}
           />
         )}

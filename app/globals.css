@@ -3547,18 +3547,21 @@ body:has(.capture-dialog[open]) { overflow: hidden; }
 }
 .profile-select select:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .profile-clear { margin-top: 6px; }
-.gender-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; align-items: start; }
-.gender-side h2 {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px;
-  padding: 8px 12px; margin-bottom: 8px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  font-size: 15px; font-weight: 800;
+.side-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
+.side-tabs a { flex-direction: column; gap: 2px; padding: 6px 4px; white-space: normal; line-height: 1.2; }
+.side-tabs a i { background: var(--ink-3); }
+.side-tabs a.on.side-boys i { background: #2d4a9a; }
+.side-tabs a.on.side-girls i { background: var(--brand); }
+.side-tabs a.on.side-sanatan i { background: #b35c00; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; list-style: none; align-items: start; }
+/* A daughter from outside the Khatri samaj, marked wherever an admin meets her. */
+.admin-facts > span.sanatan-chip { background: #fff1e0; color: #b35c00; font-weight: 800; }
+.sanatan-tag {
+  display: inline-flex; align-items: center; margin-left: 6px; padding: 3px 9px;
+  border-radius: var(--r-full);
+  background: #fff1e0; color: #b35c00;
+  font-size: 12px; font-weight: 800; white-space: nowrap;
 }
-.gender-side:first-child h2 { background: #e7edfd; color: #2d4a9a; }
-.gender-side:last-child h2 { background: var(--brand-tint); color: var(--brand); }
-.gender-side h2 i { font-style: normal; font-variant-numeric: tabular-nums; }
-.gender-side ul { display: grid; gap: 8px; list-style: none; }
 .gender-empty { padding: 14px 4px; color: var(--ink-3); font-size: 13.5px; text-align: center; }
 .profile-mini {
   display: flex; flex-direction: column; align-items: flex-start; gap: 3px;

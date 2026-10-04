@@ -16,7 +16,7 @@ import { formatPhone } from '@/lib/org';
 import { ageFrom, formatDate } from '@/lib/age';
 import { isValidLocalPhone, normalizeLocalPhone } from '@/lib/phone';
 import {
-  validateKeys, completion, displayValue, fieldByKey, persistable,
+  validateKeys, completion, displayValue, fieldByKey, isRequired, isSanatan, persistable, SAMAJ_ONLY, SANATAN_ONLY,
   type Values, type Field,
 } from './model';
 
@@ -49,11 +49,11 @@ type Props = {
  */
 const STEPS = [
   { id: 'about', Icon: UserRound, keys: ['gender', 'height', 'marital', 'diet'] },
-  { id: 'community', Icon: Users, keys: ['community', 'sect', 'surname', 'mosal'] },
+  { id: 'community', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'mosal'] },
   { id: 'work', Icon: GraduationCap, keys: ['education', 'degree', 'work', 'role', 'employer'] },
-  { id: 'family', Icon: Heart, keys: ['mother', 'native', 'brothers', 'sisters'] },
+  { id: 'family', Icon: Heart, keys: ['mother', 'fatherWork', 'native', 'hometown', 'state', 'brothers', 'sisters'] },
   { id: 'birth', Icon: Clock3, keys: ['birthplace', 'birthtime', 'rashi', 'gan', 'mangal'], optional: true },
-  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone'] },
+  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address'] },
   { id: 'photos', Icon: Camera, keys: [] as string[], optional: true },
 ] as const;
 type Step = (typeof STEPS)[number];
@@ -128,9 +128,13 @@ export function GuidedBiodata({
   /** Fields a step asks, honouring the work-status and implied-gender rules. */
   function visibleKeys(s: Step, values: Values = data): string[] {
     const hideJob = NOT_WORKING.includes(values.work);
+    // A Sanatan daughter is asked her caste and family details instead of the
+    // Khatri sub-community and mosal; a samaj biodata never sees hers.
+    const sanatan = isSanatan(values);
     return s.keys.filter((k) =>
       !(hideJob && (k === 'role' || k === 'employer'))
-      && !(k === 'gender' && impliedGender && values.gender === impliedGender));
+      && !(k === 'gender' && impliedGender && values.gender === impliedGender)
+      && !(sanatan ? SAMAJ_ONLY : SANATAN_ONLY).includes(k));
   }
 
   /**
@@ -342,11 +346,17 @@ export function GuidedBiodata({
       title: relation === 'self' ? t('તમારા વિશે થોડું', 'A little about you') : t(`${first} વિશે થોડું`, `A little about ${first}`),
       lead: t('ફક્ત ટૅપ કરીને પસંદ કરો. બધું આપમેળે સચવાય છે.', 'Just tap to choose. Everything saves as you go.'),
     },
-    community: {
-      name: t('સમાજ', 'Community'),
-      title: t('સમાજ અને મોસાળ', 'Community and mosal'),
-      lead: t('સાચો સંબંધ શોધવા માટે આ સૌથી જરૂરી છે.', 'This matters most for finding the right match.'),
-    },
+    community: isSanatan(data)
+      ? {
+        name: t('જ્ઞાતિ', 'Caste'),
+        title: t('જ્ઞાતિ અને સંપ્રદાય', 'Caste and sect'),
+        lead: t('તમારી જ્ઞાતિ લખો, અને ભગત કે જગત પસંદ કરો.', 'Write your caste, and choose Bhagat or Jagat.'),
+      }
+      : {
+        name: t('સમાજ', 'Community'),
+        title: t('સમાજ અને મોસાળ', 'Community and mosal'),
+        lead: t('સાચો સંબંધ શોધવા માટે આ સૌથી જરૂરી છે.', 'This matters most for finding the right match.'),
+      },
     work: {
       name: t('અભ્યાસ', 'Studies'),
       title: t('અભ્યાસ અને કામ', 'Studies and work'),
@@ -386,7 +396,7 @@ export function GuidedBiodata({
 
   /* ---------------------------------------------------------- fields --- */
   const label = (f: Field) => (en ? f.en : f.gu);
-  const optionalMark = (f: Field, s: Step) => (!f.required && !('optional' in s && s.optional)
+  const optionalMark = (f: Field, s: Step) => (!isRequired(f, data) && !('optional' in s && s.optional)
     ? <small> · {t('વૈકલ્પિક', 'optional')}</small>
     : null);
 
@@ -400,7 +410,7 @@ export function GuidedBiodata({
           <span>
             {f.key === 'height' ? t('ઊંચાઈ પસંદ કરો.', 'Choose a height.')
               : f.options ? t('એક પસંદ કરો.', 'Choose one.')
-                : f.key === 'phone' || f.key === 'extraPhone' ? t('10 અંકનો મોબાઇલ નંબર લખો.', 'Enter a 10-digit mobile number.')
+                : f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone' ? t('10 અંકનો મોબાઇલ નંબર લખો.', 'Enter a 10-digit mobile number.')
                   : t('સાચી વિગત લખો.', 'Enter a valid value.')}
           </span>
         </p>
@@ -433,7 +443,7 @@ export function GuidedBiodata({
                   checked={value === v}
                   onChange={() => update(key, v)}
                   // A second tap on an optional answer takes it back.
-                  onClick={() => { if (value === v && !f.required) update(key, ''); }}
+                  onClick={() => { if (value === v && !isRequired(f, data)) update(key, ''); }}
                 />
                 {value === v && <i className="bio-tick" aria-hidden="true"><Check size={12} strokeWidth={3.5} /></i>}
                 <span>{en ? english : gu}</span>
@@ -495,7 +505,7 @@ export function GuidedBiodata({
       );
     }
 
-    if (key === 'phone' || key === 'extraPhone') {
+    if (key === 'phone' || key === 'extraPhone' || key === 'fatherPhone') {
       return (
         <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
           <label className="auth-label" htmlFor={id}>{label(f)}{optionalMark(f, s)}</label>
@@ -673,7 +683,7 @@ export function GuidedBiodata({
                             {data[f.key]
                               ? f.key === 'height'
                                 ? `${feetAndInches(data[f.key])} · ${data[f.key]} ${t('સે.મી.', 'cm')}`
-                                : f.key === 'phone' || f.key === 'extraPhone'
+                                : f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone'
                                   ? formatPhone(data[f.key])
                                   : displayValue(f, data[f.key], en)
                               : t('ભરવાનું બાકી', 'Needed')}
@@ -757,8 +767,7 @@ export function GuidedBiodata({
       <div key={`f${step}`} className={`auth-fields bio-fields${shake ? ` shake${shake % 2 ? '' : ' again'}` : ''}`}>
         {s.id === 'family' ? (
           <>
-            {renderField('mother', s)}
-            {renderField('native', s)}
+            {visibleKeys(s).filter((k) => k !== 'brothers' && k !== 'sisters').map((k) => renderField(k, s))}
             <div className="bio-pair">
               {renderField('brothers', s)}
               {renderField('sisters', s)}
@@ -779,7 +788,7 @@ export function GuidedBiodata({
           visibleKeys(s).map((k) => renderField(k, s))
         )}
 
-        {s.id === 'community' && (
+        {s.id === 'community' && !isSanatan(data) && (
           <p className="auth-hint">
             <Info size={15} />
             {t(

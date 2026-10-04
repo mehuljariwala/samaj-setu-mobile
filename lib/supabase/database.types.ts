@@ -315,6 +315,7 @@ export type Database = {
           max_value: number | null;
           options: Json;
           affects_eligibility: boolean;
+          required_for: string;
         };
         Insert: {
           key: string;
@@ -328,6 +329,7 @@ export type Database = {
           max_value?: number | null;
           options?: Json;
           affects_eligibility?: boolean;
+          required_for?: string;
         };
         Update: {
           key?: string;
@@ -341,6 +343,7 @@ export type Database = {
           max_value?: number | null;
           options?: Json;
           affects_eligibility?: boolean;
+          required_for?: string;
         };
         Relationships: [];
       };
@@ -714,6 +717,7 @@ export type Database = {
           created_by_account_id: string | null;
           created_at: string;
           updated_at: string;
+          is_sanatan: boolean;
         };
         Insert: {
           id?: string;
@@ -736,6 +740,7 @@ export type Database = {
           created_by_account_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_sanatan?: boolean;
         };
         Update: {
           id?: string;
@@ -758,6 +763,7 @@ export type Database = {
           created_by_account_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_sanatan?: boolean;
         };
         Relationships: [
           { foreignKeyName: "candidates_created_by_account_id_fkey"; columns: ["created_by_account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
@@ -1551,7 +1557,7 @@ export type Database = {
         Args: {
           p_query?: string;
         };
-        Returns: { candidate_id: string | null; public_code: string | null; full_name: string | null; gender: Database["public"]["Enums"]["gender"] | null; age: number | null; city: string | null; sub_community: string | null; stage: string | null; application_id: string | null; submitted_at: string | null; review_due_at: string | null; overdue: boolean | null; revision_id: string | null; revision_submitted_at: string | null; published_revision_id: string | null; completion: number | null; has_photo: boolean | null; documents_complete: boolean | null }[];
+        Returns: { candidate_id: string | null; public_code: string | null; full_name: string | null; gender: Database["public"]["Enums"]["gender"] | null; is_sanatan: boolean | null; age: number | null; city: string | null; sub_community: string | null; stage: string | null; application_id: string | null; submitted_at: string | null; review_due_at: string | null; overdue: boolean | null; revision_id: string | null; revision_submitted_at: string | null; published_revision_id: string | null; completion: number | null; has_photo: boolean | null; documents_complete: boolean | null }[];
       };
       admin_publication_queue: {
         Args: {
@@ -1874,6 +1880,13 @@ export type Database = {
           p_message?: string;
         };
         Returns: string;
+      };
+      set_sanatan: {
+        Args: {
+          p_candidate_id?: string;
+          p_sanatan?: boolean;
+        };
+        Returns: undefined;
       };
       stage_imported_biodata: {
         Args: {

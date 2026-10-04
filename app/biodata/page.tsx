@@ -76,7 +76,9 @@ export default async function BiodataPage({
         applicationId={applicationId}
         revisionId={revision?.id ?? null}
         status={revision?.status ?? 'draft'}
-        initialValues={(revision?.data ?? {}) as Values}
+        // The server stamps the origin on every save; set here too so the
+        // form asks the right questions before the first one.
+        initialValues={{ ...(revision?.data ?? {}) as Values, origin: candidate.is_sanatan ? 'sanatan' : 'samaj' }}
         verified={verified}
         relation={relationship}
         decisionReason={revision?.decision_reason ?? null}

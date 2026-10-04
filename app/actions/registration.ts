@@ -117,6 +117,15 @@ export async function editRegistrationAction(
   });
 }
 
+export async function setSanatanAction(candidateId: string, sanatan: boolean): Promise<ActionResult> {
+  return actionResult(async () => {
+    await registration.setSanatan(candidateId, sanatan);
+    track('registration.sanatan', { candidateId, detail: { sanatan } });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
 export async function withdrawRegistrationAction(
   applicationId: string,
 ): Promise<ActionResult> {

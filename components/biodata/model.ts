@@ -5,6 +5,11 @@ export type Field = {
   gu: string;
   en: string;
   required?: boolean;
+  /**
+   * Whom `required` binds, as public.biodata_fields.required_for: a Khatri
+   * samaj biodata, a Sanatan daughter's (સનાતન દીકરી), or both when absent.
+   */
+  requiredFor?: 'samaj' | 'sanatan';
   type?: 'text' | 'number' | 'time' | 'select';
   options?: [string, string, string][];
   min?: number;
@@ -55,14 +60,15 @@ export const steps: Step[] = [
   {
     id: 'community',
     fields: [
-      choice('community', 'પેટા સમાજ', 'Sub-community', [
+      { ...choice('community', 'પેટા સમાજ', 'Sub-community', [
         ['surti', 'સુરતી', 'Surti'],
         ['khambhati', 'ખંભાતી', 'Khambhati'],
         ['ahmedabadi', 'અમદાવાદી', 'Ahmedabadi'],
         ['indori', 'ઇન્દોરી', 'Indori'],
-      ], true),
+      ], true), requiredFor: 'samaj' },
       choice('sect', 'ભક્ત / જગત', 'Sect', [['bhagat', 'ભક્ત', 'Bhagat'], ['jagat', 'જગત', 'Jagat']], true),
-      { key: 'surname', gu: 'પિતૃપક્ષની અટક', en: 'Paternal surname', required: true, wide: true },
+      { key: 'surname', gu: 'પિતૃપક્ષની અટક', en: 'Paternal surname', required: true, requiredFor: 'samaj', wide: true },
+      { key: 'caste', gu: 'કઈ જ્ઞાતિ', en: 'Caste', required: true, requiredFor: 'sanatan', wide: true },
     ],
   },
   {
@@ -73,6 +79,7 @@ export const steps: Step[] = [
         gu: 'મોસાળનું કુટુંબ / અટક',
         en: 'Maternal grandfather’s family / surname',
         required: true,
+        requiredFor: 'samaj',
         wide: true,
         hint: ['ચોક્કસ ન હોય તો પરિવાર સાથે પુષ્ટિ કરો.', 'If unsure, confirm with your family.'],
       },
@@ -114,8 +121,11 @@ export const steps: Step[] = [
   {
     id: 'family',
     fields: [
-      { key: 'mother', gu: 'માતાનું પૂરું નામ', en: 'Mother’s full name', wide: true },
+      { key: 'mother', gu: 'માતાનું પૂરું નામ', en: 'Mother’s full name', required: true, requiredFor: 'sanatan', wide: true },
       { key: 'native', gu: 'મૂળ વતન', en: 'Native place', wide: true },
+      { key: 'fatherWork', gu: 'પિતાનો વ્યવસાય', en: 'Father’s occupation', required: true, requiredFor: 'sanatan', wide: true },
+      { key: 'hometown', gu: 'ગામ / શહેર', en: 'Village or town', required: true, requiredFor: 'sanatan' },
+      { key: 'state', gu: 'રાજ્ય', en: 'State', required: true, requiredFor: 'sanatan' },
     ],
   },
   {
@@ -167,12 +177,48 @@ export const steps: Step[] = [
       ], true),
       { key: 'phone', gu: 'સંપર્ક નંબર', en: 'Contact number', required: true },
       { key: 'extraPhone', gu: 'વધારાનો નંબર', en: 'Additional number' },
+      { key: 'fatherPhone', gu: 'પિતાનો મોબાઇલ નંબર', en: 'Father’s mobile number', required: true, requiredFor: 'sanatan' },
+      {
+        key: 'address', gu: 'સરનામું', en: 'Address', required: true, requiredFor: 'sanatan', wide: true,
+        hint: ['ફક્ત એડમિન જુએ છે.', 'Only an admin sees it.'],
+      },
+    ],
+  },
+  {
+    // Not a question: stamped by the server from the registration's
+    // Sanatan box, and carried so validation here matches validation there.
+    id: 'meta',
+    fields: [
+      choice('origin', 'પ્રોફાઇલ પ્રકાર', 'Profile type', [
+        ['samaj', 'ખત્રી સમાજ', 'Khatri samaj'],
+        ['sanatan', 'સનાતન દીકરી', 'Sanatan daughter'],
+      ]),
     ],
   },
 ];
 
 export const allFields = steps.flatMap((s) => s.fields);
 export const fieldByKey = new Map(allFields.map((f) => [f.key, f]));
+
+/** A Sanatan daughter's biodata (origin stamped by the server). */
+export const isSanatan = (data: Values) => data.origin === 'sanatan';
+
+/** Fields only a Khatri samaj biodata asks, and only a Sanatan daughter's. */
+export const SAMAJ_ONLY = ['community', 'mosal'];
+export const SANATAN_ONLY = ['caste', 'fatherWork', 'hometown', 'state', 'fatherPhone', 'address'];
+
+/** The questions a biodata of this kind asks — what an admin may flag in it. */
+export function fieldsFor(sanatan: boolean): Field[] {
+  const skip = sanatan ? SAMAJ_ONLY : SANATAN_ONLY;
+  return allFields.filter((f) => f.key !== 'origin' && !skip.includes(f.key));
+}
+
+/** Whether a field must be filled for this biodata, by whom `required` binds. */
+export function isRequired(f: Field, data: Values): boolean {
+  if (!f.required) return false;
+  if (!f.requiredFor) return true;
+  return f.requiredFor === (isSanatan(data) ? 'sanatan' : 'samaj');
+}
 
 /**
  * Keys the form holds for its own purposes that `public.biodata_fields` does
@@ -197,14 +243,14 @@ const PHONE = /^[6-9]\d{9}$/;
 /** Validate a single field in isolation. Returns true when the value is unusable. */
 export function fieldInvalid(f: Field, data: Values): boolean {
   const v = (data[f.key] || '').trim();
-  if (f.required && !v) return true;
+  if (isRequired(f, data) && !v) return true;
   if (!v) return false;
   if (f.type === 'number') {
     const n = Number(v);
     if (!Number.isInteger(n) || n < (f.min ?? 0) || n > (f.max ?? 999)) return true;
   }
   if (f.options && !f.options.some((o) => o[0] === v)) return true;
-  if (f.key === 'phone' || f.key === 'extraPhone') return !PHONE.test(v);
+  if (f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone') return !PHONE.test(v);
   return false;
 }
 
@@ -221,7 +267,7 @@ export function validateKeys(keys: string[], data: Values): string[] {
 }
 
 export function completion(data: Values) {
-  const required = allFields.filter((f) => f.required);
+  const required = allFields.filter((f) => isRequired(f, data));
   return Math.round((required.filter((f) => data[f.key]?.trim()).length / required.length) * 100);
 }
 

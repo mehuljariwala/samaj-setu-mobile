@@ -226,6 +226,16 @@ export async function editRegistration(applicationId: string): Promise<void> {
   unwrap(await supabase.rpc('edit_my_registration', { p_application_id: applicationId }));
 }
 
+/**
+ * The registration's સનાતન દીકરી box: a daughter from outside the Khatri
+ * samaj, whose biodata asks her caste and family details instead of the
+ * sub-community and mosal.
+ */
+export async function setSanatan(candidateId: string, sanatan: boolean): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('set_sanatan', { p_candidate_id: candidateId, p_sanatan: sanatan }));
+}
+
 export async function withdrawRegistration(applicationId: string): Promise<void> {
   const supabase = await createSupabaseServerClient();
   unwrap(await supabase.rpc('withdraw_registration', { p_application_id: applicationId }));
@@ -304,7 +314,7 @@ export async function getOpenApplication() {
   const candidate = unwrap(
     await supabase
       .from('candidates')
-      .select('id, full_name, date_of_birth, gender, father_name, city')
+      .select('id, full_name, date_of_birth, gender, father_name, city, is_sanatan')
       .eq('id', row.candidate_id)
       .single(),
   );
@@ -339,6 +349,7 @@ export async function getOpenApplication() {
     fatherName: candidate.father_name ?? '',
     city: candidate.city ?? 'Surat',
     gender: candidate.gender,
+    isSanatan: candidate.is_sanatan,
     relationship: row.operator_relationship,
     // Members cannot read application_documents (spec §8), so this select
     // returns nothing for them — which is why `has_certificate` on my_context()

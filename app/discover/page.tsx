@@ -45,7 +45,8 @@ export default async function DiscoverPage({
   const all = await discoverAll(acting.id, { query: one('q'), savedOnly: one('saved') === '1' });
   const results = all.filter((profile) =>
     (!one('city') || profile.city === one('city'))
-    && (!one('community') || profile.subCommunity === one('community'))
+    && (!one('community')
+      || (one('community') === 'sanatan' ? profile.biodata.origin === 'sanatan' : profile.subCommunity === one('community')))
     && (!one('sect') || profile.sect === one('sect'))
     && within(profile.age, AGES[one('age') ?? ''])
     && within(Number(profile.biodata.height) || null, HEIGHTS[one('height') ?? ''])
@@ -65,8 +66,14 @@ export default async function DiscoverPage({
     return option ? t(option[1], option[2]) : value;
   };
   const cities = [...new Set(all.map((profile) => profile.city).filter((value): value is string => Boolean(value)))].sort();
-  const communities = [...new Set(all.map((profile) => profile.subCommunity).filter((value): value is string => Boolean(value)))]
-    .map((value) => ({ value, label: optionLabel('community', value) ?? value }));
+  const communities = [
+    ...[...new Set(all.map((profile) => profile.subCommunity).filter((value): value is string => Boolean(value)))]
+      .map((value) => ({ value, label: optionLabel('community', value) ?? value })),
+    // Daughters from outside the Khatri samaj, as one more choice.
+    ...(all.some((profile) => profile.biodata.origin === 'sanatan')
+      ? [{ value: 'sanatan', label: t('સનાતન દીકરીઓ', 'Sanatan daughters') }]
+      : []),
+  ];
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member>
@@ -136,6 +143,10 @@ export default async function DiscoverPage({
                     </p>
 
                     <div className="admin-facts">
+                      {profile.biodata.origin === 'sanatan' && (
+                        <span className="sanatan-chip">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>
+                      )}
+                      {profile.biodata.caste && <span>{profile.biodata.caste}</span>}
                       {profile.biodata.degree && (
                         <span><GraduationCap size={13} />{profile.biodata.degree}</span>
                       )}

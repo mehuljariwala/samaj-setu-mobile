@@ -11,7 +11,7 @@ import {
 import { signUpAction } from '@/app/actions/auth';
 import { registerMediaAction } from '@/app/actions/matching';
 import {
-  attachCertificateAction, attachIdentityDocumentAction, startRegistrationAction,
+  attachCertificateAction, attachIdentityDocumentAction, setSanatanAction, startRegistrationAction,
   updateRegistrationAction,
 } from '@/app/actions/registration';
 import { DocumentCapture } from '@/components/app/document-capture';
@@ -45,6 +45,8 @@ export type ExistingApplication = {
   fatherName: string;
   city: string;
   gender: 'male' | 'female';
+  /** Ticked as a સનાતન દીકરી, a daughter from outside the Khatri samaj. */
+  isSanatan: boolean;
   relationship: string;
   documents: AttachedDocuments;
   /** A profile photo is already on file. */
@@ -143,6 +145,7 @@ export function JoinFlow({
   const [idFront, setIdFront] = useState<Picked | null>(null);
   const [idBack, setIdBack] = useState<Picked | null>(null);
   const [photo, setPhoto] = useState<Picked | null>(null);
+  const [sanatan, setSanatanBox] = useState(Boolean(existing?.isSanatan));
 
   const [error, setError] = useState<{ field?: Field; message: string; conflict?: boolean } | null>(null);
   const [busy, setBusy] = useState('');
@@ -319,6 +322,13 @@ export function JoinFlow({
 
       if (!applicationId || !candidateId) {
         return fail(undefined, t('કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.', 'Something went wrong. Please try again.'));
+      }
+
+      // Before the biodata, which asks different things of a Sanatan daughter.
+      const wantSanatan = effectiveGender === 'female' && sanatan;
+      if (wantSanatan !== Boolean(existing?.isSanatan)) {
+        const marked = await setSanatanAction(candidateId, wantSanatan);
+        if (!marked.ok) return fail(undefined, marked.message);
       }
 
       // Each file: straight to the private bucket from the browser, then
@@ -546,6 +556,23 @@ export function JoinFlow({
                     </label>
                   ))}
                 </fieldset>
+              )}
+
+              {/* Off by default; only ever for a girl. */}
+              {effectiveGender === 'female' && (
+                <label className={`bio-confirm sanatan-box${sanatan ? ' on' : ''}`}>
+                  <input type="checkbox" checked={sanatan} onChange={(event) => setSanatanBox(event.target.checked)} />
+                  <i aria-hidden="true"><Check size={14} strokeWidth={3.5} /></i>
+                  <span>
+                    <b>{t('સનાતન દીકરી', 'Sanatan daughter')}</b>
+                    <small>
+                      {t(
+                        'ખત્રી સમાજ બહારની દીકરી હોય તો જ ટિક કરો. બાયોડેટામાં જ્ઞાતિ, સરનામું જેવી થોડી વધુ વિગતો પૂછાશે.',
+                        'Tick only if the girl is from outside the Khatri samaj. The biodata then asks a few more details, like caste and address.',
+                      )}
+                    </small>
+                  </span>
+                </label>
               )}
 
               <label className="auth-label spaced" htmlFor="candidate-name">

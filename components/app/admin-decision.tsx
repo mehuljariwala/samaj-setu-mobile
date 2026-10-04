@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Check, CheckCheck, CircleHelp, Pencil, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { decideBiodataAction, decideRegistrationAction, resolveDuplicateAction } from '@/app/actions/admin';
-import { allFields } from '@/components/biodata/model';
+import { fieldsFor } from '@/components/biodata/model';
 import type { ActionResult } from '@/lib/data/errors';
 import type { Enums } from '@/lib/supabase/database.types';
 import type { Lang } from '@/lib/i18n';
@@ -360,11 +360,14 @@ export function BiodataDecision({
   revisionId,
   expectedStatus,
   canDecide,
+  sanatan = false,
 }: {
   lang: Lang;
   revisionId: string;
   expectedStatus: Enums<'revision_status'>;
   canDecide: boolean;
+  /** A Sanatan daughter's biodata, whose fix chips are her own questions. */
+  sanatan?: boolean;
 }) {
   const t = translator(lang);
   const router = useRouter();
@@ -430,7 +433,7 @@ export function BiodataDecision({
         <fieldset className="decide-fields">
           <legend className="field-label flush">{t('કઈ વિગતો સુધારવાની છે?', 'Which details need fixing?')} <span>*</span></legend>
           <div>
-            {allFields.map((field) => {
+            {fieldsFor(sanatan).map((field) => {
               const on = fields.includes(field.key);
               return (
                 <button

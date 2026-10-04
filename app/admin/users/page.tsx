@@ -283,8 +283,14 @@ async function ProfilesView({ lang, params }: { lang: Lang; params: Params }) {
     && (!age || inAgeBand(row.age, age));
 
   const shown = rows.filter((row) => passes(row));
-  const boys = shown.filter((row) => row.gender === 'male');
-  const girls = shown.filter((row) => row.gender === 'female');
+  // Three groups: boys, girls of the samaj, and Sanatan daughters from outside
+  // it — a Sanatan daughter is counted only in her own tab.
+  const groups = {
+    boys: shown.filter((row) => row.gender === 'male' && !row.is_sanatan),
+    girls: shown.filter((row) => row.gender === 'female' && !row.is_sanatan),
+    sanatan: shown.filter((row) => row.is_sanatan),
+  };
+  const side = (['boys', 'girls', 'sanatan'] as const).find((key) => key === one('side')) ?? 'boys';
 
   const stageCount = (key: StageFilter) =>
     rows.filter((row) => passes(row, 'stage') && (key === 'all' || STAGE_GROUPS[key].includes(row.stage ?? ''))).length;
@@ -293,7 +299,7 @@ async function ProfilesView({ lang, params }: { lang: Lang; params: Params }) {
 
   // The URL as it stands, for links that change one filter and keep the rest.
   const current: Record<string, string> = {};
-  for (const key of ['q', 'stage', 'missing', 'city', 'community', 'age']) {
+  for (const key of ['q', 'side', 'stage', 'missing', 'city', 'community', 'age']) {
     const value = one(key);
     if (value) current[key] = value;
   }
@@ -304,7 +310,7 @@ async function ProfilesView({ lang, params }: { lang: Lang; params: Params }) {
     const qs = next.toString();
     return qs ? `/admin/users?${qs}` : '/admin/users';
   };
-  const filtered = Object.keys(current).some((key) => key !== 'q');
+  const filtered = Object.keys(current).some((key) => key !== 'q' && key !== 'side');
 
   const communityField = fieldByKey.get('community');
   const communityLabel = (value: string) => {
@@ -397,23 +403,32 @@ async function ProfilesView({ lang, params }: { lang: Lang; params: Params }) {
         </Link>
       )}
 
-      <div className="gender-split">
-        {[
-          { key: 'male', title: t('છોકરાઓ', 'Boys'), list: boys },
-          { key: 'female', title: t('છોકરીઓ', 'Girls'), list: girls },
-        ].map((side) => (
-          <section key={side.key} className="gender-side" aria-label={side.title}>
-            <h2>{side.title}<i>{side.list.length}</i></h2>
-            {side.list.length === 0 ? (
-              <p className="gender-empty">{t('કોઈ નથી', 'No one')}</p>
-            ) : (
-              <ul>
-                {side.list.map((row) => <ProfileMini key={row.candidate_id!} row={row} t={t} lang={lang} />)}
-              </ul>
-            )}
-          </section>
+      <nav className="admin-tabs side-tabs" aria-label={t('પ્રોફાઇલ જૂથ', 'Profile group')}>
+        {([
+          ['boys', t('છોકરાઓ', 'Boys')],
+          ['girls', t('છોકરીઓ', 'Girls')],
+          ['sanatan', t('સનાતન દીકરીઓ', 'Sanatan daughters')],
+        ] as const).map(([key, label]) => (
+          <Link
+            key={key}
+            href={hrefWith('side', key === 'boys' ? undefined : key)}
+            className={`${side === key ? 'on' : ''} side-${key}`}
+            aria-current={side === key ? 'page' : undefined}
+            scroll={false}
+          >
+            {label}
+            <i>{groups[key].length}</i>
+          </Link>
         ))}
-      </div>
+      </nav>
+
+      {groups[side].length === 0 ? (
+        <p className="gender-empty">{t('આ જૂથમાં કોઈ નથી', 'No one in this group')}</p>
+      ) : (
+        <ul className="profile-grid">
+          {groups[side].map((row) => <ProfileMini key={row.candidate_id!} row={row} t={t} lang={lang} />)}
+        </ul>
+      )}
     </>
   );
 }
