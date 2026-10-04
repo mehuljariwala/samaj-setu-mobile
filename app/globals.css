@@ -1837,6 +1837,21 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
   background: var(--surface);
 }
 .admin-account > span:nth-child(2) { flex: 1; min-width: 0; }
+/* An account row with two targets: the account itself, and a call button. */
+.admin-account.split { gap: 0; padding: 0; overflow: hidden; }
+.admin-account-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 12px 14px; }
+.admin-account-main > span:nth-child(2) { flex: 1; min-width: 0; }
+.admin-account-main > svg:last-child { flex-shrink: 0; color: var(--ink-3); }
+.admin-account .admin-account-manage { margin-top: 2px; color: var(--brand); font-size: 13px; font-weight: 700; }
+.admin-account-main b { white-space: nowrap; }
+.admin-account-unverified { color: var(--warn); font-style: normal; font-weight: 700; }
+.admin-account-call {
+  display: flex; align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0;
+  width: 54px;
+  border-left: 1px solid var(--line);
+  color: var(--ok);
+}
+.admin-account-call:active, .admin-account-main:active { background: var(--surface-2); }
 .admin-account b { display: block; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .admin-account small { display: block; color: var(--ink-3); font-size: 13.5px; }
 .admin-account-icon {

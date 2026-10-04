@@ -50,7 +50,7 @@ export default async function UsersPage({
             <UserRound size={16} />{t('પ્રોફાઇલ', 'Profiles')}
           </Link>
           <Link href="/admin/users?view=accounts" className={view === 'accounts' ? 'on' : undefined} aria-current={view === 'accounts' ? 'page' : undefined}>
-            <Users size={16} />{t('એકાઉન્ટ', 'Accounts')}
+            <Users size={16} />{t('એકાઉન્ટ અને પાસવર્ડ', 'Accounts & passwords')}
           </Link>
         </nav>
 

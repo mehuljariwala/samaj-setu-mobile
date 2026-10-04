@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  AlarmClock, ArrowLeft, CalendarDays, CheckCheck, Hourglass, ListChecks, MapPin, Phone, RotateCcw, ShieldCheck, UserRound,
+  AlarmClock, ArrowLeft, CalendarDays, CheckCheck, Hourglass, ListChecks, MapPin, Phone, RotateCcw, ShieldCheck, UserRound, ChevronRight, KeyRound,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
@@ -127,19 +127,28 @@ export default async function RegistrationDetailPage({
 
         <h2 className="admin-h2">{t('જોડાયેલા ખાતાં', 'Linked accounts')}</h2>
         <div className="admin-accounts">
+          {/* The account opens where an admin resets a password or switches it
+              off; the phone beside it calls the family. */}
           {operators.map((operator) => (
-            <a key={operator.account_id} className="admin-account" href={`tel:+91${operator.phone}`}>
-              <span className="admin-account-icon"><Phone size={17} /></span>
-              <span>
-                <b>+91 {operator.phone}</b>
-                <small>
-                  {operator.role === 'candidate' ? t('ઉમેદવાર', 'Candidate') : t('વાલી', 'Guardian')} · {relationshipLabel(t, operator.relationship)}
-                </small>
-              </span>
-              {/* This release sends no OTP, so say plainly that the number is
-                  a claim the documents have to corroborate. */}
-              {!operator.phone_verified && <em>{t('અચકાસાયેલ', 'Unverified')}</em>}
-            </a>
+            <div key={operator.account_id} className="admin-account split">
+              <Link className="admin-account-main" href={`/admin/users/${operator.account_id}`}>
+                <span className="admin-account-icon"><KeyRound size={17} /></span>
+                <span>
+                  <b>+91 {operator.phone}</b>
+                  <small>
+                    {operator.role === 'candidate' ? t('ઉમેદવાર', 'Candidate') : t('વાલી', 'Guardian')} · {relationshipLabel(t, operator.relationship)}
+                    {/* This release sends no OTP, so say plainly that the number
+                        is a claim the documents have to corroborate. */}
+                    {!operator.phone_verified && <> · <i className="admin-account-unverified">{t('નંબર અચકાસાયેલ', 'Number unverified')}</i></>}
+                  </small>
+                  <small className="admin-account-manage">{t('એકાઉન્ટ સંભાળો · પાસવર્ડ રીસેટ', 'Manage · reset password')}</small>
+                </span>
+                <ChevronRight size={18} />
+              </Link>
+              <a className="admin-account-call" href={`tel:+91${operator.phone}`} aria-label={t('ફોન કરો', 'Call')}>
+                <Phone size={18} />
+              </a>
+            </div>
           ))}
         </div>
 
