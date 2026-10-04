@@ -103,6 +103,19 @@ export async function listAccounts(options: {
   ) as unknown as AccountList;
 }
 
+/**
+ * Every profile with the facts User management filters and flags on:
+ * gender, age, city, sub-community, stage, biodata completion, photo and
+ * documents (see public.admin_profiles).
+ */
+export async function listProfiles(query?: string) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  return unwrap(await supabase.rpc('admin_profiles', { p_query: query?.trim() || undefined }));
+}
+
+export type ProfileRow = Awaited<ReturnType<typeof listProfiles>>[number];
+
 export async function getAccount(accountId: string) {
   await requireStaff();
   const supabase = await createSupabaseServerClient();

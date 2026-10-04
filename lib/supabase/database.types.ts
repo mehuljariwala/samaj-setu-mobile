@@ -1547,6 +1547,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_profiles: {
+        Args: {
+          p_query?: string;
+        };
+        Returns: { candidate_id: string | null; public_code: string | null; full_name: string | null; gender: Database["public"]["Enums"]["gender"] | null; age: number | null; city: string | null; sub_community: string | null; stage: string | null; application_id: string | null; submitted_at: string | null; review_due_at: string | null; overdue: boolean | null; revision_id: string | null; revision_submitted_at: string | null; published_revision_id: string | null; completion: number | null; has_photo: boolean | null; documents_complete: boolean | null }[];
+      };
       admin_publication_queue: {
         Args: {
           p_statuses?: Database["public"]["Enums"]["revision_status"][];

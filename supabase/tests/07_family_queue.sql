@@ -106,6 +106,22 @@ begin
                       where m.candidate_id = c.id and m.revoked_at is null and a.status = 'active')),
     'every approved, unpaused profile is in the directory, consent or not');
 
+  -- User management's profiles view: every profile once, with gender and age.
+  perform pg_temp.ok(
+    pg_temp.denied(v_rajesh, 'select * from public.admin_profiles()'),
+    'a member cannot read the profiles list');
+  perform pg_temp.as_user(v_admin);
+  perform pg_temp.ok(
+    (select count(*) from public.admin_profiles()) = v_total
+    and (select count(distinct candidate_id) from public.admin_profiles()) = v_total,
+    'the profiles list has every profile exactly once');
+  perform pg_temp.ok(
+    (select bool_and(gender is not null and age between 15 and 100) from public.admin_profiles()),
+    'every profile carries its gender and an age from the date of birth');
+  perform pg_temp.ok(
+    (select count(*) from public.admin_profiles('SS-1029')) = 1,
+    'the profiles list can be searched by SS-code');
+
   raise notice 'family queue assertions passed';
 end
 $$;
