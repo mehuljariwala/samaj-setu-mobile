@@ -5,9 +5,10 @@ import {
 
 import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
+import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
-import { getApplicationIdFor, getBiodataDetail } from '@/lib/data/admin';
+import { getApplicationIdFor, getBiodataDetail, getProfilePhotos } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
 import { ageFrom } from '@/lib/age';
 import { timeAgo, translator, type T } from '@/lib/i18n';
@@ -49,7 +50,7 @@ export default async function BiodataReviewPage({
 
   const detail = await getBiodataDetail(id) as unknown as Detail;
   const { revision, candidate, community, history } = detail;
-  const applicationId = await getApplicationIdFor(candidate.id);
+  const [applicationId, photos] = await Promise.all([getApplicationIdFor(candidate.id), getProfilePhotos(candidate.id)]);
   const decidable = revision.status === 'submitted' || revision.status === 'under_review';
   const status = revisionStatus(t, revision.status, candidate.discoverable);
   const age = ageFrom(candidate.date_of_birth);
@@ -108,6 +109,8 @@ export default async function BiodataReviewPage({
             <span><b>{t('પરિવારને કહ્યું: ', 'Asked of the family: ')}</b>{revision.decision_reason}</span>
           </p>
         )}
+
+        <AdminPhotos lang={lang} photos={photos} />
 
         <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
         <BiodataView

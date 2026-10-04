@@ -55,6 +55,7 @@ begin
   perform public.attach_certificate(v_app.id, v_app.candidate_id::text || '/lc.jpg', 'image/jpeg', 90000, null, 'leaving');
   perform public.attach_identity_document(v_app.id, 'front', 'aadhaar', v_app.candidate_id::text || '/f.jpg', 'image/jpeg', 60000);
   perform public.attach_identity_document(v_app.id, 'back', 'aadhaar', v_app.candidate_id::text || '/b.jpg', 'image/jpeg', 60000);
+  perform public.register_media(v_app.candidate_id, 'photo', v_app.candidate_id::text || '/photo.jpg', 'image/jpeg', 50000, true);
   return v_app;
 end
 $$;
@@ -135,6 +136,34 @@ begin
   perform pg_temp.ok(
     not exists (select 1 from public.revision_field_issues where revision_id = v_rev.id and resolved_at is null),
     'approval closes the biodata''s open issues');
+  perform pg_temp.ok(
+    (select bool_and(status = 'approved') from public.candidate_media where candidate_id = v_app.candidate_id),
+    'one approval approves the profile''s photo too');
+
+  -- A photo added once the profile is live needs no second wait.
+  perform pg_temp.as_user(v_rajesh);
+  perform public.register_media(v_app.candidate_id, 'photo', v_app.candidate_id::text || '/later.jpg', 'image/jpeg', 50000, false);
+  perform pg_temp.ok(
+    (select status from public.candidate_media where storage_path = v_app.candidate_id::text || '/later.jpg') = 'approved',
+    'a photo added to a live profile is approved straight away');
+
+  -- Other members see it, because photos are open to members by default.
+  perform pg_temp.ok(
+    (select photo_visibility from public.candidate_privacy where candidate_id = v_app.candidate_id) = 'members',
+    'a new profile''s photos are open to approved members');
+  perform pg_temp.as_user('00000000-0000-4000-8000-000000000012');
+  perform pg_temp.ok(
+    (select count(*) from public.discover_photos(array[v_app.candidate_id])) = 1,
+    'another approved member gets one photo for the card');
+
+  -- ------------------------------------------------------ a photo to send
+  v_app := pg_temp.registered(v_rajesh, 'Wasim Nophoto', date '1993-05-05');
+  update public.candidate_media set deleted_at = now() where candidate_id = v_app.candidate_id;
+  perform pg_temp.as_user(v_rajesh);
+  perform public.save_biodata_draft(v_app.candidate_id, pg_temp.full_bio());
+  perform pg_temp.ok(
+    pg_temp.fails(v_rajesh, format('select public.submit_registration(%L)', v_app.id), 'incomplete: photo%'),
+    'a registration cannot be sent without a profile photo');
 
   -- ------------------------------------------------- rejected, then reopened
   v_app := pg_temp.registered(v_rajesh, 'Yash Rejectedonce', date '1991-03-03');

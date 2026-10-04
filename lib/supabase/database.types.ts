@@ -1690,6 +1690,12 @@ export type Database = {
         };
         Returns: { id: string | null; public_code: string | null; full_name: string | null; age: number | null; city: string | null; sub_community: string | null; sect: string | null; mosal_family: string | null; biodata: Json | null; verdict: Database["public"]["Enums"]["eligibility_verdict"] | null; saved: boolean | null; interest_status: Database["public"]["Enums"]["interest_status"] | null; photo_visibility: Database["public"]["Enums"]["media_visibility"] | null; can_view_photos: boolean | null }[];
       };
+      discover_photos: {
+        Args: {
+          p_candidates?: string[];
+        };
+        Returns: { candidate_id: string | null; bucket_id: string | null; storage_path: string | null }[];
+      };
       edit_my_registration: {
         Args: {
           p_application_id?: string;

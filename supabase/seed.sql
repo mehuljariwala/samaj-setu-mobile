@@ -94,6 +94,9 @@ begin
   perform public.attach_identity_document(
     v_application, 'back', 'aadhaar', v_candidate::text || '/seed-id-back.jpg', 'image/jpeg', 58000);
   perform public.save_biodata_draft(v_candidate, p_bio);
+  -- A photo is required to send (20261004000600). Recorded only, like the
+  -- certificate: no object is written, so its signed URL will not load.
+  perform public.register_media(v_candidate, 'photo', v_candidate::text || '/seed-photo.jpg', 'image/jpeg', 52000, true);
   perform public.submit_registration(v_application);
 
   perform pg_temp.as_user(p_admin);
@@ -222,6 +225,7 @@ begin
   c_dhara := (v_start ->> 'candidate_id')::uuid;
   v_app := (v_start ->> 'application_id')::uuid;
   perform public.save_biodata_draft(c_dhara, pg_temp.bio('female', 'Joshi', 'Pandya', '9876500015'));
+  perform public.register_media(c_dhara, 'photo', c_dhara::text || '/seed-photo.jpg', 'image/jpeg', 52000, true);
   perform public.attach_certificate(v_app, c_dhara::text || '/seed-certificate.pdf', 'image/jpeg', 220000);
   perform public.attach_identity_document(v_app, 'front', 'voter_id', c_dhara::text || '/seed-id-front.jpg', 'image/jpeg', 61000);
   perform public.attach_identity_document(v_app, 'back', 'voter_id', c_dhara::text || '/seed-id-back.jpg', 'image/jpeg', 58000);
@@ -234,6 +238,7 @@ begin
   c_jay := (v_start ->> 'candidate_id')::uuid;
   v_app := (v_start ->> 'application_id')::uuid;
   perform public.save_biodata_draft(c_jay, pg_temp.bio('male', 'Parmar', 'Solanki', '9876500016'));
+  perform public.register_media(c_jay, 'photo', c_jay::text || '/seed-photo.jpg', 'image/jpeg', 52000, true);
   perform public.attach_certificate(v_app, c_jay::text || '/seed-certificate.pdf', 'image/png', 190000);
   perform public.attach_identity_document(v_app, 'front', 'aadhaar', c_jay::text || '/seed-id-front.jpg', 'image/jpeg', 61000);
   perform public.attach_identity_document(v_app, 'back', 'aadhaar', c_jay::text || '/seed-id-back.jpg', 'image/jpeg', 58000);
@@ -263,6 +268,6 @@ begin
 end
 $$;
 
--- Seeded candidates have no biodata photographs: no object exists in the
--- private buckets, and inventing a candidate_media row for a file that is not
--- there would make list_viewable_media return a broken signed URL.
+-- Seeded candidates have a photo row but no photograph: a photo is required
+-- to send (20261004000600), and no object exists in the private buckets, so
+-- the seeded photos' signed URLs do not load in local development.

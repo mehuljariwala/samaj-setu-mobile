@@ -192,6 +192,9 @@ begin
   update public.candidate_privacy set reveal_contact_on_accept = true where candidate_id = c_kavya;
 
   -- ================================================= §8 photo permissions ==
+  -- Photos are open to members by default since 20261004000600; Riya keeps
+  -- hers on request here so the request-and-grant path is still exercised.
+  update public.candidate_privacy set photo_visibility = 'on_request' where candidate_id = c_riya;
   perform pg_temp.as_user(v_rajesh);
   perform pg_temp.ok(
     not app.can_view_media_of(c_riya, 'photo'),

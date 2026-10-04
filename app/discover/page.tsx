@@ -9,7 +9,7 @@ import { SaveButton } from '@/components/app/save-button';
 import { DiscoverEmptyArt } from '@/components/onboarding/art';
 import { fieldByKey } from '@/components/biodata/model';
 import { loadActingPage } from '@/lib/data/guards';
-import { discoverAll } from '@/lib/data/discovery';
+import { discoverAll, discoverPhotos } from '@/lib/data/discovery';
 import { centimetresToFeet, translator } from '@/lib/i18n';
 
 /** Cover tints, cycled so a list of cards does not read as one block. */
@@ -54,6 +54,7 @@ export default async function DiscoverPage({
     && (!one('marital') || profile.biodata.marital === one('marital'))
     && (!one('diet') || profile.biodata.diet === one('diet')));
 
+  const photos = await discoverPhotos(results.map((profile) => profile.id));
   const savedCount = all.filter((profile) => profile.saved).length;
   const filtered = ['q', 'saved', 'city', 'community', 'sect', 'age', 'height', 'edu', 'work', 'marital', 'diet']
     .some((key) => one(key));
@@ -104,15 +105,23 @@ export default async function DiscoverPage({
               <li key={profile.id} style={{ '--i': Math.min(index, 6) } as React.CSSProperties}>
                 <article className="profile-card">
                   <div className={`profile-cover ${COVERS[index % COVERS.length]}`}>
-                    <span className="monogram">{profile.fullName.charAt(0)}</span>
+                    {photos.get(profile.id) ? (
+                      // Plain <img> on purpose: a five-minute signed URL, nothing to optimise or cache.
+                      // oxlint-disable-next-line nextjs/no-img-element
+                      <img className="cover-photo" src={photos.get(profile.id)} alt="" />
+                    ) : (
+                      <span className="monogram">{profile.fullName.charAt(0)}</span>
+                    )}
                     <span className="cover-id">{profile.publicCode}</span>
                     <SaveButton lang={lang} candidateId={profile.id} saved={profile.saved} />
-                    <span className="photo-lock">
-                      <LockKeyhole size={12} />
-                      {profile.canViewPhotos
-                        ? t('ફોટો ઉપલબ્ધ', 'Photo available')
-                        : t('ફોટો મંજૂરી પછી', 'Photo with permission')}
-                    </span>
+                    {!photos.get(profile.id) && (
+                      <span className="photo-lock">
+                        <LockKeyhole size={12} />
+                        {profile.canViewPhotos
+                          ? t('હજી ફોટો નથી', 'No photo yet')
+                          : t('ફોટો મંજૂરી પછી', 'Photo with permission')}
+                      </span>
+                    )}
                   </div>
 
                   <div className="profile-body">

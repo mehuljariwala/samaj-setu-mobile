@@ -251,6 +251,15 @@ export function GuidedBiodata({
    * with it (20261004000400); a verified member sends the biodata alone.
    */
   async function submit() {
+    // A profile photo is required to send (20261004000600).
+    const photoStep = STEPS.findIndex((s) => s.id === 'photos');
+    if (photos.length === 0) {
+      setFromReview(true);
+      go(photoStep, true);
+      setMessage(t('મોકલતાં પહેલાં એક પ્રોફાઇલ ફોટો ઉમેરો.', 'Add a profile photo before sending.'));
+      return;
+    }
+
     const gap = firstGap();
     if (gap !== null) {
       setFromReview(true);
@@ -280,7 +289,11 @@ export function GuidedBiodata({
       // The registration names a missing biodata as `biodata,<keys>`.
       const keys = result.detail[0] === 'biodata' ? result.detail.slice(1) : result.detail;
       const at = result.code === 'incomplete' ? firstGap(keys) : null;
-      if (at !== null) {
+      if (result.code === 'incomplete' && keys[0] === 'photo') {
+        setFromReview(true);
+        go(photoStep, true);
+        setMessage(t('મોકલતાં પહેલાં એક પ્રોફાઇલ ફોટો ઉમેરો.', 'Add a profile photo before sending.'));
+      } else if (at !== null) {
         setFromReview(true);
         go(at, true);
         fail(keys.filter((k) => visibleKeys(STEPS[at]).includes(k)), t('આ વિગત હજી બાકી છે.', 'This detail is still missing.'));

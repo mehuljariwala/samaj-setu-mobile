@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { signedUrl } from '@/lib/supabase/admin';
+import { createSupabaseAdminClient, signedUrl } from '@/lib/supabase/admin';
 import type { Enums } from '@/lib/supabase/database.types';
 import { AppError, unwrap, unwrapMaybe } from './errors';
 
@@ -94,6 +94,30 @@ export async function discoverAll(
     if (page.length < PAGE) break;
   }
   return all;
+}
+
+/**
+ * One photo per card, for the profiles this viewer may see photos of. The
+ * database decides visibility (app.can_view_media_of, for the signed-in
+ * viewer); only the paths it returns are signed, all in one request.
+ */
+export async function discoverPhotos(candidateIds: string[]): Promise<Map<string, string>> {
+  if (candidateIds.length === 0) return new Map();
+  const supabase = await createSupabaseServerClient();
+  const rows = unwrap(await supabase.rpc('discover_photos', { p_candidates: candidateIds }));
+  if (rows.length === 0) return new Map();
+
+  const byPath = new Map(rows.map((row) => [row.storage_path as string, row.candidate_id as string]));
+  const { data } = await createSupabaseAdminClient()
+    .storage.from('candidate-photos')
+    .createSignedUrls([...byPath.keys()], 300);
+
+  const urls = new Map<string, string>();
+  for (const entry of data ?? []) {
+    const candidate = entry.path ? byPath.get(entry.path) : undefined;
+    if (candidate && entry.signedUrl) urls.set(candidate, entry.signedUrl);
+  }
+  return urls;
 }
 
 export type ProfileDetail = {

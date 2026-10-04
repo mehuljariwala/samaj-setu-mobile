@@ -1933,6 +1933,16 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 }
 .decide-fields button.on { border-color: var(--warn); background: var(--warn-tint); color: var(--warn); }
 .decide-fields-group { margin: 14px 0 8px; color: var(--ink-3); font-size: 13px; font-weight: 800; letter-spacing: 0.4px; }
+/* A profile's photos on an approval page: three to a row, square. */
+.admin-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.admin-photos > a, .admin-photo-missing {
+  display: block; aspect-ratio: 1; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface-2);
+}
+.admin-photos img { width: 100%; height: 100%; object-fit: cover; }
+.admin-photo-missing { display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+
 /* A biodata as the admin reads it: one short card per topic, two facts to a
    row, so the whole thing reads in a screen or two. */
 .bio-cards { display: grid; gap: 10px; }
@@ -2161,8 +2171,9 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 /* Discover: two profiles to a row. Everything shrinks to fit a half-width
    card, and long names and facts wrap or clip rather than widen it. */
 .member-cards.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.profile-cover .cover-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .two-up .profile-card { display: flex; flex-direction: column; height: 100%; border-radius: 18px; }
-.member-screen .two-up .profile-cover { height: 108px; }
+.member-screen .two-up .profile-cover { height: auto; aspect-ratio: 1; }
 .two-up .monogram { font-size: 44px; }
 .two-up .cover-id { top: 8px; left: 8px; padding: 2px 7px; font-size: 10.5px; }
 .member-screen .two-up .save-btn { top: 6px; right: 6px; width: 38px; height: 38px; }

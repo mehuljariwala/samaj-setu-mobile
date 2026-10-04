@@ -127,6 +127,33 @@ export async function decideRegistration(input: {
   return result.status;
 }
 
+/**
+ * A profile's photos for the admin to see while deciding. Staff are not in
+ * the members' photo visibility rule, so these are signed with the server key
+ * after the database has said this is a staff member (requireStaff, then the
+ * candidate_media policy, which lets staff read the rows).
+ */
+export async function getProfilePhotos(candidateId: string) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  const rows = unwrap(
+    await supabase
+      .from('candidate_media')
+      .select('id, bucket_id, storage_path, status, is_primary')
+      .eq('candidate_id', candidateId)
+      .eq('kind', 'photo')
+      .is('deleted_at', null)
+      .neq('status', 'rejected')
+      .order('is_primary', { ascending: false })
+      .order('created_at'),
+  );
+  return Promise.all(rows.map(async (row) => ({
+    id: row.id,
+    status: row.status,
+    url: await signedUrl(row.bucket_id, row.storage_path, 300),
+  })));
+}
+
 /** The registration behind a biodata, so its review can link to the documents. */
 export async function getApplicationIdFor(candidateId: string): Promise<string | null> {
   await requireStaff();

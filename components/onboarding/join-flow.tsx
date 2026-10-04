@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { signUpAction } from '@/app/actions/auth';
+import { registerMediaAction } from '@/app/actions/matching';
 import {
   attachCertificateAction, attachIdentityDocumentAction, startRegistrationAction,
   updateRegistrationAction,
@@ -16,7 +17,7 @@ import {
 import { DocumentCapture } from '@/components/app/document-capture';
 import { RulesSheet } from '@/components/onboarding/rules-sheet';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { BUCKETS, CERTIFICATE_TYPES, MAX_UPLOAD_BYTES, objectPath } from '@/lib/storage';
+import { BUCKETS, CERTIFICATE_TYPES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath } from '@/lib/storage';
 import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -46,24 +47,27 @@ export type ExistingApplication = {
   gender: 'male' | 'female';
   relationship: string;
   documents: AttachedDocuments;
+  /** A profile photo is already on file. */
+  hasPhoto: boolean;
   correctionFields: string[];
   decisionReason: string | null;
 };
 
 type Field =
   | 'phone' | 'password' | 'fullName' | 'dateOfBirth' | 'fatherName' | 'city'
-  | 'certificate' | 'identityFront' | 'identityBack';
+  | 'certificate' | 'identityFront' | 'identityBack' | 'photo';
 
 /** Which screen owns each field, so an error can send the member straight to it. */
 const STEP_OF: Record<Field, number> = {
   phone: 0, password: 0, fullName: 1, dateOfBirth: 1, fatherName: 1, city: 1,
-  certificate: 2, identityFront: 2, identityBack: 2,
+  certificate: 2, identityFront: 2, identityBack: 2, photo: 2,
 };
 
 /** The database names fields in snake_case; the form in camelCase. */
 const FROM_SERVER: Record<string, Field> = {
   full_name: 'fullName', date_of_birth: 'dateOfBirth', father_name: 'fatherName', city: 'city',
   birth_certificate: 'certificate', identity_front: 'identityFront', identity_back: 'identityBack',
+  photo: 'photo',
 };
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
@@ -138,6 +142,7 @@ export function JoinFlow({
   const [idType, setIdType] = useState<IdentityType>(existing?.documents.identityType ?? 'aadhaar');
   const [idFront, setIdFront] = useState<Picked | null>(null);
   const [idBack, setIdBack] = useState<Picked | null>(null);
+  const [photo, setPhoto] = useState<Picked | null>(null);
 
   const [error, setError] = useState<{ field?: Field; message: string; conflict?: boolean } | null>(null);
   const [busy, setBusy] = useState('');
@@ -172,6 +177,7 @@ export function JoinFlow({
     certificate: Boolean(docs?.certificate),
     identityFront: Boolean(docs?.identityFront && sameCard),
     identityBack: Boolean(docs?.identityBack && sameCard),
+    photo: Boolean(existing?.hasPhoto),
   };
 
   /** son/daughter answer the gender question; "myself" has to be asked. */
@@ -192,7 +198,7 @@ export function JoinFlow({
     {
       Icon: FileStack,
       title: t('દસ્તાવેજ જોડો', 'Add the documents'),
-      lead: t('એડમિન આ ત્રણેય એકસાથે જોઈને વિગતો ચકાસશે.', 'An admin looks at all three together to check the details.'),
+      lead: t('પ્રમાણપત્ર, ઓળખપત્ર અને પ્રોફાઇલ ફોટો — એડમિન બધું એકસાથે જોઈને ચકાસશે.', 'Certificate, photo ID and a profile photo. An admin checks them together.'),
     },
   ];
   const screen = screens[step];
@@ -239,6 +245,14 @@ export function JoinFlow({
         if (picked && picked.file.size > MAX_UPLOAD_BYTES) {
           return [field, t('ફાઇલ 10 MB કરતાં નાની હોવી જોઈએ.', 'The file must be under 10 MB.')];
         }
+      }
+      // Required to send (20261004000600): families see the face before the biodata.
+      if (!photo && !onFile.photo) return ['photo', t('પ્રોફાઇલ ફોટો જોડો.', 'Add a profile photo.')];
+      if (photo && !PHOTO_TYPES.includes(photo.file.type)) {
+        return ['photo', t('ફક્ત JPG, PNG કે WebP ફોટો ચાલશે.', 'Only a JPG, PNG or WebP photo.')];
+      }
+      if (photo && photo.file.size > MAX_PHOTO_BYTES) {
+        return ['photo', t('ફોટો 5 MB કરતાં નાનો હોવો જોઈએ.', 'The photo must be under 5 MB.')];
       }
     }
     return null;
@@ -336,6 +350,24 @@ export function JoinFlow({
             ...upload, side: field === 'identityFront' ? 'front' : 'back', identityType: idType,
           });
         if (!attached.ok) return fail(field, attached.message);
+      }
+
+      // The profile photo goes to its own bucket and is recorded as the
+      // primary photo; it is approved together with the registration.
+      if (photo) {
+        setBusy(t('ફોટો અપલોડ થઈ રહ્યો છે…', 'Uploading the photo…'));
+        const path = objectPath(candidateId, photo.file.name);
+        const { error: photoError } = await getSupabaseBrowserClient()
+          .storage.from(BUCKETS.photo)
+          .upload(path, photo.file, { contentType: photo.file.type, upsert: false });
+        if (photoError) {
+          return fail('photo', t('ફોટો અપલોડ થઈ શક્યો નથી. ફરી પ્રયાસ કરો.', 'The photo could not be uploaded. Please try again.'));
+        }
+        const registered = await registerMediaAction({
+          candidateId, kind: 'photo', storagePath: path,
+          mimeType: photo.file.type, sizeBytes: photo.file.size, isPrimary: true,
+        });
+        if (!registered.ok) return fail('photo', registered.message);
       }
 
       // `apply`: the biodata for this registration, even when the account
@@ -655,6 +687,36 @@ export function JoinFlow({
                   'Only the verifying admin can open these files. A photo taken here is not saved to your gallery.',
                 )}
               </p>
+
+              {/* Unlike the documents, this one is for families to see. */}
+              <p className="auth-label spaced">
+                {t('પ્રોફાઇલ ફોટો', 'Profile photo')}
+                <small> {t('— ચહેરો સ્પષ્ટ દેખાય એવો', '— with the face clearly visible')}</small>
+              </p>
+              <UploadTile
+                id="photo"
+                accept={PHOTO_TYPES.join(',')}
+                picked={photo}
+                attached={onFile.photo}
+                invalid={error?.field === 'photo'}
+                title={photo?.file.name
+                  ?? (onFile.photo ? t('ફોટો જોડાયેલો છે', 'Photo attached') : t('ફોટો પસંદ કરો', 'Choose a photo'))}
+                detail={onFile.photo && !photo
+                  ? t('બદલવા માટે નવો ફોટો પસંદ કરો.', 'Choose a new photo to add another.')
+                  : t('તાજેતરનો ફોટો. JPG, PNG કે WebP, 5 MB સુધી.', 'A recent photo. JPG, PNG or WebP, up to 5 MB.')}
+                clearLabel={t('દૂર કરો', 'Remove')}
+                onPick={(next) => { setPhoto(pick(next, photo)); setError(null); }}
+              />
+              <DocumentCapture
+                lang={lang}
+                facing="user"
+                label={t('કૅમેરાથી ફોટો લો', 'Take a photo with the camera')}
+                onCapture={(captured) => { setPhoto(pick(captured, photo)); setError(null); }}
+              />
+              <p className="auth-hint">
+                <Eye size={14} />
+                {t('મંજૂરી પછી આ ફોટો ચકાસાયેલા સભ્યોને દેખાશે.', 'Once approved, verified members can see this photo.')}
+              </p>
             </div>
           )}
 
@@ -712,9 +774,11 @@ export function JoinFlow({
  * a way to take it back out.
  */
 function UploadTile({
-  id, picked, attached, invalid, compact = false, title, detail, clearLabel, onPick,
+  id, accept = ACCEPT, picked, attached, invalid, compact = false, title, detail, clearLabel, onPick,
 }: {
   id: string;
+  /** Narrower than documents for the profile photo, which must be an image. */
+  accept?: string;
   picked: Picked | null;
   /** Already on the server from an earlier visit. */
   attached: boolean;
@@ -762,7 +826,7 @@ function UploadTile({
         ref={inputRef}
         id={id}
         type="file"
-        accept={ACCEPT}
+        accept={accept}
         hidden
         onChange={(event) => onPick(event.target.files?.[0] ?? null)}
       />

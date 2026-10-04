@@ -309,6 +309,19 @@ export async function getOpenApplication() {
       .single(),
   );
 
+  // A profile photo is required to send (20261004000600); a returning family
+  // should not be asked for one it already gave.
+  const photos = unwrap(
+    await supabase
+      .from('candidate_media')
+      .select('id')
+      .eq('candidate_id', row.candidate_id)
+      .eq('kind', 'photo')
+      .is('deleted_at', null)
+      .neq('status', 'rejected')
+      .limit(1),
+  );
+
   const hasCertificate = unwrap(
     await supabase
       .from('application_documents')
@@ -331,6 +344,7 @@ export async function getOpenApplication() {
     // returns nothing for them — which is why `has_certificate` on my_context()
     // is the value the UI actually shows. Kept here for the staff path.
     hasCertificate: hasCertificate.length > 0,
+    hasPhoto: photos.length > 0,
     correctionFields: row.correction_fields,
     decisionReason: row.decision_reason,
   };

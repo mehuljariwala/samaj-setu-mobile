@@ -6,10 +6,11 @@ import {
 import { AppShell } from '@/components/app/shell';
 import { CertificateViewer } from '@/components/app/certificate-viewer';
 import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-decision';
+import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
 import { allFields } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
-import { getLatestBiodata, getRegistrationDetail } from '@/lib/data/admin';
+import { getLatestBiodata, getProfilePhotos, getRegistrationDetail } from '@/lib/data/admin';
 import {
   applicationStatusLabel, certificateLabel, correctionFieldLabel, identityStatusLabel, relationshipLabel, reviewActionLabel, reviewSla, slaLabel,
 } from '@/lib/admin-labels';
@@ -61,7 +62,7 @@ export default async function RegistrationDetailPage({
 
   const detail = await getRegistrationDetail(id) as unknown as Detail;
   const { application, candidate, operators, duplicates, history } = detail;
-  const biodata = await getLatestBiodata(candidate.id);
+  const [biodata, photos] = await Promise.all([getLatestBiodata(candidate.id), getProfilePhotos(candidate.id)]);
   // Sent with this registration, so this decision covers it. An application
   // sent before the change has no biodata yet, and its biodata follows later.
   const travelling = biodata !== null && biodata.status !== 'approved' && biodata.status !== 'superseded';
@@ -186,6 +187,9 @@ export default async function RegistrationDetailPage({
             )}
           </ul>
         </div>
+
+        {/* The face, to compare with the photo ID; approved with the profile. */}
+        <AdminPhotos lang={lang} photos={photos} />
 
         {/* The biodata sent with the registration: approving publishes it. */}
         <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
