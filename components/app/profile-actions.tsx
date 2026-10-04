@@ -117,7 +117,7 @@ export function ProfileActions({ lang, actingId, canSendInterest, profile }: Pro
       ) : !canSendInterest ? (
         <div className="note">
           <LockKeyhole size={19} />
-          <p>{t('પરિચય મોકલવા માટે તમારો બાયોડેટા મંજૂર અને સંમતિ સક્રિય હોવી જરૂરી છે.', 'Your biodata must be approved and consent active before you can send an introduction.')}</p>
+          <p>{t('પરિચય મોકલવા માટે તમારો બાયોડેટા મંજૂર થયેલો હોવો જરૂરી છે.', 'Your biodata must be approved before you can send an introduction.')}</p>
         </div>
       ) : (
         <>

@@ -11,15 +11,17 @@ import { getAttachedDocuments, getOpenApplication } from '@/lib/data/registratio
  *
  * Open to a visitor who is signed out (they start at step 1) and, per spec §2,
  * to an account with no application, a draft, or a correction the admin has
- * asked for (they start at step 2). Anything else lands on the screen its
- * state owns.
+ * asked for (they start at step 2). Also to an approved member, which is how a
+ * parent adds another child — the Family screen's "Add" leads here. Anything
+ * else lands on the screen its state owns.
  */
 export default async function RegisterPage() {
   const { context, lang } = await loadPublicPage();
 
   const state = context.access_state;
   const signedIn = state !== 'signed_out';
-  if (signedIn && state !== 'no_application' && state !== 'application_draft' && state !== 'correction_requested') {
+  if (signedIn && state !== 'no_application' && state !== 'application_draft'
+    && state !== 'correction_requested' && state !== 'approved') {
     redirect(homeFor(context));
   }
 

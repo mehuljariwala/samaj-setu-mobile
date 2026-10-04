@@ -86,18 +86,27 @@ publication_status   not_started → draft → in_review → published
                                             published ⇄ unpublished
 ```
 
-A verified identity is required before biodata can be edited at all. An approved
-biodata does *not* publish anything on its own: `app.apply_publication_state()`
-is the single function that decides between `published` and `unpublished`, and
-it is called both when an admin approves a revision and when a candidate grants
-consent. Whichever happens second is what publishes the profile. Neither path
-can disagree with the other, because there is only one of them.
+The two columns stay separate, but since October 2026 they move together for
+a new family: one admin approval covers both (migration
+`20261004000400_one_approval.sql`). The family fills the biodata before sending
+the registration, and a trigger on `registration_applications` carries the
+biodata through every step the registration takes — sent, approved, sent back,
+rejected, reopened, taken back. Approving the registration publishes the
+biodata. A family verified before that change sends its biodata on its own,
+and that biodata's approval is its one approval.
+
+There is no consent step any more (`20261004000200_publish_on_approval.sql`).
+`app.apply_publication_state()` is still the single function that decides
+between `published` and `unpublished`; it now needs a verified identity and an
+approved revision, nothing else. Pause is how a family keeps a profile out of
+the directory.
 
 ### Discoverability
 
-`candidates.discoverable` is a cached conjunction of six conditions spread over
-three tables: verified identity, published status, an approved revision, not
-paused, no match found, and active consent. It is maintained by a `BEFORE` 
+`candidates.discoverable` is a cached conjunction of conditions spread over
+several tables: verified identity, published status, an approved revision, not
+paused, no match found, and at least one operator whose account is active
+(active consent was one too, until October 2026). It is maintained by a `BEFORE` 
 trigger that assigns to `NEW`, so it cannot recurse and cannot drift from the
 row it describes. Consent lives in its own table, so granting or withdrawing it
 touches the candidate row to make the trigger re-evaluate.

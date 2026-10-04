@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { MediaUploader, type UploadedMedia } from '@/components/app/media-uploader';
 import { saveBiodataDraftAction, submitBiodataAction } from '@/app/actions/biodata';
-import { requestIdentityChangeAction } from '@/app/actions/registration';
+import { requestIdentityChangeAction, submitRegistrationAction } from '@/app/actions/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { formatPhone } from '@/lib/org';
@@ -22,6 +22,12 @@ import {
 type Props = {
   lang: Lang;
   candidateId: string;
+  /**
+   * Set while the family is still preparing its registration: the last screen
+   * then sends the registration and this biodata together, for the one admin
+   * approval. Null for a verified member editing a published biodata.
+   */
+  applicationId: string | null;
   revisionId: string | null;
   /** 'draft' | 'correction_requested' are editable; the rest are read-only. */
   status: string;
@@ -74,12 +80,15 @@ function feetAndInches(cm: string) {
 }
 
 export function GuidedBiodata({
-  lang, candidateId, revisionId, status, initialValues, verified, relation,
+  lang, candidateId, applicationId, revisionId, status, initialValues, verified, relation,
   decisionReason, issues, photos, kundali,
 }: Props) {
   const t = translator(lang);
   const en = lang === 'en';
   const router = useRouter();
+  const applying = applicationId !== null;
+  /** Where Back and Finish later go: the registration, or the member home. */
+  const home = applying ? '/register' : '/home';
 
   const editable = status === 'draft' || status === 'correction_requested';
   const first = verified.name.split(' ')[0] || verified.name;
@@ -214,7 +223,7 @@ export function GuidedBiodata({
   }
 
   function back() {
-    if (step === 0 || (step === REVIEW && !editable)) return router.push('/home');
+    if (step === 0 || (step === REVIEW && !editable)) return router.push(home);
     if (fromReview) { setFromReview(false); return go(REVIEW); }
     go(step - 1);
   }
@@ -235,8 +244,10 @@ export function GuidedBiodata({
 
   /**
    * Submitting is a server decision. The client-side check is a courtesy;
-   * `submit_biodata` re-validates every field against the catalogue and refuses
-   * while anything is unconfirmed, so a stale form cannot slip past.
+   * the server re-validates every field against the catalogue and refuses
+   * while anything is unconfirmed, so a stale form cannot slip past. A family
+   * still registering sends the registration, which carries this biodata
+   * with it (20261004000400); a verified member sends the biodata alone.
    */
   async function submit() {
     const gap = firstGap();
@@ -262,30 +273,43 @@ export function GuidedBiodata({
       return;
     }
 
-    const result = await submitBiodataAction(id);
+    const result = applying ? await submitRegistrationAction(applicationId) : await submitBiodataAction(id);
     if (!result.ok) {
       setBusy('');
-      const at = result.code === 'incomplete' ? firstGap(result.detail) : null;
+      // The registration names a missing biodata as `biodata,<keys>`.
+      const keys = result.detail[0] === 'biodata' ? result.detail.slice(1) : result.detail;
+      const at = result.code === 'incomplete' ? firstGap(keys) : null;
       if (at !== null) {
         setFromReview(true);
         go(at, true);
-        fail(result.detail.filter((k) => visibleKeys(STEPS[at]).includes(k)), t('આ વિગત હજી બાકી છે.', 'This detail is still missing.'));
+        fail(keys.filter((k) => visibleKeys(STEPS[at]).includes(k)), t('આ વિગત હજી બાકી છે.', 'This detail is still missing.'));
+      } else if (applying && result.code === 'incomplete') {
+        setMessage(t(
+          'નોંધણીમાં કોઈ વિગત અથવા દસ્તાવેજ ખૂટે છે. ઉપર “બદલો” દબાવીને ઉમેરો.',
+          'A detail or document is missing from the registration. Tap “Change” above to add it.',
+        ));
       } else {
         setMessage(result.message);
       }
       return;
     }
 
-    router.replace('/home');
+    router.replace(applying ? '/review' : '/home');
   }
 
   async function finishLater() {
     setBusy(t('સાચવી રહ્યા છીએ…', 'Saving…'));
     await flush();
-    router.push('/home');
+    router.push(home);
   }
 
   function changeIdentity() {
+    // Not verified yet: the details are simply the registration's, and that
+    // form is where they change.
+    if (applying) {
+      void flush().then(() => router.push('/register'));
+      return;
+    }
     if (!confirm(t(
       'ચકાસેલી વિગતો બદલવાથી ફરી એડમિન સમીક્ષા જરૂરી બનશે અને પ્રોફાઇલ ત્યાં સુધી છુપાઈ જશે. આગળ વધવું?',
       'Changing verified details means another admin review, and the profile is hidden until then. Continue?',
@@ -524,7 +548,7 @@ export function GuidedBiodata({
     <div className="bio-identity">
       <span className="bio-identity-icon"><ShieldCheck size={20} /></span>
       <div>
-        <small>{t('ચકાસેલું', 'Verified')}</small>
+        <small>{applying ? t('નોંધણીની વિગતો', 'From the registration') : t('ચકાસેલું', 'Verified')}</small>
         <b>{verified.name}</b>
         <span>{[verified.dob, verified.city, verified.father && `${t('પિતા', 'Father')}: ${verified.father}`].filter(Boolean).join(' · ')}</span>
       </div>
@@ -656,18 +680,22 @@ export function GuidedBiodata({
                 <i aria-hidden="true"><Check size={14} strokeWidth={3.5} /></i>
                 <span>
                   <b>{t('મેં વિગતો તપાસી છે અને તે સાચી છે.', 'I have checked these details and they are correct.')}</b>
-                  <small>{t('આ ઉમેદવારની પ્રકાશન સંમતિ નથી — એ અલગ પગલું છે.', 'This is not the candidate’s publication consent — that is a separate step.')}</small>
+                  {applying && (
+                    <small>{t('દસ્તાવેજ અને આ બાયોડેટા એકસાથે એડમિન પાસે જશે.', 'Your documents and this biodata go to the admin together.')}</small>
+                  )}
                 </span>
               </label>
               <button className="cta" type="button" disabled={!accurate || busy !== ''} onClick={() => void submit()}>
                 {busy
                   ? <><span className="cta-spinner" aria-hidden="true" />{busy}</>
-                  : <>{status === 'correction_requested' ? t('સુધારો મોકલો', 'Send the correction') : t('સમીક્ષા માટે મોકલો', 'Send for review')}<Send size={18} /></>}
+                  : <>{status === 'correction_requested' ? t('સુધારો મોકલો', 'Send the correction') : t('મંજૂરી માટે મોકલો', 'Send for approval')}<Send size={18} /></>}
               </button>
-              <p className="auth-note muted">{t('એડમિન 24 કલાકમાં તપાસશે.', 'An admin checks it within 24 hours.')}</p>
+              <p className="auth-note muted">
+                {t('એડમિન 24 કલાકમાં તપાસીને મંજૂરી આપે એટલે પ્રોફાઇલ દેખાવા લાગશે.', 'An admin checks it within 24 hours. Once approved, the profile is live.')}
+              </p>
             </>
           ) : (
-            <button className="cta" type="button" onClick={() => router.push('/home')}>
+            <button className="cta" type="button" onClick={() => router.push(home)}>
               {t('હોમ પર જાઓ', 'Go home')}<ArrowRight size={20} />
             </button>
           )}
@@ -683,7 +711,7 @@ export function GuidedBiodata({
   return (
     <div ref={root} className={`member-screen bio-screen tone-${tone}`}>
       <div className="auth-top">
-        <button type="button" className="round-button" aria-label={step === 0 ? t('હોમ પર પાછા', 'Back to home') : t('પાછળ', 'Back')} onClick={back}>
+        <button type="button" className="round-button" aria-label={step === 0 && !applying ? t('હોમ પર પાછા', 'Back to home') : t('પાછળ', 'Back')} onClick={back}>
           <ArrowLeft size={20} />
         </button>
         <div className="auth-progress">

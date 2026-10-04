@@ -60,9 +60,11 @@ const QUICK_FIXES: { label: [string, string]; text: string; field?: string }[] =
  *
  * Internal notes are a separate box from the applicant message on purpose.
  *
- * A rejected application offers one choice only: send it back for a fix. A
- * rejection is otherwise final, so this is how an admin undoes one that the
- * family could have put right themselves.
+ * A rejected application offers one choice only: send it back for a fix, for
+ * one the family could have put right themselves.
+ *
+ * Since the one-approval change the biodata travels with the registration:
+ * approving publishes it, and a fix may name its fields as well.
  */
 export function RegistrationDecision({
   lang,
@@ -71,6 +73,8 @@ export function RegistrationDecision({
   canDecide,
   openDuplicates,
   fields,
+  biodataFields = [],
+  withBiodata = false,
 }: {
   lang: Lang;
   applicationId: string;
@@ -79,6 +83,10 @@ export function RegistrationDecision({
   canDecide: boolean;
   openDuplicates: number;
   fields: { value: string; label: string }[];
+  /** The biodata's fields, when a biodata was sent with the registration. */
+  biodataFields?: { value: string; label: string }[];
+  /** Approving also publishes the biodata sent with it. */
+  withBiodata?: boolean;
 }) {
   const t = translator(lang);
   const router = useRouter();
@@ -97,13 +105,32 @@ export function RegistrationDecision({
     && (!needsReason || reason.trim().length > 0)
     && (!needsFields || selected.length > 0);
 
+  const chip = (field: { value: string; label: string }) => {
+    const on = selected.includes(field.value);
+    return (
+      <button
+        key={field.value}
+        type="button"
+        aria-pressed={on}
+        className={on ? 'on' : undefined}
+        onClick={() => setSelected((current) =>
+          on ? current.filter((value) => value !== field.value) : [...current, field.value])}
+      >
+        {on ? <Check size={14} strokeWidth={3} /> : <Pencil size={13} />}
+        {field.label}
+      </button>
+    );
+  };
+
   // Each choice says what it does, so the guide card is no longer needed:
   // the explanation sits on the thing you are about to press.
   const allChoices: { key: Action; tone: string; Icon: typeof Check; title: string; body: string; disabled: boolean }[] = [
     {
       key: 'approve', tone: 'ok', Icon: ShieldCheck,
       title: t('મંજૂર કરો', 'Approve'),
-      body: t('સભ્યપદ ખૂલે છે. બાયોડેટાની સમીક્ષા અલગ થશે.', 'Unlocks membership. Biodata is reviewed separately.'),
+      body: withBiodata
+        ? t('પ્રોફાઇલ આ બાયોડેટા સાથે તરત પરિવારોને દેખાવા લાગશે.', 'The profile goes live with this biodata straight away.')
+        : t('સભ્યપદ ખૂલે છે. પરિવાર પછી બાયોડેટા મોકલશે.', 'Unlocks membership. The family sends the biodata next.'),
       disabled: !canDecide || openDuplicates > 0,
     },
     {
@@ -150,6 +177,13 @@ export function RegistrationDecision({
       if (result.ok) {
         setDone(true);
         router.push('/admin');
+      } else if (result.code === 'conflict') {
+        // The family took it back to change it, or another admin decided,
+        // while it was open here.
+        setError(t(
+          'તમે ખોલ્યા પછી આ અરજી બદલાઈ ગઈ છે — પરિવાર ફેરફાર કરી રહ્યો હોય અથવા બીજા એડમિને નિર્ણય લીધો હોય. યાદીમાં પાછા જઈને ફરી જુઓ.',
+          'This application changed after you opened it. The family may be changing it, or another admin has decided. Go back to the list and check again.',
+        ));
       } else {
         setError(result.message);
       }
@@ -203,24 +237,13 @@ export function RegistrationDecision({
           {needsFields && (
             <fieldset className="decide-fields">
               <legend className="auth-label">{t('કઈ વિગતો સુધારવાની છે?', 'Which details need fixing?')}</legend>
-              <div>
-                {fields.map((field) => {
-                  const on = selected.includes(field.value);
-                  return (
-                    <button
-                      key={field.value}
-                      type="button"
-                      aria-pressed={on}
-                      className={on ? 'on' : undefined}
-                      onClick={() => setSelected((current) =>
-                        on ? current.filter((value) => value !== field.value) : [...current, field.value])}
-                    >
-                      {on ? <Check size={14} strokeWidth={3} /> : <Pencil size={13} />}
-                      {field.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <div>{fields.map(chip)}</div>
+              {biodataFields.length > 0 && (
+                <>
+                  <p className="decide-fields-group">{t('બાયોડેટા', 'Biodata')}</p>
+                  <div>{biodataFields.map(chip)}</div>
+                </>
+              )}
             </fieldset>
           )}
 
@@ -337,13 +360,11 @@ export function BiodataDecision({
   revisionId,
   expectedStatus,
   canDecide,
-  consentActive,
 }: {
   lang: Lang;
   revisionId: string;
   expectedStatus: Enums<'revision_status'>;
   canDecide: boolean;
-  consentActive: boolean;
 }) {
   const t = translator(lang);
   const router = useRouter();
@@ -374,7 +395,7 @@ export function BiodataDecision({
           : [],
         internalNote: note.trim() || undefined,
       });
-      if (result.ok) router.push('/admin/publication');
+      if (result.ok) router.push('/admin');
       else setError(result.code === 'conflict'
         ? t('તમે ખોલ્યા પછી આ બાયોડેટા બદલાઈ ગયો છે. પેજ રીફ્રેશ કરીને ફરી જુઓ.', 'This biodata changed after you opened it. Refresh the page and check again.')
         : t('નિર્ણય સાચવી શકાયો નહીં. ફરી પ્રયાસ કરો.', 'The decision could not be saved. Please try again.'));
@@ -383,14 +404,11 @@ export function BiodataDecision({
 
   return (
     <>
-      {/* Spec §5: approval does not publish on its own — consent is the other
-          half, and it can arrive before or after this decision. */}
+      {/* Approval publishes: there is no consent step after it. */}
       <div className="note">
         <CircleHelp size={19} />
         <p>
-          {consentActive
-            ? t('ઉમેદવારની સંમતિ સક્રિય છે — મંજૂરી પછી પ્રોફાઇલ તરત પ્રકાશિત થશે.', 'The candidate’s consent is active — approving will publish the profile immediately.')
-            : t('ઉમેદવારની સંમતિ હજી નથી. મંજૂરી પછી પણ સંમતિ મળે ત્યાં સુધી પ્રોફાઇલ છુપી રહેશે.', 'The candidate has not consented yet. Even after approval the profile stays hidden until they do.')}
+          {t('મંજૂરી આપતાં જ પ્રોફાઇલ પરિવારોને દેખાવા લાગશે.', 'Approving puts the profile live for families straight away.')}
         </p>
       </div>
 

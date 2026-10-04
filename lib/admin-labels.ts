@@ -20,18 +20,6 @@ export function applicationStatusLabel(t: T, status: Enums<'application_status'>
   }
 }
 
-/** The colour that goes with each status, so a tag reads before its words do. */
-export function applicationStatusTone(status: Enums<'application_status'> | null) {
-  switch (status) {
-    case 'approved': return 'ok';
-    case 'rejected': return 'bad';
-    case 'correction_requested': return 'warn';
-    case 'submitted':
-    case 'under_review': return 'gold';
-    default: return 'muted';
-  }
-}
-
 export function identityStatusLabel(t: T, status: string) {
   switch (status) {
     case 'unverified': return t('અચકાસાયેલ', 'Not verified');
@@ -78,9 +66,9 @@ export function accessRequestStatusLabel(t: T, status: Enums<'access_request_sta
 }
 
 /**
- * `reopen` is recorded both when the family sends the application and when
- * they reopen it themselves (after a rejection, or to change verified
- * details); where it went tells the two apart.
+ * `reopen` is recorded whenever the family moves the application themselves:
+ * sending it, reopening it after a rejection or to change verified details,
+ * and taking it back to edit. Where it went tells them apart.
  */
 export function reviewActionLabel(t: T, action: string, toStatus?: string | null) {
   switch (action) {
@@ -89,7 +77,9 @@ export function reviewActionLabel(t: T, action: string, toStatus?: string | null
     case 'reject': return t('નામંજૂર કર્યું', 'Rejected');
     case 'reopen': return toStatus === 'correction_requested'
       ? t('પરિવારે સુધારવા ફરી ખોલી', 'Reopened by the family to fix')
-      : t('અરજી મળી', 'Submitted');
+      : toStatus === 'draft'
+        ? t('પરિવારે ફેરફાર માટે પાછી લીધી', 'Taken back by the family to change')
+        : t('અરજી મળી', 'Submitted');
     case 'claim': return t('સમીક્ષા શરૂ', 'Review started');
     case 'release': return t('સમીક્ષા છોડી', 'Review released');
     default: return action;

@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import {
-  ChevronRight, Eye, FileText, Link2, LockKeyhole, Pause, Plus, ShieldCheck, Sparkles, UserPlus, UserRound, Users,
+  ChevronRight, Eye, FileText, Link2, LockKeyhole, Pause, Plus, ShieldCheck, UserPlus, UserRound, Users,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import {
-  ConsentControl, PauseControl, PrivacyControls, ShareLinkControl, SwitchCandidate,
+  PauseControl, PrivacyControls, ShareLinkControl, SwitchCandidate,
 } from '@/components/app/family-controls';
 import { SignOutButton } from '@/components/app/sign-out-button';
 import { loadMemberPage } from '@/lib/data/guards';
@@ -16,8 +16,9 @@ import type { T } from '@/lib/i18n';
 import type { CandidateSummary } from '@/lib/data/session';
 
 /**
- * Spec §6: managed candidates, linked accounts, consent, privacy, pause,
- * match-found and deletion controls.
+ * Spec §6: managed candidates, linked accounts, privacy, pause, match-found
+ * and deletion controls. There is no consent switch: an admin's approval
+ * publishes a profile, and pause is how a family takes it out of view.
  *
  * Each candidate carries its own state — a parent can have one child published
  * and another still in review — so the controls are rendered per candidate
@@ -35,7 +36,7 @@ export default async function FamilyPage() {
       <section className="member-screen tone-green">
         <div className="member-title">
           <h1>{t('તમારો પરિવાર', 'Your family')}</h1>
-          <p>{t('દરેક ઉમેદવારની ચકાસણી, સંમતિ અને ગોપનીયતા અલગ છે.', 'Each candidate has their own verification, consent and privacy.')}</p>
+          <p>{t('દરેક ઉમેદવારની ચકાસણી અને ગોપનીયતા અલગ છે.', 'Each candidate has their own verification and privacy.')}</p>
         </div>
 
         <ul className="member-cards">
@@ -102,11 +103,6 @@ export default async function FamilyPage() {
               <ChevronRight size={19} />
             </Link>
 
-            <div className={`member-group${acting.consent_active ? '' : ' hot'}`}>
-              <GroupHead icon={<Sparkles size={18} />} title={t('પ્રકાશન સંમતિ', 'Publication consent')} note={t('પ્રોફાઇલ કોણ જોઈ શકે તેનો મૂળ નિર્ણય', 'The switch that makes a profile visible')} />
-              <ConsentControl lang={lang} candidate={acting} />
-            </div>
-
             {settings.privacy && (
               <div className="member-group">
                 <GroupHead icon={<Eye size={18} />} title={t('ગોપનીયતા', 'Privacy')} note={t('ફોટા, જન્માક્ષર અને સંપર્ક — ત્રણેય અલગ', 'Photos, janmakshar and contact — each separate')} />
@@ -160,8 +156,8 @@ export default async function FamilyPage() {
         <p className="admin-privacy">
           <ShieldCheck size={15} />{' '}
           {t(
-            'સંમતિ, વિરામ અને ગોપનીયતાના ફેરફાર તરત અસર કરે છે. પણ જે કોઈએ પહેલેથી જોઈ લીધું હોય તે પાછું લઈ શકાતું નથી.',
-            'Consent, pause and privacy changes take effect at once. What someone has already seen cannot be taken back.',
+            'વિરામ અને ગોપનીયતાના ફેરફાર તરત અસર કરે છે. પણ જે કોઈએ પહેલેથી જોઈ લીધું હોય તે પાછું લઈ શકાતું નથી.',
+            'Pause and privacy changes take effect at once. What someone has already seen cannot be taken back.',
           )}
         </p>
 
@@ -189,7 +185,6 @@ function candidateStatus(candidate: CandidateSummary, t: T): { label: string; to
   if (candidate.paused) return { label: t('થોભાવેલી', 'Paused'), tone: 'warn' };
   if (candidate.identity_status !== 'verified') return { label: t('ચકાસણી બાકી', 'Being verified'), tone: 'gold' };
   if (candidate.biodata?.status === 'correction_requested') return { label: t('સુધારો જરૂરી', 'Needs a fix'), tone: 'warn' };
-  if (candidate.biodata?.status === 'submitted' || candidate.biodata?.status === 'under_review') return { label: t('સમીક્ષામાં', 'In review'), tone: 'gold' };
-  if (candidate.biodata?.status === 'approved' && !candidate.consent_active) return { label: t('સંમતિ બાકી', 'Needs consent'), tone: 'rose' };
+  if (candidate.biodata?.status === 'submitted' || candidate.biodata?.status === 'under_review') return { label: t('મંજૂરીની રાહ', 'Awaiting approval'), tone: 'gold' };
   return { label: t('બાયોડેટા બાકી', 'Biodata to do'), tone: 'rose' };
 }

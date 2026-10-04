@@ -15,44 +15,47 @@ import { requireStaff } from './session';
  * second is the one that actually enforces anything.
  */
 
-export async function getDashboard() {
+export type FamilyFilter = 'review' | 'overdue' | 'family' | 'live' | 'all';
+
+/**
+ * Every family in one list, each at the stage it has really reached across
+ * the identity check and the biodata (see app.family_stages()).
+ */
+export async function getFamilyQueue(options: { filter: FamilyFilter; query?: string; limit?: number }) {
   await requireStaff();
   const supabase = await createSupabaseServerClient();
-  return unwrap(await supabase.rpc('admin_dashboard')) as unknown as {
-    verification: {
-      open: number;
-      overdue: number;
-      approaching: number;
-      awaiting_resubmission: number;
-      drafts: number;
-    };
-    publication: { open: number; awaiting_resubmission: number; awaiting_consent: number };
-    duplicates_open: number;
-    access_requests_open: number;
-    media_pending_review: number;
-    published_candidates: number;
-  };
-}
-
-export async function getRegistrationQueue(options: {
-  statuses?: Enums<'application_status'>[];
-  query?: string;
-  overdueOnly?: boolean;
-  limit?: number;
-  offset?: number;
-} = {}) {
-  await requireStaff();
-  const supabase = await createSupabaseServerClient();
-
   return unwrap(
-    await supabase.rpc('admin_registration_queue', {
-      p_statuses: options.statuses,
+    await supabase.rpc('admin_family_queue', {
+      p_filter: options.filter,
       p_query: options.query?.trim() || undefined,
-      p_overdue: options.overdueOnly ?? false,
-      p_limit: options.limit ?? 25,
-      p_offset: options.offset ?? 0,
+      p_limit: options.limit ?? 50,
     }),
   );
+}
+
+export async function getFamilyCounts() {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  return unwrap(await supabase.rpc('admin_family_counts')) as unknown as Record<FamilyFilter | 'duplicates_open', number>;
+}
+
+/**
+ * The biodata that travels with a registration, for the admin to read beside
+ * the documents. The latest version: the one sent, or being fixed.
+ */
+export async function getLatestBiodata(candidateId: string) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  const rows = unwrap(
+    await supabase
+      .from('biodata_revisions')
+      .select('id, version, status, data, correction_fields')
+      .eq('candidate_id', candidateId)
+      .order('version', { ascending: false })
+      .limit(1),
+  );
+  const row = rows[0];
+  return row ? { ...row, data: row.data as Record<string, string> } : null;
 }
 
 export async function getRegistrationDetail(applicationId: string) {
@@ -122,23 +125,6 @@ export async function decideRegistration(input: {
   ) as { status: Enums<'application_status'> };
 
   return result.status;
-}
-
-export async function getPublicationQueue(options: {
-  statuses?: Enums<'revision_status'>[];
-  limit?: number;
-  offset?: number;
-} = {}) {
-  await requireStaff();
-  const supabase = await createSupabaseServerClient();
-
-  return unwrap(
-    await supabase.rpc('admin_publication_queue', {
-      p_statuses: options.statuses,
-      p_limit: options.limit ?? 25,
-      p_offset: options.offset ?? 0,
-    }),
-  );
 }
 
 export async function getBiodataDetail(revisionId: string) {

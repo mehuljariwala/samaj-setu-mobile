@@ -217,6 +217,15 @@ export async function reopenRegistration(applicationId: string): Promise<void> {
   unwrap(await supabase.rpc('reopen_my_registration', { p_application_id: applicationId }));
 }
 
+/**
+ * An application waiting for review goes back to draft so the family can
+ * change it. It leaves the queue, and sending it again starts a new 24 hours.
+ */
+export async function editRegistration(applicationId: string): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('edit_my_registration', { p_application_id: applicationId }));
+}
+
 export async function withdrawRegistration(applicationId: string): Promise<void> {
   const supabase = await createSupabaseServerClient();
   unwrap(await supabase.rpc('withdraw_registration', { p_application_id: applicationId }));

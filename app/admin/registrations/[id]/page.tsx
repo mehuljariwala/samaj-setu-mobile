@@ -6,8 +6,10 @@ import {
 import { AppShell } from '@/components/app/shell';
 import { CertificateViewer } from '@/components/app/certificate-viewer';
 import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-decision';
+import { BiodataView } from '@/components/app/biodata-view';
+import { allFields } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
-import { getRegistrationDetail } from '@/lib/data/admin';
+import { getLatestBiodata, getRegistrationDetail } from '@/lib/data/admin';
 import {
   applicationStatusLabel, certificateLabel, correctionFieldLabel, identityStatusLabel, relationshipLabel, reviewActionLabel, reviewSla, slaLabel,
 } from '@/lib/admin-labels';
@@ -43,6 +45,9 @@ type Detail = {
 /**
  * Spec §10: submitted details, private certificate inspection, duplicate
  * candidates, previous decisions, and the review actions.
+ *
+ * Since the one-approval change it is also where the biodata is read: it is
+ * sent with the registration, and approving here publishes both.
  */
 export default async function RegistrationDetailPage({
   params,
@@ -55,6 +60,10 @@ export default async function RegistrationDetailPage({
 
   const detail = await getRegistrationDetail(id) as unknown as Detail;
   const { application, candidate, operators, duplicates, history } = detail;
+  const biodata = await getLatestBiodata(candidate.id);
+  // Sent with this registration, so this decision covers it. An application
+  // sent before the change has no biodata yet, and its biodata follows later.
+  const travelling = biodata !== null && biodata.status !== 'approved' && biodata.status !== 'superseded';
   const openDuplicates = duplicates.filter((entry) => entry.status === 'open');
   const decidable = application.status === 'submitted' || application.status === 'under_review';
   const idName = detail.identity?.type === 'voter_id'
@@ -171,8 +180,27 @@ export default async function RegistrationDetailPage({
             <li>{t('ઓળખપત્ર પરનું નામ અને ફોટો એ જ વ્યક્તિના છે', 'The name and photo on the ID are the same person')}</li>
             <li>{t('ઓળખપત્ર પર સરનામું વાંચી શકાય છે', 'The address on the ID can be read')}</li>
             <li>{t('આગળ અને પાછળની બાજુ એક જ કાર્ડની છે', 'Front and back are of the same card')}</li>
+            {travelling && (
+              <li>{t('બાયોડેટા સાચો લાગે છે અને પરિવારોને બતાવી શકાય એવો છે', 'The biodata looks right and is fit to show families')}</li>
+            )}
           </ul>
         </div>
+
+        {/* The biodata sent with the registration: approving publishes it. */}
+        <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
+        {biodata ? (
+          <BiodataView lang={lang} data={biodata.data} flagged={biodata.correction_fields} />
+        ) : (
+          <p className="admin-alert soft">
+            <ListChecks size={18} />
+            <span>
+              {t(
+                'આ અરજી બાયોડેટા વગર આવી હતી. મંજૂરી પછી પરિવાર બાયોડેટા મોકલશે અને તે અલગથી મંજૂર થશે.',
+                'This application came without a biodata. After approval the family sends it, and it is approved separately.',
+              )}
+            </span>
+          </p>
+        )}
 
         {/* Spec §4: a prompt to compare two records — not a decision about
             either of them, and never an automatic merge. */}
@@ -215,8 +243,8 @@ export default async function RegistrationDetailPage({
           </p>
         )}
 
-        {/* A rejection is final for the family, so an admin can still send it
-            back for a fix when it was something they could have put right. */}
+        {/* An admin can also send a rejection back for a fix, when it was
+            something the family could have put right. */}
         {(decidable || (application.status === 'rejected' && isAdmin(context))) && (
           <RegistrationDecision
             lang={lang}
@@ -225,6 +253,8 @@ export default async function RegistrationDetailPage({
             canDecide={isAdmin(context)}
             openDuplicates={openDuplicates.length}
             fields={CORRECTABLE.map((field) => ({ value: field, label: correctionFieldLabel(t, field) }))}
+            biodataFields={travelling ? allFields.map((field) => ({ value: field.key, label: t(field.gu, field.en) })) : []}
+            withBiodata={travelling}
           />
         )}
 

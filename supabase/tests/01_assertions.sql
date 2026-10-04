@@ -232,17 +232,18 @@ begin
        values (%L, %L, ''x'')', c_aarav, v_rajesh)),
     'the consent trigger refuses a non-candidate grantor');
 
-  -- Withdrawal hides the profile immediately.
+  -- Since 20261004000200 an approved profile is published without consent,
+  -- so withdrawing it no longer hides anyone; pausing does.
   perform pg_temp.as_user(v_kavya);
   perform public.withdraw_publication_consent(c_kavya);
   perform pg_temp.ok(
-    not (select discoverable from public.candidates where id = c_kavya),
-    'withdrawing consent makes a candidate undiscoverable at once');
+    (select discoverable from public.candidates where id = c_kavya),
+    'an approved profile stays published without consent');
 
   perform public.grant_publication_consent(c_kavya);
   perform pg_temp.ok(
     (select discoverable from public.candidates where id = c_kavya),
-    'restoring consent republishes the candidate');
+    'granting consent changes nothing about visibility');
 
   -- Pause takes effect immediately too.
   update public.candidates set paused = true where id = c_kavya;

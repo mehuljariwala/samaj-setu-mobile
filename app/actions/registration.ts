@@ -106,6 +106,17 @@ export async function reopenRegistrationAction(
   });
 }
 
+export async function editRegistrationAction(
+  applicationId: string,
+): Promise<ActionResult> {
+  return actionResult(async () => {
+    await registration.editRegistration(applicationId);
+    track('registration.taken_back', { detail: { application_id: applicationId } });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
 export async function withdrawRegistrationAction(
   applicationId: string,
 ): Promise<ActionResult> {

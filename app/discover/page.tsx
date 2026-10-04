@@ -62,8 +62,8 @@ export default async function DiscoverPage({
             <LockKeyhole size={18} />
             <span>
               {t(
-                'તમે પ્રોફાઇલ જોઈ શકો છો. પરિચય મોકલવા બાયોડેટા મંજૂર અને સંમતિ સક્રિય હોવી જરૂરી છે.',
-                'You can browse. To send an introduction, your biodata needs approval and consent.',
+                'તમે પ્રોફાઇલ જોઈ શકો છો. પરિચય મોકલવા તમારો બાયોડેટા મંજૂર થયેલો હોવો જરૂરી છે.',
+                'You can browse. To send an introduction, your biodata needs to be approved.',
               )}
             </span>
             <ArrowRight size={17} />
@@ -144,8 +144,8 @@ export default async function DiscoverPage({
               {filtered
                 ? t('ફિલ્ટર ઓછાં કરીને ફરી જુઓ.', 'Try removing a filter or two.')
                 : t(
-                  'ચકાસાયેલા પરિવારો સંમતિ આપે તેમ તેમ અહીં દેખાશે.',
-                  'Verified families appear here as they give consent. Check back soon.',
+                  'એડમિન મંજૂરી આપે તેમ તેમ પરિવારો અહીં દેખાશે.',
+                  'Families appear here as an admin approves them. Check back soon.',
                 )}
             </p>
             {filtered && (

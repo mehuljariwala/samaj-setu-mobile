@@ -1,18 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Check, CircleHelp, Copy, Link2, Pause, Play, Sparkles } from 'lucide-react';
+import { CircleHelp, Copy, Link2, Pause, Play } from 'lucide-react';
 
 import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import {
-  grantConsentAction, setCandidateSwitchesAction, setPrivacyAction, withdrawConsentAction,
-} from '@/app/actions/biodata';
+import { setCandidateSwitchesAction, setPrivacyAction } from '@/app/actions/biodata';
 import { createShareLinkAction } from '@/app/actions/matching';
 import { setActingCandidateAction } from '@/app/actions/prefs';
-import type { ActionResult } from '@/lib/data/errors';
 import type { Enums } from '@/lib/supabase/database.types';
 import type { CandidateSummary } from '@/lib/data/session';
 import type { Lang } from '@/lib/i18n';
@@ -48,94 +45,6 @@ export function SwitchCandidate({
     >
       {t('આના માટે કામ કરો', 'Act for this candidate')}
     </button>
-  );
-}
-
-/**
- * Publication consent.
- *
- * Spec §4: only the candidate's own account may grant it, and a guardian may
- * not stand in. Withdrawal is deliberately wider — any operator may take a
- * profile down, because the risk of a wrongly published profile outweighs the
- * inconvenience of a wrongly withdrawn one.
- */
-export function ConsentControl({
-  lang,
-  candidate,
-}: {
-  lang: Lang;
-  candidate: CandidateSummary;
-}) {
-  const t = translator(lang);
-  const [pending, start] = useTransition();
-  const [error, setError] = useState('');
-
-  const run = (work: () => Promise<ActionResult<unknown>>) =>
-    start(async () => {
-      const result = await work();
-      setError(result.ok ? '' : result.message);
-    });
-
-  if (candidate.consent_active) {
-    return (
-      <>
-        <div className="note brand">
-          <Check size={19} />
-          <p>{t('પ્રકાશન સંમતિ સક્રિય છે.', 'Publication consent is active.')}</p>
-        </div>
-        <button
-          className="text-button muted center"
-          disabled={pending}
-          onClick={() => {
-            if (!confirm(t(
-              'સંમતિ પાછી ખેંચવાથી પ્રોફાઇલ તરત જ ડિરેક્ટરીમાંથી હટી જશે. આગળ વધવું?',
-              'Withdrawing consent removes this profile from the directory immediately. Continue?',
-            ))) return;
-            run(async () => withdrawConsentAction(candidate.id));
-          }}
-        >
-          {t('સંમતિ પાછી ખેંચો', 'Withdraw consent')}
-        </button>
-        {error && <p role="alert" className="error"><CircleHelp size={17} />{error}</p>}
-      </>
-    );
-  }
-
-  if (!candidate.is_self) {
-    return (
-      <div className="note">
-        <CircleHelp size={19} />
-        <p>
-          {t(
-            'ઉમેદવાર પોતાના ખાતામાંથી જ પ્રકાશન સંમતિ આપી શકે છે. વાલી તેમના વતી સંમતિ આપી શકતા નથી.',
-            'Only the candidate can give publication consent, from their own account. A guardian cannot give it on their behalf.',
-          )}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="note">
-        <Sparkles size={19} />
-        <p>
-          {t(
-            'સંમતિ આપ્યા પછી તમારી મંજૂર થયેલી પ્રોફાઇલ ચકાસાયેલા સભ્યોને દેખાશે. તમે ગમે ત્યારે પાછી ખેંચી શકો છો.',
-            'Once you consent, your approved profile becomes visible to verified members. You can withdraw at any time.',
-          )}
-        </p>
-      </div>
-      <button
-        className="cta"
-        disabled={pending}
-        onClick={() => run(async () => grantConsentAction(candidate.id))}
-      >
-        {pending ? <span className="cta-spinner" aria-hidden="true" /> : <Check size={19} strokeWidth={2.6} />}
-        {t('હું પ્રકાશન માટે સંમતિ આપું છું', 'I consent to publication')}
-      </button>
-      {error && <p role="alert" className="error"><CircleHelp size={17} />{error}</p>}
-    </>
   );
 }
 

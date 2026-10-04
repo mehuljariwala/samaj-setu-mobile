@@ -7,7 +7,9 @@ import {
 import { AppShell } from '@/components/app/shell';
 import { ReviewArt, type ReviewState } from '@/components/onboarding/art';
 import { AutoRefresh } from '@/components/onboarding/auto-refresh';
+import { EditApplicationButton } from '@/components/onboarding/edit-application-button';
 import { ReopenButton } from '@/components/onboarding/reopen-button';
+import { fieldByKey } from '@/components/biodata/model';
 import { loadApplicantPage } from '@/lib/data/guards';
 import { timeAgo, translator } from '@/lib/i18n';
 import type { CandidateSummary } from '@/lib/data/session';
@@ -24,7 +26,10 @@ export default async function ReviewPage() {
   const { context, lang } = await loadApplicantPage();
   const t = translator(lang);
 
-  if (context.access_state === 'no_application') redirect('/register');
+  // A draft, including one taken back to change, has nothing to review yet.
+  if (context.access_state === 'no_application' || context.access_state === 'application_draft') {
+    redirect('/register');
+  }
 
   // A parent with several children sees the one that needs them most.
   const candidate = pickMostUrgent(context.candidates);
@@ -59,8 +64,14 @@ export default async function ReviewPage() {
   // easy to miss, and it is the one thing the family most needs to read.
   const reason = application?.decision_reason?.trim() || null;
 
+  // Sent together since the one-approval change, so an approval usually means
+  // the profile is live; an application sent before that has its biodata to go.
+  const live = candidate.discoverable;
+
   const body = {
-    approved: t('તમારી ઓળખ ચકાસાઈ ગઈ છે. હવે બાયોડેટા પૂર્ણ કરો.', 'Your identity is verified. You can now complete your biodata.'),
+    approved: live
+      ? t('તમારી પ્રોફાઇલ હવે દેખાય છે. પરિવારો તમને શોધી શકે છે.', 'Your profile is live. Families can now find you.')
+      : t('તમારી ઓળખ ચકાસાઈ ગઈ છે. હવે બાયોડેટા ભરીને મંજૂરી માટે મોકલો.', 'Your identity is verified. Now fill in the biodata and send it for approval.'),
     correction: t(
       'એડમિને તમારી અરજી તપાસી છે. નીચે લખેલી વિગતો સુધારીને ફરી મોકલો.',
       'An admin has checked your application. Fix what is noted below and send it again.',
@@ -80,14 +91,19 @@ export default async function ReviewPage() {
         'This review is taking longer than our 24-hour target. Your application has been flagged for an admin — there is nothing you need to do.',
       )
       : t(
-        'અમારા એડમિન તમારી વિગતો ચકાસી રહ્યા છે. મંજૂરી માટે 24 કલાક સુધી રાહ જુઓ.',
-        'Our community admins are checking your details. Please allow up to 24 hours.',
+        'એડમિન તમારા દસ્તાવેજ અને બાયોડેટા એકસાથે તપાસી રહ્યા છે. 24 કલાક સુધી રાહ જુઓ — મંજૂરી મળતાં જ પ્રોફાઇલ દેખાશે.',
+        'An admin is checking your documents and biodata together. Allow up to 24 hours — your profile goes live the moment it is approved.',
       ),
   }[tone];
 
   // Spec §10: a correction names the fields, so the applicant knows what to
-  // change rather than re-reading the whole form.
-  const fieldName: Record<string, string> = {
+  // change rather than re-reading the whole form. Biodata fields are named in
+  // the biodata form's own words.
+  const fieldName = (key: string) => {
+    const bio = fieldByKey.get(key);
+    return bio ? t(bio.gu, bio.en) : registrationField[key] ?? key;
+  };
+  const registrationField: Record<string, string> = {
     full_name: t('પૂરું નામ', 'Full name'),
     date_of_birth: t('જન્મ તારીખ', 'Date of birth'),
     father_name: t('પિતાનું નામ', 'Father’s name'),
@@ -97,10 +113,10 @@ export default async function ReviewPage() {
   };
   const corrections = tone === 'correction' ? application?.correction_fields ?? [] : [];
 
-  // Three steps, so a family can see there is exactly one wait between them
-  // and the biodata — not an open-ended queue.
+  // Three steps, so a family can see there is exactly one wait between
+  // sending and being live — not an open-ended queue.
   const reviewStep = {
-    approved: { state: 'done', note: t('ઓળખ ચકાસાઈ ગઈ', 'Identity verified') },
+    approved: { state: 'done', note: t('મંજૂર', 'Approved') },
     correction: { state: 'act', note: t('તમારા સુધારાની રાહ છે', 'Waiting for your update') },
     rejected: { state: 'stop', note: t('મંજૂર થઈ શકી નથી', 'Not approved') },
     pending: {
@@ -114,16 +130,16 @@ export default async function ReviewPage() {
   const steps = [
     {
       state: 'done',
-      title: t('વિગતો અને દસ્તાવેજ મળ્યાં', 'Details & documents received'),
-      note: t('પ્રમાણપત્ર અને ઓળખપત્ર — ફક્ત એડમિન જુએ છે', 'Certificate and photo ID — only an admin sees them'),
+      title: t('દસ્તાવેજ અને બાયોડેટા મળ્યાં', 'Documents & biodata received'),
+      note: t('દસ્તાવેજ ફક્ત એડમિન જુએ છે', 'Only an admin sees the documents'),
     },
-    { state: reviewStep.state, title: t('એડમિન સમીક્ષા', 'Admin review'), note: reviewStep.note },
+    { state: reviewStep.state, title: t('એડમિનની મંજૂરી', 'Admin approval'), note: reviewStep.note },
     ...(tone === 'rejected' ? [] : [{
       state: tone === 'approved' ? 'open' : 'next',
-      title: t('બાયોડેટા અને મેળ', 'Biodata & matches'),
+      title: t('પ્રોફાઇલ જાહેર', 'Profile live'),
       note: tone === 'approved'
-        ? t('હવે ખુલ્લું છે', 'Open now')
-        : t('મંજૂરી મળતાં જ ખુલશે', 'Opens the moment you’re approved'),
+        ? live ? t('હવે દેખાય છે', 'Live now') : t('બાયોડેટા મોકલ્યા પછી', 'After you send the biodata')
+        : t('મંજૂરી મળતાં જ', 'The moment it’s approved'),
     }]),
   ];
 
@@ -175,7 +191,7 @@ export default async function ReviewPage() {
                   {t('આ વિગતો સુધારવાની છે', 'These need changing')}
                 </p>
                 <ul>
-                  {corrections.map((field) => <li key={field}>{fieldName[field] ?? field}</li>)}
+                  {corrections.map((field) => <li key={field}>{fieldName(field)}</li>)}
                 </ul>
               </>
             )}
@@ -226,8 +242,8 @@ export default async function ReviewPage() {
 
         <div className="review-actions">
           {tone === 'approved' ? (
-            <Link className="cta" href="/home">
-              {t('હોમ પર જાઓ', 'Go to member home')}
+            <Link className="cta" href={live ? '/home' : '/biodata'}>
+              {live ? t('હોમ પર જાઓ', 'Go to member home') : t('બાયોડેટા ભરો', 'Fill in the biodata')}
               <ArrowRight size={20} />
             </Link>
           ) : tone === 'correction' ? (
@@ -240,13 +256,20 @@ export default async function ReviewPage() {
             // the admin's reason above the form, and goes back to the queue.
             <ReopenButton lang={lang} applicationId={application.id} />
           ) : tone === 'pending' ? (
-            <p className="review-note">
-              <Bell size={18} />
-              {t(
-                'સ્થિતિ અહીં આપોઆપ અપડેટ થશે. ફરી નોંધણી કરવાની જરૂર નથી.',
-                'This screen updates by itself. There’s no need to register again.',
+            <>
+              <p className="review-note">
+                <Bell size={18} />
+                {t(
+                  'સ્થિતિ અહીં આપોઆપ અપડેટ થશે. ફરી નોંધણી કરવાની જરૂર નથી.',
+                  'This screen updates by itself. There’s no need to register again.',
+                )}
+              </p>
+              {/* Families find out after sending that the leaving certificate
+                  was the one to send; they can change it before anyone decides. */}
+              {application && (application.status === 'submitted' || application.status === 'under_review') && (
+                <EditApplicationButton lang={lang} applicationId={application.id} />
               )}
-            </p>
+            </>
           ) : null}
 
           <Link className="intro-login" href="/support">

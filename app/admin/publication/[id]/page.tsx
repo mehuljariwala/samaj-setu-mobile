@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCheck, CircleHelp } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
+import { BiodataView } from '@/components/app/biodata-view';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getBiodataDetail } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
@@ -22,7 +23,6 @@ type Detail = {
   };
   candidate: { id: string; full_name: string; public_code: string; identity_status: string };
   community: { sub_community: string | null; sect: string | null; paternal_surname: string | null; mosal_family: string | null; confirmed_at: string | null } | null;
-  consent: { active: boolean; granted_at: string; text_version: string; by_candidate_themselves: boolean } | null;
   history: { id: string; action: string; to_status: string | null; reason_applicant: string | null; created_at: string }[];
 };
 
@@ -36,15 +36,15 @@ export default async function BiodataReviewPage({
   const t = translator(lang);
 
   const detail = await getBiodataDetail(id) as unknown as Detail;
-  const { revision, candidate, community, consent, history } = detail;
+  const { revision, candidate, community, history } = detail;
   const decidable = revision.status === 'submitted' || revision.status === 'under_review';
 
   return (
     <AppShell lang={lang} context={context} admin>
       <section className="screen-pad">
-        <Link className="back-link" href="/admin/publication">
+        <Link className="back-link" href="/admin">
           <ArrowLeft size={17} />
-          {t('કતાર પર પાછા', 'Back to the queue')}
+          {t('યાદી પર પાછા', 'Back to the list')}
         </Link>
 
         <div className="page-title">
@@ -66,31 +66,6 @@ export default async function BiodataReviewPage({
           </div>
         )}
 
-        {/* Spec §10: active consent evidence, including who gave it. */}
-        <div className="section-head">
-          <h2>{t('પ્રકાશન સંમતિ', 'Publication consent')}</h2>
-        </div>
-        <div className="detail-list spaced">
-          <div>
-            <span>{t('સ્થિતિ', 'Status')}</span>
-            <b>{consent?.active ? t('સક્રિય', 'Active') : t('નથી', 'Not given')}</b>
-          </div>
-          {consent && (
-            <>
-              <div><span>{t('ક્યારે', 'When')}</span><b>{timeAgo(consent.granted_at, lang)}</b></div>
-              <div><span>{t('લખાણ આવૃત્તિ', 'Consent text version')}</span><b>{consent.text_version}</b></div>
-              <div>
-                <span>{t('કોણે આપી', 'Given by')}</span>
-                <b>
-                  {consent.by_candidate_themselves
-                    ? t('ઉમેદવારે પોતે', 'The candidate themselves')
-                    : t('ઉમેદવાર નહીં — તપાસો', 'Not the candidate — investigate')}
-                </b>
-              </div>
-            </>
-          )}
-        </div>
-
         <div className="section-head">
           <h2>{t('સમાજની વિગતો', 'Community details')}</h2>
         </div>
@@ -108,15 +83,7 @@ export default async function BiodataReviewPage({
         <div className="section-head">
           <h2>{t('બાયોડેટા', 'Biodata')}</h2>
         </div>
-        <div className="detail-list spaced">
-          {Object.entries(revision.data)
-            // Contact fields are part of the submission but never part of the
-            // directory record; they are shown here because a reviewer checks
-            // them, and stripped from everything a member reads.
-            .map(([key, value]) => (
-              <div key={key}><span>{key}</span><b>{value}</b></div>
-            ))}
-        </div>
+        <BiodataView lang={lang} data={revision.data} />
 
         {decidable ? (
           <BiodataDecision
@@ -124,7 +91,6 @@ export default async function BiodataReviewPage({
             revisionId={revision.id}
             expectedStatus={revision.status}
             canDecide={isAdmin(context)}
-            consentActive={Boolean(consent?.active)}
           />
         ) : (
           <div className="note">

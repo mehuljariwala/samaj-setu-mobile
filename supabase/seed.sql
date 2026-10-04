@@ -64,11 +64,12 @@ end
 $$;
 
 -- Registers a candidate, uploads a (recorded but not stored) certificate,
--- submits, and has an admin approve — the whole of spec §3 in one call.
+-- fills the biodata, sends both, and has an admin approve once — which, since
+-- 20261004000400, also publishes the biodata.
 create or replace function pg_temp.verified_candidate(
   p_operator uuid, p_admin uuid, p_relationship public.relationship,
   p_name text, p_dob date, p_gender public.gender,
-  p_father text, p_city text
+  p_father text, p_city text, p_bio jsonb
 )
 returns uuid
 language plpgsql
@@ -92,6 +93,7 @@ begin
     v_application, 'front', 'aadhaar', v_candidate::text || '/seed-id-front.jpg', 'image/jpeg', 61000);
   perform public.attach_identity_document(
     v_application, 'back', 'aadhaar', v_candidate::text || '/seed-id-back.jpg', 'image/jpeg', 58000);
+  perform public.save_biodata_draft(v_candidate, p_bio);
   perform public.submit_registration(v_application);
 
   perform pg_temp.as_user(p_admin);
@@ -101,29 +103,17 @@ begin
 end
 $$;
 
--- Completes, submits, approves and consents to a biodata revision.
-create or replace function pg_temp.publish_candidate(
-  p_candidate uuid, p_operator uuid, p_self uuid, p_admin uuid, p_data jsonb
-)
-returns void
-language plpgsql
+-- A minimal complete biodata, for the seeded registrations that are not
+-- published and so never needed a full one.
+create or replace function pg_temp.bio(p_gender text, p_surname text, p_mosal text, p_phone text)
+returns jsonb
+language sql
 as $$
-declare
-  v_saved jsonb;
-  v_revision uuid;
-begin
-  perform pg_temp.as_user(p_operator);
-  v_saved := public.save_biodata_draft(p_candidate, p_data);
-  v_revision := (v_saved ->> 'revision_id')::uuid;
-  perform public.submit_biodata(v_revision);
-
-  perform pg_temp.as_user(p_admin);
-  perform public.admin_decide_biodata(v_revision, 'approve', 'submitted', 'Complete and consistent.');
-
-  -- Spec §4: only the candidate's own account may consent.
-  perform pg_temp.as_user(p_self);
-  perform public.grant_publication_consent(p_candidate);
-end
+  select jsonb_build_object(
+    'gender', p_gender, 'height', '168', 'marital', 'never',
+    'community', 'surti', 'sect', 'bhagat', 'surname', p_surname, 'mosal', p_mosal,
+    'education', 'bachelor', 'work', 'employed',
+    'contactKind', 'father', 'phone', p_phone)
 $$;
 
 -- ------------------------------------------------------------------ staff --
@@ -172,15 +162,7 @@ begin
 
   -- ------------------------------------------------ a published son (viewer)
   c_aarav := pg_temp.verified_candidate(
-    v_rajesh, v_admin, 'son', 'આરવ શાહ', date '1998-03-14', 'male', 'રાજેશ શાહ', 'Surat');
-
-  -- Aarav also holds his own account, which is what lets him consent.
-  insert into public.candidate_memberships
-    (candidate_id, account_id, role, relationship, linked_by_account_id)
-  values (c_aarav, v_aarav, 'candidate', 'self', v_admin)
-  on conflict do nothing;
-
-  perform pg_temp.publish_candidate(c_aarav, v_rajesh, v_aarav, v_admin, jsonb_build_object(
+    v_rajesh, v_admin, 'son', 'આરવ શાહ', date '1998-03-14', 'male', 'રાજેશ શાહ', 'Surat', jsonb_build_object(
     'gender', 'male', 'height', '175', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', 'Shah', 'mosal', 'Trivedi',
     'education', 'bachelor', 'degree', 'B.E. Computer', 'work', 'employed',
@@ -190,11 +172,16 @@ begin
     'birthplace', 'Surat', 'birthtime', '06:20', 'rashi', 'Pisces', 'gan', 'dev', 'mangal', 'no',
     'contactKind', 'father', 'phone', '9876543210'));
 
+  -- Aarav also holds his own account alongside his father's.
+  insert into public.candidate_memberships
+    (candidate_id, account_id, role, relationship, linked_by_account_id)
+  values (c_aarav, v_aarav, 'candidate', 'self', v_admin)
+  on conflict do nothing;
+
   -- --------------------------------------- three published daughters (§13's
   -- seeded launch target, at prototype scale)
   c_kavya := pg_temp.verified_candidate(
-    v_kavya, v_admin, 'self', 'કાવ્યા દેસાઈ', date '2000-06-02', 'female', 'મહેશ દેસાઈ', 'Surat');
-  perform pg_temp.publish_candidate(c_kavya, v_kavya, v_kavya, v_admin, jsonb_build_object(
+    v_kavya, v_admin, 'self', 'કાવ્યા દેસાઈ', date '2000-06-02', 'female', 'મહેશ દેસાઈ', 'Surat', jsonb_build_object(
     'gender', 'female', 'height', '165', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', 'Desai', 'mosal', 'Patel',
     'education', 'master', 'degree', 'M.Arch', 'work', 'employed',
@@ -205,8 +192,7 @@ begin
     'contactKind', 'self', 'phone', '9876500012'));
 
   c_riya := pg_temp.verified_candidate(
-    v_riya, v_admin, 'self', 'રિયા મહેતા', date '2001-01-19', 'female', 'કિરીટ મહેતા', 'Ahmedabad');
-  perform pg_temp.publish_candidate(c_riya, v_riya, v_riya, v_admin, jsonb_build_object(
+    v_riya, v_admin, 'self', 'રિયા મહેતા', date '2001-01-19', 'female', 'કિરીટ મહેતા', 'Ahmedabad', jsonb_build_object(
     'gender', 'female', 'height', '162', 'marital', 'never',
     'community', 'ahmedabadi', 'sect', 'jagat', 'surname', 'Mehta', 'mosal', 'Desai',
     'education', 'master', 'degree', 'MBA', 'work', 'employed',
@@ -219,8 +205,7 @@ begin
   -- Nidhi's mosal matches Aarav's, so spec §7's hard exclusion applies to that
   -- pair and to nobody else. The seed exists to make that visible.
   c_nidhi := pg_temp.verified_candidate(
-    v_nidhi, v_admin, 'self', 'નિધિ પટેલ', date '1999-11-08', 'female', 'હસમુખ પટેલ', 'Surat');
-  perform pg_temp.publish_candidate(c_nidhi, v_nidhi, v_nidhi, v_admin, jsonb_build_object(
+    v_nidhi, v_admin, 'self', 'નિધિ પટેલ', date '1999-11-08', 'female', 'હસમુખ પટેલ', 'Surat', jsonb_build_object(
     'gender', 'female', 'height', '167', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', 'Patel', 'mosal', 'Trivedi',
     'education', 'master', 'degree', 'M.Com', 'work', 'employed',
@@ -236,6 +221,7 @@ begin
     'daughter', 'ધારા જોષી', date '2002-04-21', 'female', 'પ્રવીણ જોષી', null, 'Vadodara', 'Vadodara');
   c_dhara := (v_start ->> 'candidate_id')::uuid;
   v_app := (v_start ->> 'application_id')::uuid;
+  perform public.save_biodata_draft(c_dhara, pg_temp.bio('female', 'Joshi', 'Pandya', '9876500015'));
   perform public.attach_certificate(v_app, c_dhara::text || '/seed-certificate.pdf', 'image/jpeg', 220000);
   perform public.attach_identity_document(v_app, 'front', 'voter_id', c_dhara::text || '/seed-id-front.jpg', 'image/jpeg', 61000);
   perform public.attach_identity_document(v_app, 'back', 'voter_id', c_dhara::text || '/seed-id-back.jpg', 'image/jpeg', 58000);
@@ -247,6 +233,7 @@ begin
     'son', 'જય પરમાર', date '1997-09-30', 'male', 'સુરેશ પરમાર', null, 'Rajkot', 'Rajkot');
   c_jay := (v_start ->> 'candidate_id')::uuid;
   v_app := (v_start ->> 'application_id')::uuid;
+  perform public.save_biodata_draft(c_jay, pg_temp.bio('male', 'Parmar', 'Solanki', '9876500016'));
   perform public.attach_certificate(v_app, c_jay::text || '/seed-certificate.pdf', 'image/png', 190000);
   perform public.attach_identity_document(v_app, 'front', 'aadhaar', c_jay::text || '/seed-id-front.jpg', 'image/jpeg', 61000);
   perform public.attach_identity_document(v_app, 'back', 'aadhaar', c_jay::text || '/seed-id-back.jpg', 'image/jpeg', 58000);

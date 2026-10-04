@@ -38,7 +38,7 @@ export default async function HomePage() {
     { href: '/discover', tone: 'rose', icon: <Search size={20} />, title: t('પ્રોફાઇલ શોધો', 'Discover'), note: t('ચકાસાયેલા સભ્યો', 'Verified members') },
     { href: '/interests', tone: 'gold', icon: <Heart size={20} />, title: t('રસ', 'Interests'), note: pending > 0 ? t(`${pending} જવાબ બાકી`, `${pending} waiting on you`) : t('મોકલેલા અને મળેલા', 'Sent & received'), count: pending },
     { href: '/biodata', tone: 'warn', icon: <FileText size={20} />, title: t('બાયોડેટા', 'Biodata'), note: acting?.biodata ? t(`${completion}% પૂર્ણ`, `${completion}% complete`) : t('શરૂ કરો', 'Get started') },
-    { href: '/family', tone: 'green', icon: <Users size={20} />, title: t('પરિવાર', 'Family'), note: t('સંમતિ અને ગોપનીયતા', 'Consent & privacy') },
+    { href: '/family', tone: 'green', icon: <Users size={20} />, title: t('પરિવાર', 'Family'), note: t('ગોપનીયતા અને વિરામ', 'Privacy & pause') },
   ];
 
   return (
@@ -124,10 +124,9 @@ export default async function HomePage() {
 type Step = { title: string; detail: string; cta: string; href: string; tone: Tone };
 
 /**
- * The order matters: it walks the lifecycle in the sequence the spec defines,
- * so a member is only ever asked for the one thing that is actually blocking
- * them. Publication needs both admin approval and the candidate's own consent,
- * and those are separate steps because either can be outstanding alone.
+ * The order matters: it walks the lifecycle in sequence, so a member is only
+ * ever asked for the one thing that is actually blocking them. An admin's
+ * approval publishes the profile; there is no consent step after it.
  */
 function nextStep(candidate: CandidateSummary, t: T): Step {
   const biodata = candidate.biodata;
@@ -148,7 +147,7 @@ function nextStep(candidate: CandidateSummary, t: T): Step {
         ? t('ડ્રાફ્ટ તૈયાર છે!', 'Your draft is ready!')
         : t('હવે બાયોડેટા પૂર્ણ કરો', 'Now, complete your biodata'),
       detail: biodata && biodata.completion === 100
-        ? t('એક નજર નાખો અને સમીક્ષા માટે મોકલો.', 'Take a last look and send it for review.')
+        ? t('એક નજર નાખો અને મંજૂરી માટે મોકલો.', 'Take a last look and send it for approval.')
         : t('અભ્યાસ, પરિવાર અને પસંદગીઓ ઉમેરો. ડ્રાફ્ટ આપમેળે સચવાય છે.', 'Add education, family and preferences. Your draft saves as you go.'),
       cta: biodata && biodata.completion === 100 ? t('સમીક્ષા માટે મોકલો', 'Review and send') : t('બાયોડેટા ભરો', 'Fill in biodata'),
       href: '/biodata',
@@ -169,27 +168,11 @@ function nextStep(candidate: CandidateSummary, t: T): Step {
 
   if (biodata.status === 'submitted' || biodata.status === 'under_review') {
     return {
-      title: t('બાયોડેટા સમીક્ષા હેઠળ છે', 'Your biodata is being reviewed'),
-      detail: t('એડમિન મંજૂરી પછી ઉમેદવારની સંમતિ છેલ્લું પગલું છે.', 'Once an admin approves it, the candidate’s consent is the last step.'),
+      title: t('બાયોડેટા મંજૂરીની રાહમાં છે', 'Your biodata is waiting for approval'),
+      detail: t('એડમિન મંજૂરી આપે એટલે પ્રોફાઇલ તરત દેખાશે.', 'Your profile goes live as soon as an admin approves it.'),
       cta: t('બાયોડેટા જુઓ', 'View biodata'),
       href: '/biodata',
       tone: 'gold',
-    };
-  }
-
-  // Approved, but not yet visible. Spec §4: only the candidate may consent.
-  if (!candidate.consent_active) {
-    return {
-      title: t('છેલ્લું પગલું: સંમતિ', 'Last step: consent'),
-      detail: candidate.is_self
-        ? t('તમારી સંમતિ પછી જ પ્રોફાઇલ દેખાશે.', 'Your profile becomes visible only once you consent.')
-        : t(
-          'ઉમેદવાર પોતાના ખાતામાંથી સંમતિ આપે પછી પ્રોફાઇલ દેખાશે. વાલી તેમના વતી સંમતિ આપી શકતા નથી.',
-          'The candidate gives consent from their own account. A guardian cannot give it on their behalf.',
-        ),
-      cta: t('સંમતિ આપો', 'Give consent'),
-      href: '/family',
-      tone: 'rose',
     };
   }
 
@@ -242,14 +225,9 @@ function journey(candidate: CandidateSummary, t: T): { title: string; note: stri
       state: !verified ? 'next' : biodata?.status === 'correction_requested' ? 'act' : written ? 'done' : 'now',
     },
     {
-      title: t('બાયોડેટા સમીક્ષા', 'Biodata review'),
+      title: t('એડમિનની મંજૂરી', 'Admin approval'),
       note: approved ? t('મંજૂર', 'Approved') : written ? t('એડમિન જોઈ રહ્યા છે', 'An admin is looking') : t('મોકલ્યા પછી', 'After you send it'),
       state: approved ? 'done' : written ? 'now' : 'next',
-    },
-    {
-      title: t('ઉમેદવારની સંમતિ', 'Candidate’s consent'),
-      note: candidate.consent_active ? t('આપી', 'Given') : approved ? t('તમારો વારો', 'Your turn') : t('મંજૂરી પછી', 'After approval'),
-      state: candidate.consent_active ? 'done' : approved ? 'now' : 'next',
     },
     {
       title: t('પ્રકાશિત', 'Live in the directory'),

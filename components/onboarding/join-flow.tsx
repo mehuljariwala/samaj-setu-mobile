@@ -11,7 +11,7 @@ import {
 import { signUpAction } from '@/app/actions/auth';
 import {
   attachCertificateAction, attachIdentityDocumentAction, startRegistrationAction,
-  submitRegistrationAction, updateRegistrationAction,
+  updateRegistrationAction,
 } from '@/app/actions/registration';
 import { DocumentCapture } from '@/components/app/document-capture';
 import { RulesSheet } from '@/components/onboarding/rules-sheet';
@@ -95,16 +95,16 @@ function pick(file: File | null | undefined, previous: Picked | null): Picked | 
  * is signed in with no application, so the next time they open the app they
  * land back here at screen 2.
  *
- * Submitting screen 3 is a sequence rather than one call, because the files
- * go to a bucket keyed on a candidate id that does not exist until the
+ * Leaving screen 3 is a sequence rather than one call, because the files go
+ * to a bucket keyed on a candidate id that does not exist until the
  * application has been saved:
  *
- *   start_registration  →  upload + attach, once per file  →  submit
+ *   start_registration  →  upload + attach, once per file  →  /biodata?apply=1
  *
- * An interruption partway leaves a draft, which is exactly what the member
- * returns to, with whatever already went up marked as attached.
- * `submit_registration` is the only call that starts the 24-hour review clock,
- * and it refuses until all three documents are recorded.
+ * Nothing is sent from here. The biodata comes next, and its last screen
+ * sends the registration and the biodata together, for the one admin
+ * approval. An interruption partway leaves a draft, which is exactly what the
+ * member returns to, with whatever already went up marked as attached.
  */
 export function JoinFlow({
   lang,
@@ -338,16 +338,9 @@ export function JoinFlow({
         if (!attached.ok) return fail(field, attached.message);
       }
 
-      setBusy(t('ચકાસણી માટે મોકલી રહ્યા છીએ…', 'Sending for verification…'));
-      const submitted = await submitRegistrationAction(applicationId);
-      if (!submitted.ok) {
-        // `incomplete` names the missing fields; go to the first of them.
-        return submitted.code === 'incomplete'
-          ? fail(FROM_SERVER[submitted.detail[0] ?? ''], t('આ વિગત અથવા દસ્તાવેજ ખૂટે છે.', 'This detail or document is missing.'))
-          : fail(undefined, submitted.message);
-      }
-
-      router.replace('/review');
+      // `apply`: the biodata for this registration, even when the account
+      // already acts for an approved child.
+      router.push('/biodata?apply=1');
     } catch (caught) {
       fail(undefined, caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -382,9 +375,7 @@ export function JoinFlow({
     ? t('ખાતું બનાવો', 'Create account')
     : step === 1
       ? t('આગળ', 'Continue')
-      : existing?.correctionFields.length
-        ? t('સુધારો મોકલો', 'Send the correction')
-        : t('ચકાસણી માટે મોકલો', 'Send for verification');
+      : t('આગળ: બાયોડેટા', 'Next: biodata');
 
   return (
     <>
@@ -705,7 +696,7 @@ export function JoinFlow({
           )}
           {step === 2 && (
             <p className="auth-note muted">
-              {t('24 કલાકમાં ચકાસણી થશે. પછી તમે બાયોડેટા ભરી શકશો.', 'Verified within 24 hours. Then you can fill in the biodata.')}
+              {t('પછી બાયોડેટા ભરીને બધું એકસાથે મોકલો. એડમિન એક વાર મંજૂરી આપે એટલે પ્રોફાઇલ તૈયાર.', 'Then fill in the biodata and send everything together. One admin approval and the profile is live.')}
             </p>
           )}
         </div>

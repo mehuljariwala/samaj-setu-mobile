@@ -2,29 +2,62 @@ import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app/shell';
 import { GuidedBiodata } from '@/components/biodata/guided-form';
-import { loadActingPage } from '@/lib/data/guards';
+import { homeFor, loadApplicantPage } from '@/lib/data/guards';
 import { getEditableBiodata } from '@/lib/data/biodata';
 import { listOwnMedia } from '@/lib/data/media';
+import { getOpenApplication } from '@/lib/data/registration';
 import type { Values } from '@/components/biodata/model';
 
 /**
- * Spec §2: biodata completion unlocks on verification approval, so a candidate
- * who is still in review is sent back to their status rather than shown a form
- * the server would refuse to save.
+ * The biodata form, for two kinds of family.
+ *
+ * One still preparing or fixing its registration fills the biodata here
+ * before anything is sent, and the form's last screen sends the registration
+ * and the biodata together, for the one admin approval. A verified member
+ * edits a published biodata here, and an admin approves the new version.
+ *
+ * While the registration is with an admin the biodata is closed, so that
+ * family is shown its status instead of a form the server would refuse.
  */
-export default async function BiodataPage() {
-  const { context, lang, acting } = await loadActingPage();
+export default async function BiodataPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { context, lang, acting } = await loadApplicantPage();
+  const member = context.access_state === 'approved';
+  // Arriving from the registration form: the biodata of the application being
+  // prepared, even for a parent already acting for an approved child.
+  const applying = (await searchParams).apply === '1';
 
-  if (acting.identity_status !== 'verified') redirect('/review');
+  let candidateId: string;
+  let relationship: string;
+  let applicationId: string | null = null;
+
+  if (!applying && member && acting?.identity_status === 'verified') {
+    candidateId = acting.id;
+    relationship = acting.relationship;
+  } else {
+    const open = await getOpenApplication();
+    // A member's open application must be the candidate they are acting for,
+    // or the form would quietly switch child.
+    if (!open || (!applying && member && acting && open.candidateId !== acting.id)) {
+      redirect(member ? '/review' : homeFor(context));
+    }
+    candidateId = open.candidateId;
+    relationship = open.relationship;
+    applicationId = open.applicationId;
+  }
 
   const [{ revision, issues, candidate }, photos, kundali] = await Promise.all([
-    getEditableBiodata(acting.id),
-    listOwnMedia(acting.id, 'photo'),
-    listOwnMedia(acting.id, 'kundali'),
+    getEditableBiodata(candidateId),
+    listOwnMedia(candidateId, 'photo'),
+    listOwnMedia(candidateId, 'kundali'),
   ]);
 
-  // The candidate's verified identity, shown above the form and unchangeable
-  // from it — altering any of it re-opens verification (spec §5).
+  // The candidate's identity details, shown above the form and changed only
+  // through the registration — for a verified member, changing them re-opens
+  // verification (spec §5).
   const verified = {
     name: candidate.full_name,
     dob: candidate.date_of_birth,
@@ -34,15 +67,18 @@ export default async function BiodataPage() {
   };
 
   return (
-    <AppShell lang={lang} context={context} acting={acting} member>
+    // The member chrome (tab bar, "Managing" header) names the acting child,
+    // so it stays off while a new registration's biodata is being filled.
+    <AppShell lang={lang} context={context} acting={applicationId ? null : acting} member={member && !applicationId}>
       <GuidedBiodata
         lang={lang}
-        candidateId={acting.id}
+        candidateId={candidateId}
+        applicationId={applicationId}
         revisionId={revision?.id ?? null}
         status={revision?.status ?? 'draft'}
         initialValues={(revision?.data ?? {}) as Values}
         verified={verified}
-        relation={acting.relationship}
+        relation={relationship}
         decisionReason={revision?.decision_reason ?? null}
         issues={issues.map((issue) => ({
           field_key: issue.field_key,

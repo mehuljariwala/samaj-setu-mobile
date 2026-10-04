@@ -1519,6 +1519,19 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_family_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      admin_family_queue: {
+        Args: {
+          p_filter?: string;
+          p_query?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: { candidate_id: string | null; public_code: string | null; full_name: string | null; city: string | null; relationship: Database["public"]["Enums"]["relationship"] | null; stage: string | null; application_id: string | null; application_status: Database["public"]["Enums"]["application_status"] | null; submitted_at: string | null; review_due_at: string | null; overdue: boolean | null; resubmit_count: number | null; has_certificate: boolean | null; open_duplicates: number | null; revision_id: string | null; revision_status: Database["public"]["Enums"]["revision_status"] | null; revision_submitted_at: string | null; published_revision_id: string | null }[];
+      };
       admin_list_accounts: {
         Args: {
           p_query?: string;
@@ -1670,6 +1683,12 @@ export type Database = {
           p_offset?: number;
         };
         Returns: { id: string | null; public_code: string | null; full_name: string | null; age: number | null; city: string | null; sub_community: string | null; sect: string | null; mosal_family: string | null; biodata: Json | null; verdict: Database["public"]["Enums"]["eligibility_verdict"] | null; saved: boolean | null; interest_status: Database["public"]["Enums"]["interest_status"] | null; photo_visibility: Database["public"]["Enums"]["media_visibility"] | null; can_view_photos: boolean | null }[];
+      };
+      edit_my_registration: {
+        Args: {
+          p_application_id?: string;
+        };
+        Returns: Json;
       };
       eligibility_explanation: {
         Args: {
