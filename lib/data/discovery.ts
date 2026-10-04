@@ -75,6 +75,27 @@ export async function discover(
   }));
 }
 
+/**
+ * Every profile this candidate may see, not one page of it: `discover` returns
+ * at most 50 at a time, so this asks page by page. The screen then filters by
+ * age, height, education and the rest itself, which also lets it offer only
+ * the cities and communities that are actually there. A samaj is a few
+ * hundred profiles; the cap stops a runaway loop, not a real list.
+ */
+export async function discoverAll(
+  viewerCandidateId: string,
+  filters: Pick<DiscoverFilters, 'query' | 'savedOnly'> = {},
+): Promise<DirectoryCard[]> {
+  const PAGE = 50;
+  const all: DirectoryCard[] = [];
+  for (let offset = 0; offset < 1000; offset += PAGE) {
+    const page = await discover(viewerCandidateId, { ...filters, limit: PAGE, offset });
+    all.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return all;
+}
+
 export type ProfileDetail = {
   verdict: Enums<'eligibility_verdict'>;
   explanation: { gu: string; en: string };

@@ -2145,6 +2145,19 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .member-screen .profile-name h2 { font-size: 19px; font-weight: 800; }
 .member-screen .profile-meta { font-size: 14px; }
 .member-screen .save-btn { width: 44px; height: 44px; }
+/* Discover's filter panel: two dropdowns to a row, each named above it; a
+   chosen one takes the brand colour so what is on reads at a glance. */
+.discover-panel {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  margin-top: 10px; padding: 12px;
+  border: 1px solid var(--line); border-radius: 18px;
+  background: var(--surface); box-shadow: var(--sh-1);
+}
+.discover-panel[data-pending] { opacity: 0.6; }
+.discover-panel .profile-select { display: grid; gap: 4px; }
+.discover-panel .profile-select > span { color: var(--ink-3); font-size: 12.5px; font-weight: 700; }
+.discover-panel .profile-select.on select { border-color: var(--brand); background: var(--brand-tint); color: var(--brand); }
+
 /* Discover: two profiles to a row. Everything shrinks to fit a half-width
    card, and long names and facts wrap or clip rather than widen it. */
 .member-cards.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

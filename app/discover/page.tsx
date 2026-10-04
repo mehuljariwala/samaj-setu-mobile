@@ -7,12 +7,24 @@ import { AppShell } from '@/components/app/shell';
 import { DiscoverFilters } from '@/components/app/discover-filters';
 import { SaveButton } from '@/components/app/save-button';
 import { DiscoverEmptyArt } from '@/components/onboarding/art';
+import { fieldByKey } from '@/components/biodata/model';
 import { loadActingPage } from '@/lib/data/guards';
-import { discover } from '@/lib/data/discovery';
+import { discoverAll } from '@/lib/data/discovery';
 import { centimetresToFeet, translator } from '@/lib/i18n';
 
 /** Cover tints, cycled so a list of cards does not read as one block. */
 const COVERS = ['c1', 'c2', 'c3'];
+
+/** Age bands and height bands (in centimetres) the filter panel offers. */
+const AGES: Record<string, [number, number]> = {
+  '18-22': [18, 22], '23-26': [23, 26], '27-30': [27, 30], '31-35': [31, 35], '36+': [36, 200],
+};
+const HEIGHTS: Record<string, [number, number]> = {
+  u152: [0, 151], '152-163': [152, 163], '164-173': [164, 173], '174-183': [174, 183], '184+': [184, 400],
+};
+
+const within = (value: number | null | undefined, band?: [number, number]) =>
+  !band || (value != null && value >= band[0] && value <= band[1]);
 
 export default async function DiscoverPage({
   searchParams,
@@ -28,17 +40,32 @@ export default async function DiscoverPage({
     return typeof value === 'string' ? value : undefined;
   };
 
-  const results = await discover(acting.id, {
-    query: one('q'),
-    city: one('city'),
-    sect: one('sect'),
-    subCommunity: one('community'),
-    savedOnly: one('saved') === '1',
-  });
+  // Everyone this candidate may see, then the panel's filters here, so the
+  // dropdowns can offer only the cities and communities that exist.
+  const all = await discoverAll(acting.id, { query: one('q'), savedOnly: one('saved') === '1' });
+  const results = all.filter((profile) =>
+    (!one('city') || profile.city === one('city'))
+    && (!one('community') || profile.subCommunity === one('community'))
+    && (!one('sect') || profile.sect === one('sect'))
+    && within(profile.age, AGES[one('age') ?? ''])
+    && within(Number(profile.biodata.height) || null, HEIGHTS[one('height') ?? ''])
+    && (!one('edu') || profile.biodata.education === one('edu'))
+    && (!one('work') || profile.biodata.work === one('work'))
+    && (!one('marital') || profile.biodata.marital === one('marital'))
+    && (!one('diet') || profile.biodata.diet === one('diet')));
 
-  const savedCount = results.filter((profile) => profile.saved).length;
+  const savedCount = all.filter((profile) => profile.saved).length;
+  const filtered = ['q', 'saved', 'city', 'community', 'sect', 'age', 'height', 'edu', 'work', 'marital', 'diet']
+    .some((key) => one(key));
 
-  const filtered = Boolean(one('q') || one('city') || one('sect') || one('community') || one('saved'));
+  // Community and sect are stored as keys ("surti", "bhagat"); show them in words.
+  const optionLabel = (key: string, value: string | null) => {
+    const option = value ? fieldByKey.get(key)?.options?.find((entry) => entry[0] === value) : null;
+    return option ? t(option[1], option[2]) : value;
+  };
+  const cities = [...new Set(all.map((profile) => profile.city).filter((value): value is string => Boolean(value)))].sort();
+  const communities = [...new Set(all.map((profile) => profile.subCommunity).filter((value): value is string => Boolean(value)))]
+    .map((value) => ({ value, label: optionLabel('community', value) ?? value }));
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member>
@@ -53,7 +80,7 @@ export default async function DiscoverPage({
           </p>
         </div>
 
-        <DiscoverFilters lang={lang} savedCount={savedCount} />
+        <DiscoverFilters lang={lang} savedCount={savedCount} cities={cities} communities={communities} />
 
         {/* Spec §6: an unpublished candidate may browse but cannot introduce
             themselves. Saying so here beats a disabled button on every card. */}
@@ -106,8 +133,8 @@ export default async function DiscoverPage({
                       {profile.biodata.role && (
                         <span><BriefcaseBusiness size={13} />{profile.biodata.role}</span>
                       )}
-                      {profile.subCommunity && <span>{profile.subCommunity}</span>}
-                      {profile.sect && <span>{profile.sect}</span>}
+                      {profile.subCommunity && <span>{optionLabel('community', profile.subCommunity)}</span>}
+                      {profile.sect && <span>{optionLabel('sect', profile.sect)}</span>}
                     </div>
 
                     {/* Spec §7: an incomplete pair is shown and explained, never
