@@ -92,7 +92,7 @@ export default async function ReviewPage() {
     date_of_birth: t('જન્મ તારીખ', 'Date of birth'),
     father_name: t('પિતાનું નામ', 'Father’s name'),
     city: t('શહેર', 'City'),
-    birth_certificate: t('જન્મ / લિવિંગ સર્ટિફિકેટ', 'Birth / leaving certificate'),
+    birth_certificate: t('લિવિંગ સર્ટિફિકેટ', 'Leaving certificate'),
     identity_document: t('આધાર / મતદાર કાર્ડ', 'Aadhaar / Voter ID'),
   };
   const corrections = tone === 'correction' ? application?.correction_fields ?? [] : [];

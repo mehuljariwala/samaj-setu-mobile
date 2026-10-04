@@ -158,7 +158,7 @@ export function VerifiedArt({ t }: { t: T }) {
       <div className="art-card" style={{ '--d': '80ms' } as React.CSSProperties}>
         <span className="art-card-icon"><FileText size={20} /></span>
         <span className="art-card-text">
-          <b>{t('જન્મ પ્રમાણપત્ર', 'Birth certificate')}</b>
+          <b>{t('લિવિંગ સર્ટિફિકેટ', 'Leaving certificate')}</b>
           <small>{t('ફક્ત એડમિન જુએ છે', 'Only an admin sees it')}</small>
         </span>
         <span className="art-tag ok">{t('ચકાસ્યું', 'Verified')}</span>

@@ -103,7 +103,7 @@ export function correctionFieldLabel(t: T, field: string) {
     case 'date_of_birth': return t('જન્મ તારીખ', 'Date of birth');
     case 'father_name': return t('પિતાનું નામ', 'Father’s name');
     case 'city': return t('શહેર', 'City');
-    case 'birth_certificate': return t('જન્મ / લિવિંગ સર્ટિફિકેટ', 'Birth / leaving certificate');
+    case 'birth_certificate': return t('લિવિંગ સર્ટિફિકેટ', 'Leaving certificate');
     case 'identity_document': return t('આધાર / મતદાર કાર્ડ', 'Aadhaar / Voter ID');
     default: return field;
   }
