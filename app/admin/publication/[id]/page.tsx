@@ -5,6 +5,7 @@ import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getBiodataDetail } from '@/lib/data/admin';
+import { reviewActionLabel } from '@/lib/admin-labels';
 import { timeAgo, translator } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
@@ -144,7 +145,7 @@ export default async function BiodataReviewPage({
             <div className="detail-list spaced">
               {history.map((entry) => (
                 <div key={entry.id}>
-                  <span>{entry.action} → {entry.to_status} · {timeAgo(entry.created_at, lang)}</span>
+                  <span>{reviewActionLabel(t, entry.action, entry.to_status)} · {timeAgo(entry.created_at, lang)}</span>
                   <b>{entry.reason_applicant ?? '—'}</b>
                 </div>
               ))}

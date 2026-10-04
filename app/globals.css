@@ -1889,6 +1889,9 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 
 .decide-form { margin-top: 18px; }
 .decide-fields { margin: 0; padding: 0; border: 0; }
+/* A legend ignores its own top margin, so the gap above the biodata picker
+   goes on the fieldset. */
+.admin-actions + .decide-fields { margin-top: 13px; }
 .decide-fields > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .decide-fields button {
   display: inline-flex; align-items: center; gap: 6px;

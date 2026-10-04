@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Check, CheckCheck, CircleHelp, Pencil, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { decideBiodataAction, decideRegistrationAction, resolveDuplicateAction } from '@/app/actions/admin';
+import { allFields } from '@/components/biodata/model';
 import type { ActionResult } from '@/lib/data/errors';
 import type { Enums } from '@/lib/supabase/database.types';
 import type { Lang } from '@/lib/i18n';
@@ -349,14 +350,16 @@ export function BiodataDecision({
   const [pending, start] = useTransition();
   const [action, setAction] = useState<Action | null>(null);
   const [reason, setReason] = useState('');
-  const [field, setField] = useState('');
+  // Keys from the biodata catalogue, picked rather than typed: the database
+  // accepts only fields it knows, and a typed "Native add karo" is not one.
+  const [fields, setFields] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
   const needsReason = action === 'request_correction' || action === 'reject';
   const ready = Boolean(action)
     && (!needsReason || reason.trim().length > 0)
-    && (action !== 'request_correction' || field.trim().length > 0);
+    && (action !== 'request_correction' || fields.length > 0);
 
   function submit() {
     if (!action) return;
@@ -367,12 +370,14 @@ export function BiodataDecision({
         expectedStatus,
         reason: reason.trim() || undefined,
         issues: action === 'request_correction'
-          ? [{ field: field.trim(), gu: reason.trim(), en: reason.trim() }]
+          ? fields.map((field) => ({ field, gu: reason.trim(), en: reason.trim() }))
           : [],
         internalNote: note.trim() || undefined,
       });
       if (result.ok) router.push('/admin/publication');
-      else setError(result.message);
+      else setError(result.code === 'conflict'
+        ? t('તમે ખોલ્યા પછી આ બાયોડેટા બદલાઈ ગયો છે. પેજ રીફ્રેશ કરીને ફરી જુઓ.', 'This biodata changed after you opened it. Refresh the page and check again.')
+        : t('નિર્ણય સાચવી શકાયો નહીં. ફરી પ્રયાસ કરો.', 'The decision could not be saved. Please try again.'));
     });
   }
 
@@ -404,16 +409,27 @@ export function BiodataDecision({
       </div>
 
       {action === 'request_correction' && (
-        <>
-          <label className="field-label flush" htmlFor="field">{t('કયું ફીલ્ડ?', 'Which field?')} <span>*</span></label>
-          <input
-            className="field"
-            id="field"
-            value={field}
-            onChange={(event) => setField(event.target.value)}
-            placeholder="mosal"
-          />
-        </>
+        <fieldset className="decide-fields">
+          <legend className="field-label flush">{t('કઈ વિગતો સુધારવાની છે?', 'Which details need fixing?')} <span>*</span></legend>
+          <div>
+            {allFields.map((field) => {
+              const on = fields.includes(field.key);
+              return (
+                <button
+                  key={field.key}
+                  type="button"
+                  aria-pressed={on}
+                  className={on ? 'on' : undefined}
+                  onClick={() => setFields((current) =>
+                    on ? current.filter((key) => key !== field.key) : [...current, field.key])}
+                >
+                  {on ? <Check size={14} strokeWidth={3} /> : <Pencil size={13} />}
+                  {t(field.gu, field.en)}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
       )}
 
       {action && (
