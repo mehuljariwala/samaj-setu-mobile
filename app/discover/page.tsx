@@ -70,8 +70,9 @@ export default async function DiscoverPage({
           </Link>
         )}
 
+        {/* Two to a row, so a family sees twice as many profiles per screen. */}
         {results.length > 0 && (
-          <ul className="member-cards">
+          <ul className="member-cards two-up">
             {results.map((profile, index) => (
               <li key={profile.id} style={{ '--i': Math.min(index, 6) } as React.CSSProperties}>
                 <article className="profile-card">

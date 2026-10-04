@@ -1794,6 +1794,7 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .admin-person small { color: var(--tone); font-size: 13px; font-weight: 800; letter-spacing: 1px; }
 .admin-person h1 { margin: 2px 0 8px; font-size: 25px; font-weight: 800; line-height: 1.2; letter-spacing: -0.5px; }
 .admin-person .admin-status { background: var(--surface); }
+.admin-person-facts { flex-basis: 100%; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
 .admin-person-sla { --sla: var(--ok); flex-basis: 100%; }
 .admin-person-sla.sla-soon { --sla: var(--gold); }
 .admin-person-sla.sla-overdue { --sla: var(--bad); }
@@ -1932,8 +1933,38 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 }
 .decide-fields button.on { border-color: var(--warn); background: var(--warn-tint); color: var(--warn); }
 .decide-fields-group { margin: 14px 0 8px; color: var(--ink-3); font-size: 13px; font-weight: 800; letter-spacing: 0.4px; }
-/* A biodata field the admin asked to be fixed. */
-.detail-list > div.flagged :is(span, b) { color: var(--warn); }
+/* A biodata as the admin reads it: one short card per topic, two facts to a
+   row, so the whole thing reads in a screen or two. */
+.bio-cards { display: grid; gap: 10px; }
+.bio-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+}
+.bio-card h3 { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 800; }
+.bio-card-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--brand-tint); color: var(--brand);
+}
+.bio-card h3 em {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  font-size: 12px; font-style: normal; font-weight: 800; white-space: nowrap;
+}
+.bio-card h3 em.ok { background: var(--ok-tint); color: var(--ok); }
+.bio-card h3 em.warn { background: var(--warn-tint); color: var(--warn); }
+.bio-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 12px; }
+.bio-card dt { color: var(--ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+.bio-card dd { margin: 2px 0 0; font-size: 15px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+/* A field the admin asked to be fixed. */
+.bio-card dl > div.flagged { margin: -5px -7px; padding: 5px 7px; border-radius: 10px; background: var(--warn-tint); }
+.bio-card dl > div.flagged :is(dt, dd) { color: var(--warn); }
+.bio-card-empty { margin-top: 8px; color: var(--ink-3); font-size: 14px; }
 .decide-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .decide-quick button {
   display: inline-flex; align-items: center; gap: 6px;
@@ -2114,6 +2145,34 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .member-screen .profile-name h2 { font-size: 19px; font-weight: 800; }
 .member-screen .profile-meta { font-size: 14px; }
 .member-screen .save-btn { width: 44px; height: 44px; }
+/* Discover: two profiles to a row. Everything shrinks to fit a half-width
+   card, and long names and facts wrap or clip rather than widen it. */
+.member-cards.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.two-up .profile-card { display: flex; flex-direction: column; height: 100%; border-radius: 18px; }
+.member-screen .two-up .profile-cover { height: 108px; }
+.two-up .monogram { font-size: 44px; }
+.two-up .cover-id { top: 8px; left: 8px; padding: 2px 7px; font-size: 10.5px; }
+.member-screen .two-up .save-btn { top: 6px; right: 6px; width: 38px; height: 38px; }
+.two-up .photo-lock { bottom: 7px; max-width: calc(100% - 14px); padding: 4px 8px; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; }
+.two-up .photo-lock > svg { flex-shrink: 0; }
+.member-screen .two-up .profile-body { display: flex; flex-direction: column; flex: 1; padding: 10px 10px 12px; }
+.member-screen .two-up .profile-name h2 {
+  font-size: 15px; line-height: 1.3; letter-spacing: -0.2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.two-up .profile-name { align-items: flex-start; }
+.two-up .profile-name > svg { flex-shrink: 0; margin-top: 2px; width: 15px; height: 15px; }
+.member-screen .two-up .profile-meta { font-size: 12.5px; line-height: 1.4; }
+.two-up .admin-facts { gap: 4px; margin-top: 8px; }
+.two-up .admin-facts > span { max-width: 100%; padding: 3px 7px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.two-up .admin-facts > span > svg { flex-shrink: 0; }
+.two-up .profile-warn { align-items: flex-start; font-size: 12px; line-height: 1.35; }
+.two-up .profile-warn > svg { flex-shrink: 0; margin-top: 1px; }
+/* The button sits at the foot of every card, so a row lines up. */
+.two-up .profile-open { min-height: 40px; margin-top: 10px; font-size: 13.5px; }
+.two-up .profile-body > :nth-last-child(2) { margin-bottom: auto; }
+
 .profile-warn {
   display: flex; align-items: center; gap: 6px;
   margin-top: 10px;

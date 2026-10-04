@@ -127,6 +127,16 @@ export async function decideRegistration(input: {
   return result.status;
 }
 
+/** The registration behind a biodata, so its review can link to the documents. */
+export async function getApplicationIdFor(candidateId: string): Promise<string | null> {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  const rows = unwrap(
+    await supabase.from('registration_applications').select('id').eq('candidate_id', candidateId).limit(1),
+  );
+  return rows[0]?.id ?? null;
+}
+
 export async function getBiodataDetail(revisionId: string) {
   await requireStaff();
   const supabase = await createSupabaseServerClient();

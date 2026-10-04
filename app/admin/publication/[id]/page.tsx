@@ -1,13 +1,16 @@
 import Link from 'next/link';
-import { ArrowLeft, CheckCheck, CircleHelp } from 'lucide-react';
+import {
+  ArrowLeft, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, FileCheck2, Hourglass, Pencil, X, type LucideIcon,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
 import { BiodataView } from '@/components/app/biodata-view';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
-import { getBiodataDetail } from '@/lib/data/admin';
+import { getApplicationIdFor, getBiodataDetail } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
-import { timeAgo, translator } from '@/lib/i18n';
+import { ageFrom } from '@/lib/age';
+import { timeAgo, translator, type T } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
 type Detail = {
@@ -16,16 +19,25 @@ type Detail = {
     version: number;
     status: Enums<'revision_status'>;
     completion: number;
-    source: string;
     unconfirmed_fields: string[];
+    correction_fields: string[];
     data: Record<string, string>;
     decision_reason: string | null;
+    submitted_at: string | null;
   };
-  candidate: { id: string; full_name: string; public_code: string; identity_status: string };
-  community: { sub_community: string | null; sect: string | null; paternal_surname: string | null; mosal_family: string | null; confirmed_at: string | null } | null;
+  candidate: {
+    id: string; full_name: string; public_code: string; city: string | null;
+    date_of_birth: string; discoverable: boolean;
+  };
+  community: { confirmed_at: string | null } | null;
   history: { id: string; action: string; to_status: string | null; reason_applicant: string | null; created_at: string }[];
 };
 
+/**
+ * One biodata, readable in a screen or two: who it is and where they stand,
+ * a link to their documents, the biodata as six short cards in the order the
+ * family filled it in, then the decision.
+ */
 export default async function BiodataReviewPage({
   params,
 }: {
@@ -37,53 +49,74 @@ export default async function BiodataReviewPage({
 
   const detail = await getBiodataDetail(id) as unknown as Detail;
   const { revision, candidate, community, history } = detail;
+  const applicationId = await getApplicationIdFor(candidate.id);
   const decidable = revision.status === 'submitted' || revision.status === 'under_review';
+  const status = revisionStatus(t, revision.status, candidate.discoverable);
+  const age = ageFrom(candidate.date_of_birth);
+
+  const facts = [
+    candidate.city,
+    age !== null ? t(`${age} વર્ષ`, `${age} yrs`) : null,
+    revision.submitted_at ? `${t('મોકલ્યો', 'Sent')} ${timeAgo(revision.submitted_at, lang)}` : null,
+    t(`${revision.completion}% પૂર્ણ`, `${revision.completion}% complete`),
+  ].filter(Boolean).join(' · ');
 
   return (
     <AppShell lang={lang} context={context} admin>
-      <section className="screen-pad">
-        <Link className="back-link" href="/admin">
-          <ArrowLeft size={17} />
-          {t('યાદી પર પાછા', 'Back to the list')}
-        </Link>
-
-        <div className="page-title">
-          <span className="eyebrow">{candidate.public_code} · v{revision.version}</span>
-          <h1>{candidate.full_name}</h1>
-          <p>{revision.completion}% {t('પૂર્ણ', 'complete')} · {revision.source}</p>
+      <section className={`admin-screen tone-${status.screen}`}>
+        <div className="admin-detail-top">
+          <Link className="round-button" href="/admin" aria-label={t('યાદી પર પાછા', 'Back to the list')}>
+            <ArrowLeft size={20} />
+          </Link>
+          <span>{t('બાયોડેટા સમીક્ષા', 'Biodata review')}</span>
         </div>
+
+        <div className="admin-person">
+          <span className="avatar lg">{candidate.full_name.charAt(0)}</span>
+          <div>
+            <small>{candidate.public_code}</small>
+            <h1>{candidate.full_name}</h1>
+            <span className={`queue-tag ${status.tone}`}><status.Icon size={14} strokeWidth={2.4} />{status.label}</span>
+          </div>
+          <p className="admin-person-facts">{facts}</p>
+        </div>
+
+        {applicationId && (
+          <Link className="admin-link-row" href={`/admin/registrations/${applicationId}`}>
+            <span className="admin-account-icon"><FileCheck2 size={18} /></span>
+            <span>
+              <b>{t('દસ્તાવેજ અને ઓળખ', 'Documents and identity')}</b>
+              <small>{t('પ્રમાણપત્ર, ઓળખપત્ર અને નોંધણીની વિગતો', 'Certificate, photo ID and registration details')}</small>
+            </span>
+            <ChevronRight size={19} />
+          </Link>
+        )}
 
         {/* Spec §5: imported values must be reviewed and uncertain ones flagged.
             Submission is blocked while this list is non-empty, so seeing one
             here means something went in another way. */}
         {revision.unconfirmed_fields.length > 0 && (
-          <div className="note">
-            <CircleHelp size={19} />
-            <p>
-              {t('પુષ્ટિ વગરની વિગતો: ', 'Unconfirmed details: ')}
-              <b>{revision.unconfirmed_fields.join(', ')}</b>
-            </p>
-          </div>
+          <p className="admin-alert">
+            <CircleHelp size={18} />
+            <span>{t('પુષ્ટિ વગરની વિગતો: ', 'Unconfirmed details: ')}<b>{revision.unconfirmed_fields.join(', ')}</b></span>
+          </p>
         )}
 
-        <div className="section-head">
-          <h2>{t('સમાજની વિગતો', 'Community details')}</h2>
-        </div>
-        <div className="detail-list spaced">
-          <div><span>{t('પેટા સમાજ', 'Sub-community')}</span><b>{community?.sub_community ?? '—'}</b></div>
-          <div><span>{t('સંપ્રદાય', 'Sect')}</span><b>{community?.sect ?? '—'}</b></div>
-          <div><span>{t('અટક', 'Surname')}</span><b>{community?.paternal_surname ?? '—'}</b></div>
-          <div><span>{t('મોસાળ', 'Mosal')}</span><b>{community?.mosal_family ?? '—'}</b></div>
-          <div>
-            <span>{t('પુષ્ટિ', 'Confirmed')}</span>
-            <b>{community?.confirmed_at ? t('હા', 'Yes') : t('ના — નિયમો ચકાસી શકાશે નહીં', 'No — rules cannot be evaluated')}</b>
-          </div>
-        </div>
+        {revision.status === 'correction_requested' && revision.decision_reason && (
+          <p className="admin-alert soft">
+            <Pencil size={18} />
+            <span><b>{t('પરિવારને કહ્યું: ', 'Asked of the family: ')}</b>{revision.decision_reason}</span>
+          </p>
+        )}
 
-        <div className="section-head">
-          <h2>{t('બાયોડેટા', 'Biodata')}</h2>
-        </div>
-        <BiodataView lang={lang} data={revision.data} />
+        <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
+        <BiodataView
+          lang={lang}
+          data={revision.data}
+          flagged={revision.correction_fields}
+          communityConfirmed={Boolean(community?.confirmed_at)}
+          age={age}
+        />
 
         {decidable ? (
           <BiodataDecision
@@ -93,32 +126,58 @@ export default async function BiodataReviewPage({
             canDecide={isAdmin(context)}
           />
         ) : (
-          <div className="note">
-            <CheckCheck size={19} />
-            <p>
-              {t('આ આવૃત્તિ પર નિર્ણય લેવાઈ ગયો છે: ', 'A decision has already been recorded: ')}
-              <b>{revision.status}</b>
-              {revision.decision_reason ? ` — ${revision.decision_reason}` : ''}
-            </p>
-          </div>
+          <p className="admin-alert soft">
+            <CheckCheck size={18} />
+            <span>
+              {t('આ બાયોડેટા પર નિર્ણય લેવાઈ ગયો છે: ', 'This biodata has been decided: ')}
+              <b>{status.label}</b>
+              {revision.decision_reason && revision.status !== 'correction_requested' ? ` — ${revision.decision_reason}` : ''}
+            </span>
+          </p>
         )}
 
+        {/* Spec §10: actor, timestamp, reason and affected revision, kept. */}
         {history.length > 0 && (
           <>
-            <div className="section-head">
-              <h2>{t('નિર્ણયનો ઇતિહાસ', 'Decision history')}</h2>
-            </div>
-            <div className="detail-list spaced">
+            <h2 className="admin-h2">{t('ઇતિહાસ', 'History')}</h2>
+            <ol className="admin-history">
               {history.map((entry) => (
-                <div key={entry.id}>
-                  <span>{reviewActionLabel(t, entry.action, entry.to_status)} · {timeAgo(entry.created_at, lang)}</span>
-                  <b>{entry.reason_applicant ?? '—'}</b>
-                </div>
+                <li key={entry.id} className={entry.action}>
+                  <span />
+                  <div>
+                    <b>{reviewActionLabel(t, entry.action, entry.to_status)}</b>
+                    <small>{timeAgo(entry.created_at, lang)}</small>
+                    {entry.reason_applicant && <p>{entry.reason_applicant}</p>}
+                  </div>
+                </li>
               ))}
-            </div>
+            </ol>
           </>
         )}
       </section>
     </AppShell>
   );
+}
+
+/** Where this biodata stands, in words and in the colour of the screen. */
+function revisionStatus(t: T, status: Enums<'revision_status'>, live: boolean): {
+  label: string; tone: string; screen: string; Icon: LucideIcon;
+} {
+  switch (status) {
+    case 'submitted':
+    case 'under_review':
+      return { label: t('મંજૂરીની રાહ', 'Waiting for approval'), tone: 'gold', screen: 'gold', Icon: Hourglass };
+    case 'approved':
+      return live
+        ? { label: t('પ્રકાશિત', 'Live'), tone: 'ok', screen: 'green', Icon: Check }
+        : { label: t('મંજૂર', 'Approved'), tone: 'ok', screen: 'green', Icon: Check };
+    case 'correction_requested':
+      return { label: t('પરિવાર સુધારે છે', 'Family is fixing it'), tone: 'warn', screen: 'warn', Icon: Pencil };
+    case 'rejected':
+      return { label: t('નામંજૂર', 'Rejected'), tone: 'bad', screen: 'bad', Icon: X };
+    case 'superseded':
+      return { label: t('જૂની આવૃત્તિ', 'Older version'), tone: 'muted', screen: 'rose', Icon: Clock3 };
+    default:
+      return { label: t('હજી મોકલ્યો નથી', 'Not sent yet'), tone: 'muted', screen: 'rose', Icon: Clock3 };
+  }
 }

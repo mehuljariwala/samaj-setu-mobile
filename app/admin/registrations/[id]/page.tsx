@@ -13,7 +13,8 @@ import { getLatestBiodata, getRegistrationDetail } from '@/lib/data/admin';
 import {
   applicationStatusLabel, certificateLabel, correctionFieldLabel, identityStatusLabel, relationshipLabel, reviewActionLabel, reviewSla, slaLabel,
 } from '@/lib/admin-labels';
-import { timeAgo, translator, type Lang } from '@/lib/i18n';
+import { ageFrom, formatDate } from '@/lib/age';
+import { timeAgo, translator } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
 /** The fields a correction may name. Mirrors what the registration form edits. */
@@ -189,7 +190,7 @@ export default async function RegistrationDetailPage({
         {/* The biodata sent with the registration: approving publishes it. */}
         <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
         {biodata ? (
-          <BiodataView lang={lang} data={biodata.data} flagged={biodata.correction_fields} />
+          <BiodataView lang={lang} data={biodata.data} flagged={biodata.correction_fields} age={age} />
         ) : (
           <p className="admin-alert soft">
             <ListChecks size={18} />
@@ -281,19 +282,4 @@ export default async function RegistrationDetailPage({
       </section>
     </AppShell>
   );
-}
-
-function ageFrom(iso: string): number | null {
-  const born = new Date(iso);
-  if (Number.isNaN(born.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - born.getFullYear();
-  if (now.getMonth() < born.getMonth() || (now.getMonth() === born.getMonth() && now.getDate() < born.getDate())) age -= 1;
-  return age;
-}
-
-function formatDate(iso: string, lang: Lang): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(lang === 'gu' ? 'gu-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }

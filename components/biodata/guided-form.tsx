@@ -13,6 +13,7 @@ import { requestIdentityChangeAction, submitRegistrationAction } from '@/app/act
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { formatPhone } from '@/lib/org';
+import { ageFrom, formatDate } from '@/lib/age';
 import { isValidLocalPhone, normalizeLocalPhone } from '@/lib/phone';
 import {
   validateKeys, completion, displayValue, fieldByKey, persistable,
@@ -550,7 +551,14 @@ export function GuidedBiodata({
       <div>
         <small>{applying ? t('નોંધણીની વિગતો', 'From the registration') : t('ચકાસેલું', 'Verified')}</small>
         <b>{verified.name}</b>
-        <span>{[verified.dob, verified.city, verified.father && `${t('પિતા', 'Father')}: ${verified.father}`].filter(Boolean).join(' · ')}</span>
+        <span>
+          {[
+            verified.dob && formatDate(verified.dob, lang),
+            ageFrom(verified.dob) !== null && t(`${ageFrom(verified.dob)} વર્ષ`, `${ageFrom(verified.dob)} yrs`),
+            verified.city,
+            verified.father && `${t('પિતા', 'Father')}: ${verified.father}`,
+          ].filter(Boolean).join(' · ')}
+        </span>
       </div>
       {editable && (
         <button type="button" className="bio-link" onClick={changeIdentity}>
