@@ -1688,7 +1688,7 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 
 /* The admin home: search first, the filters as one row of chips that wrap,
    then the list. No header panel, so the list starts high on a phone. */
-.admin-home .admin-search { margin-top: 6px; }
+.admin-home .admin-link-row { margin-top: 6px; }
 .family-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .family-chips a {
   display: inline-flex; align-items: center; gap: 7px;
@@ -1709,7 +1709,6 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .family-chips a.on i { background: rgb(255 255 255 / 20%); color: #fff; }
 .family-chips a.hot i { background: var(--bad); color: #fff; }
 .show-more { margin-top: 12px; }
-.admin-home .admin-link-row { margin-top: 16px; }
 
 /* The family list: one white panel, a thin line between families, one line
    of facts and one tag each. Nothing to decode before tapping. */

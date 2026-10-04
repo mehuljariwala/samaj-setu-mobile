@@ -21,8 +21,8 @@ type Row = Awaited<ReturnType<typeof getFamilyQueue>>[number];
  * The admin's home: one list of every family, at the stage it has really
  * reached.
  *
- * Search first, then one row of filters with their counts, then the list, so
- * the most families fit on a phone screen. Each row wears one tag saying where
+ * User management first, then search, one row of filters with their counts,
+ * and the list, so the most families fit on a phone screen. Each row wears one tag saying where
  * the family stands across both the registration and the biodata — the two
  * used to live in separate lists, and a family approved in one looked done
  * while it waited in the other. A row opens the page that needs the admin:
@@ -70,6 +70,16 @@ export default async function AdminPage({
   return (
     <AppShell lang={lang} context={context} admin>
       <section className="admin-screen admin-home tone-rose">
+        {/* Account work is the other half of the admin's day, so it sits first. */}
+        <Link className="admin-link-row" href="/admin/users">
+          <span className="admin-account-icon"><Users size={18} /></span>
+          <span>
+            <b>{t('યુઝર મેનેજમેન્ટ', 'User management')}</b>
+            <small>{t('ચાલુ / બંધ / બ્લૉક, પાસવર્ડ રીસેટ, પ્રવૃત્તિ', 'Enable, disable, block, reset passwords, activity')}</small>
+          </span>
+          <ChevronRight size={19} />
+        </Link>
+
         {/* A plain GET form: works without JavaScript, and the URL is the state. */}
         <search>
           <form className="admin-search" action="/admin">
@@ -167,15 +177,6 @@ export default async function AdminPage({
             {t('વધુ બતાવો', 'Show more')}
           </Link>
         )}
-
-        <Link className="admin-link-row" href="/admin/users">
-          <span className="admin-account-icon"><Users size={18} /></span>
-          <span>
-            <b>{t('યુઝર મેનેજમેન્ટ', 'User management')}</b>
-            <small>{t('ચાલુ / બંધ / બ્લૉક, પાસવર્ડ રીસેટ, પ્રવૃત્તિ', 'Enable, disable, block, reset passwords, activity')}</small>
-          </span>
-          <ChevronRight size={19} />
-        </Link>
 
         <p className="admin-privacy">
           <Shield size={15} />{' '}
