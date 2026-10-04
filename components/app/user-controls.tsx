@@ -120,6 +120,9 @@ export function UserControls({
       '',
       t(`અહીં લૉગ ઇન કરો: ${typeof window === 'undefined' ? '' : window.location.origin}/sign-in`,
         `Sign in here: ${typeof window === 'undefined' ? '' : window.location.origin}/sign-in`),
+      // So the password a volunteer has seen does not stay theirs for good.
+      t(`લૉગ ઇન પછી તમારો પોતાનો પાસવર્ડ અહીં રાખો: ${typeof window === 'undefined' ? '' : window.location.origin}/account/password`,
+        `After signing in, set your own password here: ${typeof window === 'undefined' ? '' : window.location.origin}/account/password`),
       t('આ પાસવર્ડ કોઈને જણાવશો નહીં.', 'Please keep this password private.'),
     ].join('\n')
     : '';

@@ -1514,6 +1514,13 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 }
 .review-note > svg { flex-shrink: 0; margin-top: 1px; color: var(--tone); }
 .review-actions > .secondary { margin-top: 6px; }
+/* Changing your own password. */
+.password-form { display: grid; gap: 4px; margin-top: 8px; }
+.password-form .text-button { justify-self: start; }
+.password-form .cta { margin-top: 10px; }
+.password-done { display: grid; gap: 14px; margin-top: 12px; }
+.support-faq-link { margin-top: 10px; }
+
 /* Asking once before an application leaves the queue. */
 .review-confirm { display: grid; gap: 8px; margin-top: 6px; }
 .review-confirm > .review-note { justify-content: flex-start; background: var(--warn-tint); color: var(--warn); font-weight: 600; }

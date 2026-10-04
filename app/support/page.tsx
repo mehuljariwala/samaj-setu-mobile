@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowLeft, BadgeIndianRupee, Camera, ChevronDown, FileLock2, Hash, KeyRound, Landmark, LockKeyhole, Mail,
+  ArrowLeft, BadgeIndianRupee, Camera, ChevronDown, ChevronRight, FileLock2, Hash, KeyRound, Landmark, LockKeyhole, Mail,
   MapPin, MessageCircle, Phone, PhoneCall, ShieldCheck,
 } from 'lucide-react';
 
@@ -46,6 +46,15 @@ export default async function SupportPage() {
 
   // The questions volunteers are actually rung up about, answered once here.
   const questions = [
+    {
+      Icon: KeyRound,
+      q: t('પાસવર્ડ બદલવો છે?', 'Want to change your password?'),
+      a: t(
+        'લૉગ ઇન કરો, પછી “પાસવર્ડ બદલો” ખોલો (નીચેનું બટન, અથવા પરિવાર પેજ પર). હાલનો પાસવર્ડ લખો અને નવો બે વાર. સ્વયંસેવકે WhatsApp પર પાસવર્ડ મોકલ્યો હોય તો પણ આ રીતે તમારો પોતાનો રાખો.',
+        'Sign in, then open “Change password” (the button below, or on the Family page). Type your current password and the new one twice. If a volunteer sent you a password on WhatsApp, do this to set your own.',
+      ),
+      link: { href: '/account/password', label: t('પાસવર્ડ બદલો', 'Change password') },
+    },
     {
       Icon: KeyRound,
       q: t('પાસવર્ડ ભૂલી ગયા છો?', 'Forgot your password?'),
@@ -175,14 +184,19 @@ export default async function SupportPage() {
 
         <h2 className="admin-h2">{t('વારંવાર પૂછાતા પ્રશ્નો', 'Common questions')}</h2>
         <div className="support-faq">
-          {questions.map(({ Icon, q, a }) => (
-            <details key={q}>
+          {questions.map((item) => (
+            <details key={item.q}>
               <summary>
-                <span className="support-faq-icon"><Icon size={17} /></span>
-                <b>{q}</b>
+                <span className="support-faq-icon"><item.Icon size={17} /></span>
+                <b>{item.q}</b>
                 <ChevronDown size={18} className="support-faq-chevron" />
               </summary>
-              <p>{a}</p>
+              <p>{item.a}</p>
+              {'link' in item && item.link && (
+                <Link className="text-button bordered support-faq-link" href={item.link.href}>
+                  {item.link.label}<ChevronRight size={17} />
+                </Link>
+              )}
             </details>
           ))}
         </div>

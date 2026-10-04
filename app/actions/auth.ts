@@ -131,3 +131,39 @@ export async function signOutAction(): Promise<ActionResult> {
     return null;
   });
 }
+
+/**
+ * A signed-in member changes their own password — most often the one an admin
+ * set and sent on WhatsApp after they forgot theirs. The current password is
+ * checked first, so a phone left unlocked is not enough to take the account
+ * over, and every other device is signed out afterwards.
+ */
+export async function changePasswordAction(input: { current: string; next: string }): Promise<ActionResult> {
+  return actionResult(async () => {
+    if (input.next.length < MIN_PASSWORD) {
+      throw new AppError('invalid', `Use at least ${MIN_PASSWORD} characters.`, ['next']);
+    }
+    // bcrypt reads at most 72 bytes; refuse rather than silently ignore the rest.
+    if (new TextEncoder().encode(input.next).length > 72) {
+      throw new AppError('invalid', 'That password is too long.', ['next']);
+    }
+    if (input.next === input.current) {
+      throw new AppError('invalid', 'Choose a password different from the current one.', ['next']);
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.phone) throw new AppError('unauthenticated', 'Sign in to continue.');
+
+    // GoTrue keeps the phone without its plus sign.
+    const { error: wrong } = await supabase.auth.signInWithPassword({ phone: `+${user.phone}`, password: input.current });
+    if (wrong) throw new AppError('forbidden', 'The current password is not right.', ['current']);
+
+    const { error } = await supabase.auth.updateUser({ password: input.next });
+    if (error) throw new AppError('unknown', error.message);
+
+    await supabase.auth.signOut({ scope: 'others' });
+    track('account.password_changed', {}, supabase);
+    return null;
+  });
+}

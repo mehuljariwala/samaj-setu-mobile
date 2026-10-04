@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ChevronRight, Eye, FileText, Link2, LockKeyhole, Pause, Plus, ShieldCheck, UserPlus, UserRound, Users,
+  ChevronRight, Eye, FileText, KeyRound, Link2, LockKeyhole, Pause, Plus, ShieldCheck, UserPlus, UserRound, Users,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
@@ -160,6 +160,16 @@ export default async function FamilyPage() {
             'Pause and privacy changes take effect at once. What someone has already seen cannot be taken back.',
           )}
         </p>
+
+        {/* The account's own settings, last, where someone looking for them goes. */}
+        <Link className="admin-link-row" href="/account/password">
+          <span className="admin-account-icon"><KeyRound size={18} /></span>
+          <span>
+            <b>{t('પાસવર્ડ બદલો', 'Change password')}</b>
+            <small>{t('હાલનો પાસવર્ડ લખીને નવો રાખો', 'Enter the current one, then choose a new one')}</small>
+          </span>
+          <ChevronRight size={19} />
+        </Link>
 
         <SignOutButton lang={lang} />
       </section>

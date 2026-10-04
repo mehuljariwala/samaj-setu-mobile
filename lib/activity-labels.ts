@@ -130,6 +130,7 @@ export function activityLabel(
     case 'auth.sign_up': return { title: t('એકાઉન્ટ બનાવ્યું, નિયમો સ્વીકાર્યા', 'Created the account and accepted the rules'), tone: 'auth' };
     case 'auth.sign_in': return { title: t('લૉગ ઇન કર્યું', 'Signed in'), tone: 'auth' };
     case 'auth.sign_out': return { title: t('લૉગ આઉટ કર્યું', 'Signed out'), tone: 'auth' };
+    case 'account.password_changed': return { title: t('પોતાનો પાસવર્ડ બદલ્યો', 'Changed their own password'), tone: 'auth' };
     case 'auth.sign_in_failed':
       return {
         title: detail?.reason === 'switched_off'
