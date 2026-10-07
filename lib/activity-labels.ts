@@ -117,6 +117,7 @@ const ACTIONS: Record<string, [gu: string, en: string]> = {
   'admin.certificate_viewed': ['જન્મ / લિવિંગ સર્ટિફિકેટ ખોલ્યું', 'Opened a birth or leaving certificate'],
   'admin.document_viewed': ['ઓળખપત્ર ખોલ્યું', 'Opened a photo ID'],
   'admin.rule_changed': ['સમાજનો નિયમ બદલ્યો', 'Changed a community rule'],
+  'admin.gender_moved': ['પ્રોફાઇલ છોકરા / છોકરીના જૂથમાં ખસેડી', 'Moved a profile between boys and girls'],
   'admin.settings_changed': ['સેટિંગ્સ બદલ્યાં', 'Changed settings'],
   'admin.role_granted': ['સ્ટાફ ભૂમિકા આપી', 'Gave a staff role'],
   'admin.role_revoked': ['સ્ટાફ ભૂમિકા લીધી', 'Removed a staff role'],

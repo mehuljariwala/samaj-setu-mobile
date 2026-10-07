@@ -7,6 +7,7 @@ import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
+import { GenderRow } from '@/components/app/gender-move';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getApplicationIdFor, getBiodataDetail, getProfilePhotos } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
@@ -32,7 +33,7 @@ type Detail = {
   candidate: {
     id: string; full_name: string; public_code: string; city: string | null;
     date_of_birth: string; discoverable: boolean; is_sanatan: boolean;
-    gender: string; father_name: string | null;
+    gender: Enums<'gender'>; father_name: string | null;
   };
   /** The version families see now, when this one is a change to it. */
   published: { id: string; version: number; data: Record<string, string> } | null;
@@ -102,6 +103,18 @@ export default async function BiodataReviewPage({
             <ChevronRight size={19} />
           </Link>
         )}
+
+        {/* Here as well as on the registration, since a live profile opens here. */}
+        <dl className="admin-facts-card">
+          <GenderRow
+            lang={lang}
+            candidateId={candidate.id}
+            name={candidate.full_name}
+            gender={candidate.gender}
+            sanatan={candidate.is_sanatan}
+            canMove={isAdmin(context)}
+          />
+        </dl>
 
         {change && (
           <>

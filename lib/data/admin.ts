@@ -196,6 +196,19 @@ export async function decideBiodata(input: {
   ) as unknown as { status: Enums<'revision_status'>; publication_status: Enums<'publication_status'> | null };
 }
 
+/**
+ * Moves a profile between Boys and Girls when the wrong one was picked at
+ * registration. The biodata, a parent's son/daughter and any interests that
+ * would now be between two boys or two girls follow in the database.
+ */
+export async function setCandidateGender(candidateId: string, gender: Enums<'gender'>) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  return unwrap(
+    await supabase.rpc('admin_set_gender', { p_candidate_id: candidateId, p_gender: gender }),
+  ) as unknown as { gender: Enums<'gender'>; withdrawn_interests: number };
+}
+
 export async function resolveDuplicate(
   id: string,
   status: 'confirmed' | 'not_duplicate',

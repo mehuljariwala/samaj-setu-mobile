@@ -7,6 +7,7 @@ import { AppShell } from '@/components/app/shell';
 import { CertificateViewer } from '@/components/app/certificate-viewer';
 import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
+import { GenderRow } from '@/components/app/gender-move';
 import { BiodataView } from '@/components/app/biodata-view';
 import { fieldsFor } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
@@ -33,7 +34,10 @@ type Detail = {
     resubmit_count: number;
     declared: Record<string, string | null>;
   };
-  candidate: { id: string; full_name: string; date_of_birth: string; father_name: string | null; city: string | null; public_code: string; identity_status: string; is_sanatan: boolean };
+  candidate: {
+    id: string; full_name: string; date_of_birth: string; father_name: string | null; city: string | null;
+    public_code: string; identity_status: string; is_sanatan: boolean; gender: Enums<'gender'>;
+  };
   operators: { account_id: string; phone: string; display_name: string | null; relationship: string; role: string; phone_verified: boolean }[];
   certificate: (DocumentMeta & { type: 'birth' | 'leaving' }) | null;
   identity: { type: 'aadhaar' | 'voter_id'; front: DocumentMeta | null; back: DocumentMeta | null } | null;
@@ -117,6 +121,14 @@ export default async function RegistrationDetailPage({
 
         <h2 className="admin-h2">{t('જાહેર કરેલી વિગતો', 'What they told us')}</h2>
         <dl className="admin-facts-card">
+          <GenderRow
+            lang={lang}
+            candidateId={candidate.id}
+            name={candidate.full_name}
+            gender={candidate.gender}
+            sanatan={candidate.is_sanatan}
+            canMove={isAdmin(context)}
+          />
           <div><dt><CalendarDays size={16} />{t('જન્મ તારીખ', 'Date of birth')}</dt><dd>{formatDate(candidate.date_of_birth, lang)}{age !== null && <small>{t(`${age} વર્ષ`, `${age} yrs`)}</small>}</dd></div>
           <div><dt><UserRound size={16} />{t('પિતાનું નામ', 'Father’s name')}</dt><dd>{candidate.father_name ?? '—'}</dd></div>
           <div><dt><MapPin size={16} />{t('શહેર', 'City')}</dt><dd>{candidate.city ?? '—'}</dd></div>

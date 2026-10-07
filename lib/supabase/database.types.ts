@@ -1624,6 +1624,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_set_gender: {
+        Args: {
+          p_candidate_id?: string;
+          p_gender?: Database["public"]["Enums"]["gender"];
+        };
+        Returns: Json;
+      };
       admin_update_settings: {
         Args: {
           p_patch?: Json;

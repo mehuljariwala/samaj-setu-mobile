@@ -34,6 +34,18 @@ export async function decideBiodataAction(
   });
 }
 
+export async function setCandidateGenderAction(
+  candidateId: string,
+  gender: Enums<'gender'>,
+): Promise<ActionResult<{ gender: Enums<'gender'>; withdrawn_interests: number }>> {
+  return actionResult(async () => {
+    const result = await admin.setCandidateGender(candidateId, gender);
+    track('admin.gender_moved', { candidateId, detail: { gender } });
+    revalidatePath('/', 'layout');
+    return result;
+  });
+}
+
 export async function resolveDuplicateAction(
   id: string,
   status: 'confirmed' | 'not_duplicate',
