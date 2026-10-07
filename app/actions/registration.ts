@@ -7,7 +7,6 @@ import { actionResult, type ActionResult } from '@/lib/data/errors';
 import { track } from '@/lib/data/activity';
 import { enumField, trimmedField } from '@/lib/data/form';
 import * as registration from '@/lib/data/registration';
-import { resolveActingCandidate } from '@/lib/data/session';
 
 /**
  * Thin wrappers over lib/data/registration. Authorisation is not repeated here
@@ -132,21 +131,6 @@ export async function withdrawRegistrationAction(
   return actionResult(async () => {
     await registration.withdrawRegistration(applicationId);
     track('registration.withdrawn', { detail: { application_id: applicationId } });
-    revalidatePath('/', 'layout');
-    return null;
-  });
-}
-
-/** Spec §5: this puts the profile back in the queue and hides it meanwhile. */
-export async function requestIdentityChangeAction(
-  candidateId: string,
-  fields: string[],
-  reason: string,
-): Promise<ActionResult> {
-  return actionResult(async () => {
-    await resolveActingCandidate(candidateId);
-    await registration.requestIdentityChange(candidateId, fields, reason);
-    track('registration.change_requested', { candidateId, detail: { fields } });
     revalidatePath('/', 'layout');
     return null;
   });

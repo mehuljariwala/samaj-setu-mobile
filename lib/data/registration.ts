@@ -242,29 +242,6 @@ export async function withdrawRegistration(applicationId: string): Promise<void>
 }
 
 /**
- * Spec §5: changing an identity-verified field needs another admin review, and
- * hides a published profile until that review happens.
- */
-export async function requestIdentityChange(
-  candidateId: string,
-  fields: string[],
-  reason: string,
-): Promise<void> {
-  if (fields.length === 0) {
-    throw new AppError('invalid', 'Choose what needs to change.');
-  }
-
-  const supabase = await createSupabaseServerClient();
-  unwrap(
-    await supabase.rpc('request_identity_change', {
-      p_candidate_id: candidateId,
-      p_fields: fields,
-      p_reason: reason,
-    }),
-  );
-}
-
-/**
  * Spec §4: when a candidate already has a canonical profile, the second
  * operator asks for access to it rather than creating a duplicate. The reply
  * carries a request id and nothing else — no name, no status, no confirmation

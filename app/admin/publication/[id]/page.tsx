@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowLeft, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, FileCheck2, Hourglass, Pencil, X, type LucideIcon,
+  ArrowLeft, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, Eye, FileCheck2, Hourglass, Pencil, X, type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
@@ -11,6 +11,7 @@ import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getApplicationIdFor, getBiodataDetail, getProfilePhotos } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
 import { ageFrom } from '@/lib/age';
+import { whatChanged } from '@/lib/biodata-changes';
 import { timeAgo, translator, type T } from '@/lib/i18n';
 import type { Enums } from '@/lib/supabase/database.types';
 
@@ -23,13 +24,18 @@ type Detail = {
     unconfirmed_fields: string[];
     correction_fields: string[];
     data: Record<string, string>;
+    /** Registration details the family asked to change with this version. */
+    detail_changes: Record<string, string>;
     decision_reason: string | null;
     submitted_at: string | null;
   };
   candidate: {
     id: string; full_name: string; public_code: string; city: string | null;
     date_of_birth: string; discoverable: boolean; is_sanatan: boolean;
+    gender: string; father_name: string | null;
   };
+  /** The version families see now, when this one is a change to it. */
+  published: { id: string; version: number; data: Record<string, string> } | null;
   community: { confirmed_at: string | null } | null;
   history: { id: string; action: string; to_status: string | null; reason_applicant: string | null; created_at: string }[];
 };
@@ -49,11 +55,14 @@ export default async function BiodataReviewPage({
   const t = translator(lang);
 
   const detail = await getBiodataDetail(id) as unknown as Detail;
-  const { revision, candidate, community, history } = detail;
+  const { revision, candidate, community, history, published } = detail;
   const [applicationId, photos] = await Promise.all([getApplicationIdFor(candidate.id), getProfilePhotos(candidate.id)]);
   const decidable = revision.status === 'submitted' || revision.status === 'under_review';
   const status = revisionStatus(t, revision.status, candidate.discoverable);
   const age = ageFrom(candidate.date_of_birth);
+  // A change to an approved profile, still to be decided or being fixed.
+  const change = published && (decidable || revision.status === 'correction_requested');
+  const changes = change ? whatChanged(t, lang, detail) : [];
 
   const facts = [
     candidate.city,
@@ -92,6 +101,40 @@ export default async function BiodataReviewPage({
             </span>
             <ChevronRight size={19} />
           </Link>
+        )}
+
+        {change && (
+          <>
+            <h2 className="admin-h2">{t('શું બદલાયું', 'What changed')}</h2>
+            <p className="admin-alert soft">
+              <Eye size={18} />
+              <span>
+                {t(
+                  'આ પ્રોફાઇલ મંજૂર થયેલી છે. તમે આ ફેરફાર મંજૂર કરો ત્યાં સુધી પરિવારોને હાલની આવૃત્તિ જ દેખાશે.',
+                  'This profile is already approved. Families see the current version until you approve these changes.',
+                )}
+                {Object.keys(revision.detail_changes).length > 0 && t(
+                  ' નોંધણીની વિગતો બદલાઈ છે — દસ્તાવેજ સાથે મેળવો.',
+                  ' Registration details have changed — check them against the documents.',
+                )}
+              </span>
+            </p>
+            {changes.length === 0 ? (
+              <p className="admin-alert soft"><Check size={18} /><span>{t('કોઈ વિગત બદલાઈ નથી.', 'Nothing was changed.')}</span></p>
+            ) : (
+              <dl className="admin-facts-card admin-changes">
+                {changes.map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>
+                      {item.after || '—'}
+                      <small>{t('પહેલાં', 'Before')}: {item.before || '—'}</small>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </>
         )}
 
         {/* Spec §5: imported values must be reviewed and uncertain ones flagged.

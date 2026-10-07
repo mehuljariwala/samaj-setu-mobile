@@ -23,19 +23,9 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { isValidLocalPhone } from '@/lib/phone';
 import { RULES_VERSION } from '@/lib/rules';
+import { CITIES, LATEST_BIRTH_DATE } from '@/lib/candidate-details';
 
 const MIN_PASSWORD = 8;
-const CITIES = ['Surat', 'Ahmedabad', 'Vadodara', 'Rajkot', 'Mumbai'];
-
-/**
- * Computed once at module load rather than per render: calling Date.now()
- * during render makes the output depend on when React happens to re-run, which
- * the React compiler flags as impure. A day's drift in the maximum selectable
- * birth date is not worth an unstable render.
- */
-const LATEST_BIRTH_DATE = new Date(Date.now() - 18 * 365.25 * 86_400_000)
-  .toISOString()
-  .slice(0, 10);
 
 export type ExistingApplication = {
   applicationId: string;

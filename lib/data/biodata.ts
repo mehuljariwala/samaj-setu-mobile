@@ -3,10 +3,16 @@ import 'server-only';
 import { cache } from 'react';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Tables } from '@/lib/supabase/database.types';
+import type { Enums, Tables } from '@/lib/supabase/database.types';
 import { AppError, unwrap, unwrapMaybe } from './errors';
 
 export type BiodataValues = Record<string, string>;
+
+/**
+ * Registration details an approved family asked to change with a new biodata
+ * version (biodata_revisions.detail_changes), as the database spells them.
+ */
+export type DetailChanges = Partial<Record<'full_name' | 'date_of_birth' | 'gender' | 'father_name' | 'city', string>>;
 
 /**
  * The field catalogue, straight from the database. The form should render from
@@ -126,13 +132,51 @@ export async function submitBiodata(revisionId: string): Promise<void> {
   unwrap(await supabase.rpc('submit_biodata', { p_revision_id: revisionId }));
 }
 
+/**
+ * An approved family's registration details, changed with the open biodata
+ * version. Nothing reaches the candidate until an admin approves that version;
+ * a value put back to what is on file stops being a change. Returns what the
+ * version now asks to change.
+ */
+export async function proposeDetailChanges(
+  candidateId: string,
+  changes: DetailChanges,
+): Promise<DetailChanges> {
+  const supabase = await createSupabaseServerClient();
+  const result = unwrap(
+    await supabase.rpc('propose_detail_changes', {
+      p_candidate_id: candidateId,
+      p_full_name: changes.full_name,
+      p_date_of_birth: changes.date_of_birth,
+      p_gender: changes.gender as Enums<'gender'> | undefined,
+      p_father_name: changes.father_name,
+      p_city: changes.city,
+    }),
+  ) as { detail_changes: DetailChanges };
+
+  return result.detail_changes ?? {};
+}
+
+/** Drops an approved family's unsent or sent-back changes; the live version stays. */
+export async function discardBiodataChanges(candidateId: string): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('discard_biodata_changes', { p_candidate_id: candidateId }));
+}
+
 export type OpenRevision = {
+  /** The latest version: the approved one, or a change to it still in hand. */
   revision: Tables<'biodata_revisions'> | null;
+  /** The approved version families see, when `revision` is a later change to it. */
+  published: Tables<'biodata_revisions'> | null;
   community: Tables<'candidate_community'> | null;
   issues: Tables<'revision_field_issues'>[];
-  /** The identity-verified core, shown above the form and not editable in it. */
+  /**
+   * The identity-verified core, shown above the form. A family changes it on
+   * the registration until approval, and with a new version after it.
+   */
   candidate: Pick<Tables<'candidates'>,
-    'id' | 'full_name' | 'date_of_birth' | 'father_name' | 'city' | 'gender' | 'is_sanatan'>;
+    'id' | 'full_name' | 'date_of_birth' | 'father_name' | 'city' | 'gender' | 'is_sanatan'
+    | 'published_revision_id'>;
 };
 
 /** Everything the biodata screen needs: the draft, its issues, and the state. */
@@ -170,12 +214,23 @@ export async function getEditableBiodata(candidateId: string): Promise<OpenRevis
   const candidate = unwrap(
     await supabase
       .from('candidates')
-      .select('id, full_name, date_of_birth, father_name, city, gender, is_sanatan')
+      .select('id, full_name, date_of_birth, father_name, city, gender, is_sanatan, published_revision_id')
       .eq('id', candidateId)
       .single(),
   );
 
-  return { revision, community, issues, candidate };
+  // The version families see, when the latest is a change to it.
+  const published = candidate.published_revision_id && candidate.published_revision_id !== revision?.id
+    ? unwrap(
+        await supabase
+          .from('biodata_revisions')
+          .select('*')
+          .eq('id', candidate.published_revision_id)
+          .single(),
+      )
+    : null;
+
+  return { revision, published, community, issues, candidate };
 }
 
 /** Everything the Family screen shows for one candidate. */

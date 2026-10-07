@@ -367,6 +367,7 @@ export type Database = {
           superseded_at: string | null;
           created_at: string;
           updated_at: string;
+          detail_changes: Json;
         };
         Insert: {
           id?: string;
@@ -387,6 +388,7 @@ export type Database = {
           superseded_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          detail_changes?: Json;
         };
         Update: {
           id?: string;
@@ -407,6 +409,7 @@ export type Database = {
           superseded_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          detail_changes?: Json;
         };
         Relationships: [
           { foreignKeyName: "biodata_revisions_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: true; referencedRelation: "candidates"; referencedColumns: ["id"] },
@@ -1683,6 +1686,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      discard_biodata_changes: {
+        Args: {
+          p_candidate_id?: string;
+        };
+        Returns: undefined;
+      };
       discover: {
         Args: {
           p_viewer_candidate?: string;
@@ -1767,6 +1776,17 @@ export type Database = {
       };
       my_context: {
         Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      propose_detail_changes: {
+        Args: {
+          p_candidate_id?: string;
+          p_full_name?: string;
+          p_date_of_birth?: string;
+          p_gender?: Database["public"]["Enums"]["gender"];
+          p_father_name?: string;
+          p_city?: string;
+        };
         Returns: Json;
       };
       record_activity: {

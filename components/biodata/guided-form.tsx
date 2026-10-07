@@ -8,8 +8,11 @@ import {
   UserRound, Users,
 } from 'lucide-react';
 import { MediaUploader, type UploadedMedia } from '@/components/app/media-uploader';
-import { saveBiodataDraftAction, submitBiodataAction } from '@/app/actions/biodata';
-import { requestIdentityChangeAction, submitRegistrationAction } from '@/app/actions/registration';
+import {
+  discardBiodataChangesAction, saveBiodataDraftAction, startBiodataEditAction, submitBiodataAction,
+} from '@/app/actions/biodata';
+import { submitRegistrationAction } from '@/app/actions/registration';
+import type { DetailChanges } from '@/lib/data/biodata';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { formatPhone } from '@/lib/org';
@@ -19,6 +22,7 @@ import {
   validateKeys, completion, displayValue, fieldByKey, isRequired, isSanatan, persistable, SAMAJ_ONLY, SANATAN_ONLY,
   type Values, type Field,
 } from './model';
+import { IdentityEditor, type IdentityDetails } from './identity-editor';
 
 type Props = {
   lang: Lang;
@@ -33,7 +37,17 @@ type Props = {
   /** 'draft' | 'correction_requested' are editable; the rest are read-only. */
   status: string;
   initialValues: Values;
-  verified: { name: string; dob: string; father: string; city: string; gender?: string };
+  verified: IdentityDetails;
+  /**
+   * An approved profile. Its family changes it as a new version, sent to an
+   * admin, while the approved one stays live; null `applicationId` alone also
+   * covers a verified family whose biodata was never approved.
+   */
+  live: boolean;
+  /** Registration details the open version asks to change, as the database spells them. */
+  detailChanges: DetailChanges;
+  /** Why the family's last changes to the live biodata were not approved. */
+  refusedChanges: string | null;
   relation: string;
   decisionReason: string | null;
   /** Field-level issues the reviewer raised, in both languages (spec §10). */
@@ -81,8 +95,8 @@ function feetAndInches(cm: string) {
 }
 
 export function GuidedBiodata({
-  lang, candidateId, applicationId, revisionId, status, initialValues, verified, relation,
-  decisionReason, issues, photos, kundali,
+  lang, candidateId, applicationId, revisionId, status, initialValues, verified, live, detailChanges,
+  refusedChanges, relation, decisionReason, issues, photos, kundali,
 }: Props) {
   const t = translator(lang);
   const en = lang === 'en';
@@ -92,9 +106,20 @@ export function GuidedBiodata({
   const home = applying ? '/register' : '/home';
 
   const editable = status === 'draft' || status === 'correction_requested';
-  const first = verified.name.split(' ')[0] || verified.name;
+  /** Registration details changed with this version, waiting on the same approval. */
+  const [changes, setChanges] = useState<DetailChanges>(detailChanges);
+  const [editingIdentity, setEditingIdentity] = useState(false);
+  const shown: IdentityDetails = {
+    name: changes.full_name ?? verified.name,
+    dob: changes.date_of_birth ?? verified.dob,
+    father: changes.father_name ?? verified.father,
+    city: changes.city ?? verified.city,
+    gender: changes.gender ?? verified.gender,
+  };
+  const changed = Object.keys(changes).length > 0;
+  const first = shown.name.split(' ')[0] || shown.name;
   /** Registration already asked; the question only returns if the two disagree. */
-  const impliedGender = verified.gender
+  const impliedGender = shown.gender
     || (relation === 'son' ? 'male' : relation === 'daughter' ? 'female' : '');
 
   // An empty answer in an older draft must not hide what is already known.
@@ -323,20 +348,44 @@ export function GuidedBiodata({
 
   function changeIdentity() {
     // Not verified yet: the details are simply the registration's, and that
-    // form is where they change.
+    // form is where they change. Once verified they change here, with this
+    // version, and wait for the same approval.
     if (applying) {
       void flush().then(() => router.push('/register'));
       return;
     }
+    setEditingIdentity(true);
+  }
+
+  function identitySaved(saved: DetailChanges) {
+    setChanges(saved);
+    setEditingIdentity(false);
+    // The server keeps the biodata's own gender in step; so does the form,
+    // without writing it back, and so does a save still waiting to go.
+    const gender = saved.gender ?? verified.gender;
+    if (!gender) return;
+    setData((d) => ({ ...d, gender }));
+    if (pending.current) pending.current = { ...pending.current, gender };
+  }
+
+  /** An approved profile: open a new version beside the live one. */
+  async function startEditing() {
+    setBusy(t('ખોલી રહ્યા છીએ…', 'Opening…'));
+    const result = await startBiodataEditAction(candidateId);
+    // The page re-renders with the new version, which remounts this form.
+    if (!result.ok) { setBusy(''); setMessage(result.message); }
+  }
+
+  async function discardChanges() {
     if (!confirm(t(
-      'ચકાસેલી વિગતો બદલવાથી ફરી એડમિન સમીક્ષા જરૂરી બનશે અને પ્રોફાઇલ ત્યાં સુધી છુપાઈ જશે. આગળ વધવું?',
-      'Changing verified details means another admin review, and the profile is hidden until then. Continue?',
+      'બધા ફેરફાર રદ કરવા છે? મંજૂર બાયોડેટા જેમ છે તેમ રહેશે.',
+      'Discard all your changes? The approved biodata stays as it is.',
     ))) return;
-    void requestIdentityChangeAction(
-      candidateId,
-      ['full_name', 'date_of_birth', 'father_name'],
-      'The family asked to change the verified details.',
-    ).then(() => router.push('/register'));
+    setBusy(t('રદ કરી રહ્યા છીએ…', 'Discarding…'));
+    if (timer.current) clearTimeout(timer.current);
+    pending.current = null;
+    const result = await discardBiodataChangesAction(candidateId);
+    if (!result.ok) { setBusy(''); setMessage(result.message); }
   }
 
   /* ------------------------------------------------------------ copy --- */
@@ -568,18 +617,32 @@ export function GuidedBiodata({
   }
 
   /* ---------------------------------------------------------- pieces --- */
-  const identityCard = (
-    <div className="bio-identity">
+  const identityCard = editingIdentity ? (
+    <IdentityEditor
+      lang={lang}
+      candidateId={candidateId}
+      current={shown}
+      genderLocked={isSanatan(data)}
+      onSaved={identitySaved}
+      onCancel={() => setEditingIdentity(false)}
+    />
+  ) : (
+    <div className={`bio-identity${changed ? ' changed' : ''}`}>
       <span className="bio-identity-icon"><ShieldCheck size={20} /></span>
       <div>
-        <small>{applying ? t('નોંધણીની વિગતો', 'From the registration') : t('ચકાસેલું', 'Verified')}</small>
-        <b>{verified.name}</b>
+        <small>
+          {applying
+            ? t('નોંધણીની વિગતો', 'From the registration')
+            : changed ? t('બદલેલું · એડમિન તપાસશે', 'Changed · an admin will check') : t('ચકાસેલું', 'Verified')}
+        </small>
+        <b>{shown.name}</b>
         <span>
           {[
-            verified.dob && formatDate(verified.dob, lang),
-            ageFrom(verified.dob) !== null && t(`${ageFrom(verified.dob)} વર્ષ`, `${ageFrom(verified.dob)} yrs`),
-            verified.city,
-            verified.father && `${t('પિતા', 'Father')}: ${verified.father}`,
+            shown.dob && formatDate(shown.dob, lang),
+            ageFrom(shown.dob) !== null && t(`${ageFrom(shown.dob)} વર્ષ`, `${ageFrom(shown.dob)} yrs`),
+            shown.gender === 'male' ? t('પુરુષ', 'Male') : shown.gender === 'female' ? t('સ્ત્રી', 'Female') : null,
+            shown.city,
+            shown.father && `${t('પિતા', 'Father')}: ${shown.father}`,
           ].filter(Boolean).join(' · ')}
         </span>
       </div>
@@ -591,10 +654,13 @@ export function GuidedBiodata({
     </div>
   );
 
-  const note = decisionReason && (
+  const note = (refusedChanges || decisionReason) && (
     <p className="auth-correction">
       <MessageSquareText size={18} />
-      <span><b>{t('એડમિનનો સંદેશ', 'Message from the admin')}</b>{decisionReason}</span>
+      <span>
+        <b>{refusedChanges ? t('તમારા છેલ્લા ફેરફાર મંજૂર ન થયા', 'Your last changes were not approved') : t('એડમિનનો સંદેશ', 'Message from the admin')}</b>
+        {refusedChanges ?? decisionReason}
+      </span>
     </p>
   );
 
@@ -619,15 +685,22 @@ export function GuidedBiodata({
               <Sparkles size={15} />
               {!editable
                 ? status === 'approved' ? t('મંજૂર', 'Approved') : t('સમીક્ષા હેઠળ', 'Under review')
-                : ready ? t('બધું તૈયાર છે!', 'All set!') : t('લગભગ પૂરું', 'Nearly there')}
+                : live ? t('ફેરફાર ચાલુ છે', 'Making changes')
+                  : ready ? t('બધું તૈયાર છે!', 'All set!') : t('લગભગ પૂરું', 'Nearly there')}
             </span>
             <h1>{editable ? t('એક વાર તપાસી લો', 'Check it once') : t('મારો બાયોડેટા', 'My biodata')}</h1>
             <p>
               {editable
-                ? t('કંઈ બદલવું હોય તો તે વિભાગ પર ટૅપ કરો.', 'Tap any section to change it.')
+                ? live
+                  ? t('જે બદલવું હોય તે વિભાગ પર ટૅપ કરો. એડમિન મંજૂર કરે ત્યાં સુધી પરિવારોને મંજૂર બાયોડેટા જ દેખાશે.', 'Tap any section to change it. Families keep seeing the approved biodata until an admin approves your changes.')
+                  : t('કંઈ બદલવું હોય તો તે વિભાગ પર ટૅપ કરો.', 'Tap any section to change it.')
                 : status === 'approved'
-                  ? t('આ બાયોડેટા મંજૂર થયો છે અને પરિવારોને દેખાય છે.', 'This biodata is approved and families can see it.')
-                  : t('એડમિન તપાસી રહ્યા છે. ત્યાં સુધી બદલી શકાતો નથી.', 'An admin is checking it. It can’t be changed until then.')}
+                  ? live
+                    ? t('આ બાયોડેટા મંજૂર થયો છે અને પરિવારોને દેખાય છે. કંઈ બદલવું હોય તો નીચે “વિગતો બદલો” દબાવો.', 'This biodata is approved and families can see it. To change anything, tap “Change details” below.')
+                    : t('આ બાયોડેટા મંજૂર થયો છે અને પરિવારોને દેખાય છે.', 'This biodata is approved and families can see it.')
+                  : live
+                    ? t('એડમિન તમારા ફેરફાર તપાસી રહ્યા છે. ત્યાં સુધી પરિવારોને મંજૂર બાયોડેટા જ દેખાય છે.', 'An admin is checking your changes. Until then, families see the approved biodata.')
+                    : t('એડમિન તપાસી રહ્યા છે. ત્યાં સુધી બદલી શકાતો નથી.', 'An admin is checking it. It can’t be changed until then.')}
             </p>
           </div>
           <span className="member-dial" style={{ '--p': percent } as React.CSSProperties} aria-label={t(`${percent}% પૂર્ણ`, `${percent}% complete`)}>
@@ -719,11 +792,34 @@ export function GuidedBiodata({
               <button className="cta" type="button" disabled={!accurate || busy !== ''} onClick={() => void submit()}>
                 {busy
                   ? <><span className="cta-spinner" aria-hidden="true" />{busy}</>
-                  : <>{status === 'correction_requested' ? t('સુધારો મોકલો', 'Send the correction') : t('મંજૂરી માટે મોકલો', 'Send for approval')}<Send size={18} /></>}
+                  : <>
+                    {status === 'correction_requested'
+                      ? t('સુધારો મોકલો', 'Send the correction')
+                      : live ? t('ફેરફાર મંજૂરી માટે મોકલો', 'Send changes for approval') : t('મંજૂરી માટે મોકલો', 'Send for approval')}
+                    <Send size={18} />
+                  </>}
               </button>
               <p className="auth-note muted">
-                {t('એડમિન 24 કલાકમાં તપાસીને મંજૂરી આપે એટલે પ્રોફાઇલ દેખાવા લાગશે.', 'An admin checks it within 24 hours. Once approved, the profile is live.')}
+                {live
+                  ? t('એડમિન 24 કલાકમાં તપાસશે. મંજૂરી પછી નવી વિગતો પરિવારોને દેખાશે.', 'An admin checks them within 24 hours. Once approved, families see the new details.')
+                  : t('એડમિન 24 કલાકમાં તપાસીને મંજૂરી આપે એટલે પ્રોફાઇલ દેખાવા લાગશે.', 'An admin checks it within 24 hours. Once approved, the profile is live.')}
               </p>
+              {live && (
+                <button type="button" className="bio-later" disabled={busy !== ''} onClick={() => void discardChanges()}>
+                  {t('ફેરફાર રદ કરો', 'Discard changes')}
+                </button>
+              )}
+            </>
+          ) : live && status === 'approved' ? (
+            <>
+              <button className="cta" type="button" disabled={busy !== ''} onClick={() => void startEditing()}>
+                {busy
+                  ? <><span className="cta-spinner" aria-hidden="true" />{busy}</>
+                  : <>{t('વિગતો બદલો', 'Change details')}<Pencil size={18} /></>}
+              </button>
+              <button type="button" className="bio-later" onClick={() => router.push(home)}>
+                {t('હોમ પર જાઓ', 'Go home')}
+              </button>
             </>
           ) : (
             <button className="cta" type="button" onClick={() => router.push(home)}>

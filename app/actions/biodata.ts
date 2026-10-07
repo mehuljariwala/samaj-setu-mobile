@@ -68,6 +68,41 @@ export async function submitBiodataAction(revisionId: string): Promise<ActionRes
   });
 }
 
+/**
+ * An approved family starts changing its biodata: a new version opens beside
+ * the live one, which families go on seeing until an admin approves.
+ */
+export async function startBiodataEditAction(candidateId: string): Promise<ActionResult> {
+  return actionResult(async () => {
+    await biodata.saveBiodataDraft(candidateId, {});
+    track('biodata.edit_started', { candidateId });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
+/** Name, date of birth, gender, father's name or city, sent with the new version. */
+export async function proposeDetailChangesAction(
+  candidateId: string,
+  changes: biodata.DetailChanges,
+): Promise<ActionResult<biodata.DetailChanges>> {
+  return actionResult(async () => {
+    const pending = await biodata.proposeDetailChanges(candidateId, changes);
+    track('biodata.details_changed', { candidateId, detail: { fields: Object.keys(pending) } });
+    revalidatePath('/', 'layout');
+    return pending;
+  });
+}
+
+export async function discardBiodataChangesAction(candidateId: string): Promise<ActionResult> {
+  return actionResult(async () => {
+    await biodata.discardBiodataChanges(candidateId);
+    track('biodata.changes_discarded', { candidateId });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
 /** Spec §4: refused unless the caller is the candidate's own account. */
 export async function grantConsentAction(candidateId: string): Promise<ActionResult> {
   return actionResult(async () => {

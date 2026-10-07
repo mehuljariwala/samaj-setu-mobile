@@ -131,6 +131,29 @@ type Step = { title: string; detail: string; cta: string; href: string; tone: To
 function nextStep(candidate: CandidateSummary, t: T): Step {
   const biodata = candidate.biodata;
 
+  const fix: Step = {
+    title: t('બાયોડેટામાં સુધારો જરૂરી છે', 'Your biodata needs a fix'),
+    detail: biodata?.decision_reason
+      ?? t('એડમિને કેટલીક વિગતો સુધારવા કહ્યું છે.', 'An admin has asked for some details to be corrected.'),
+    cta: t('વિગતો સુધારો', 'Fix the details'),
+    href: '/biodata',
+    tone: 'warn',
+  };
+  const paused: Step = {
+    title: t('પ્રોફાઇલ થોભાવેલી છે', 'This profile is paused'),
+    detail: t('થોભાવેલી પ્રોફાઇલ ડિરેક્ટરીમાં દેખાતી નથી.', 'A paused profile does not appear in the directory.'),
+    cta: t('ફરી શરૂ કરો', 'Resume'),
+    href: '/family',
+    tone: 'warn',
+  };
+  const live: Step = {
+    title: t('તમારી પ્રોફાઇલ પ્રકાશિત છે!', 'Your profile is live!'),
+    detail: t('હવે તમે પરિચય મોકલી અને મેળવી શકો છો.', 'You can now send and receive introductions.'),
+    cta: t('પ્રોફાઇલ શોધો', 'Explore profiles'),
+    href: '/discover',
+    tone: 'green',
+  };
+
   if (candidate.identity_status !== 'verified') {
     return {
       title: t('ઓળખ ચકાસણી ચાલુ છે', 'Identity check in progress'),
@@ -139,6 +162,34 @@ function nextStep(candidate: CandidateSummary, t: T): Step {
       href: '/review',
       tone: 'gold',
     };
+  }
+
+  // An approved profile stays live while its family changes it, so changes in
+  // hand are mentioned rather than put in the way.
+  if (candidate.publication_status === 'published') {
+    if (candidate.paused) return paused;
+    if (biodata?.status === 'correction_requested') return fix;
+    if (biodata?.status === 'draft') {
+      return {
+        ...live,
+        detail: t(
+          'તમારા ફેરફાર હજી મોકલ્યા નથી. એડમિન મંજૂર કરે ત્યાં સુધી પરિવારોને મંજૂર બાયોડેટા જ દેખાશે.',
+          'Your changes are not sent yet. Families see the approved biodata until an admin approves them.',
+        ),
+        cta: t('ફેરફાર પૂરા કરો', 'Finish your changes'),
+        href: '/biodata',
+      };
+    }
+    if (biodata?.status === 'submitted' || biodata?.status === 'under_review') {
+      return {
+        ...live,
+        detail: t(
+          'તમારા ફેરફાર એડમિન પાસે છે. ત્યાં સુધી પરિવારોને મંજૂર બાયોડેટા જ દેખાય છે.',
+          'Your changes are with an admin. Until then, families see the approved biodata.',
+        ),
+      };
+    }
+    return live;
   }
 
   if (!biodata || biodata.status === 'draft') {
@@ -155,16 +206,7 @@ function nextStep(candidate: CandidateSummary, t: T): Step {
     };
   }
 
-  if (biodata.status === 'correction_requested') {
-    return {
-      title: t('બાયોડેટામાં સુધારો જરૂરી છે', 'Your biodata needs a fix'),
-      detail: biodata.decision_reason
-        ?? t('એડમિને કેટલીક વિગતો સુધારવા કહ્યું છે.', 'An admin has asked for some details to be corrected.'),
-      cta: t('વિગતો સુધારો', 'Fix the details'),
-      href: '/biodata',
-      tone: 'warn',
-    };
-  }
+  if (biodata.status === 'correction_requested') return fix;
 
   if (biodata.status === 'submitted' || biodata.status === 'under_review') {
     return {
@@ -176,23 +218,9 @@ function nextStep(candidate: CandidateSummary, t: T): Step {
     };
   }
 
-  if (candidate.paused) {
-    return {
-      title: t('પ્રોફાઇલ થોભાવેલી છે', 'This profile is paused'),
-      detail: t('થોભાવેલી પ્રોફાઇલ ડિરેક્ટરીમાં દેખાતી નથી.', 'A paused profile does not appear in the directory.'),
-      cta: t('ફરી શરૂ કરો', 'Resume'),
-      href: '/family',
-      tone: 'warn',
-    };
-  }
+  if (candidate.paused) return paused;
 
-  return {
-    title: t('તમારી પ્રોફાઇલ પ્રકાશિત છે!', 'Your profile is live!'),
-    detail: t('હવે તમે પરિચય મોકલી અને મેળવી શકો છો.', 'You can now send and receive introductions.'),
-    cta: t('પ્રોફાઇલ શોધો', 'Explore profiles'),
-    href: '/discover',
-    tone: 'green',
-  };
+  return live;
 }
 
 type StepState = 'done' | 'now' | 'act' | 'next' | 'open';
@@ -204,8 +232,10 @@ type StepState = 'done' | 'now' | 'act' | 'next' | 'open';
 function journey(candidate: CandidateSummary, t: T): { title: string; note: string; state: StepState }[] {
   const biodata = candidate.biodata;
   const verified = candidate.identity_status === 'verified';
-  const written = !!biodata && biodata.status !== 'draft' && biodata.status !== 'correction_requested';
-  const approved = biodata?.status === 'approved';
+  // Changes to an approved profile do not walk it back down the road.
+  const published = candidate.publication_status === 'published';
+  const written = published || (!!biodata && biodata.status !== 'draft' && biodata.status !== 'correction_requested');
+  const approved = published || biodata?.status === 'approved';
 
   return [
     {
@@ -217,12 +247,14 @@ function journey(candidate: CandidateSummary, t: T): { title: string; note: stri
       title: t('બાયોડેટા', 'Biodata'),
       note: !verified
         ? t('ચકાસણી પછી ખૂલશે', 'Opens after the check')
-        : biodata?.status === 'correction_requested'
-          ? t('સુધારો જરૂરી', 'Needs a fix')
-          : written
-            ? t('મોકલાયો', 'Sent')
-            : t(`${biodata?.completion ?? 0}% ભર્યો`, `${biodata?.completion ?? 0}% filled in`),
-      state: !verified ? 'next' : biodata?.status === 'correction_requested' ? 'act' : written ? 'done' : 'now',
+        : published
+          ? t('મંજૂર', 'Approved')
+          : biodata?.status === 'correction_requested'
+            ? t('સુધારો જરૂરી', 'Needs a fix')
+            : written
+              ? t('મોકલાયો', 'Sent')
+              : t(`${biodata?.completion ?? 0}% ભર્યો`, `${biodata?.completion ?? 0}% filled in`),
+      state: !verified ? 'next' : published ? 'done' : biodata?.status === 'correction_requested' ? 'act' : written ? 'done' : 'now',
     },
     {
       title: t('એડમિનની મંજૂરી', 'Admin approval'),

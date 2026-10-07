@@ -7,6 +7,7 @@ import { getEditableBiodata } from '@/lib/data/biodata';
 import { listOwnMedia } from '@/lib/data/media';
 import { getOpenApplication } from '@/lib/data/registration';
 import type { Values } from '@/components/biodata/model';
+import type { DetailChanges } from '@/lib/data/biodata';
 
 /**
  * The biodata form, for two kinds of family.
@@ -14,7 +15,8 @@ import type { Values } from '@/components/biodata/model';
  * One still preparing or fixing its registration fills the biodata here
  * before anything is sent, and the form's last screen sends the registration
  * and the biodata together, for the one admin approval. A verified member
- * edits a published biodata here, and an admin approves the new version.
+ * edits a published biodata here, registration details included, and an
+ * admin approves the new version; families see the approved one until then.
  *
  * While the registration is with an admin the biodata is closed, so that
  * family is shown its status instead of a form the server would refuse.
@@ -49,15 +51,23 @@ export default async function BiodataPage({
     applicationId = open.applicationId;
   }
 
-  const [{ revision, issues, candidate }, photos, kundali] = await Promise.all([
+  const [{ revision: latest, published, issues, candidate }, photos, kundali] = await Promise.all([
     getEditableBiodata(candidateId),
     listOwnMedia(candidateId, 'photo'),
     listOwnMedia(candidateId, 'kundali'),
   ]);
 
-  // The candidate's identity details, shown above the form and changed only
-  // through the registration — for a verified member, changing them re-opens
-  // verification (spec §5).
+  // An approved profile changes as a new version beside the live one. A
+  // rejected change leaves the live version as it was, so that is what the
+  // family sees, with the admin's reason.
+  const live = !applicationId && Boolean(candidate.published_revision_id);
+  const refused = live && latest?.status === 'rejected' && published ? latest : null;
+  const revision = refused ? published : latest;
+  const inHand = revision && revision.id !== candidate.published_revision_id
+    && ['draft', 'submitted', 'under_review', 'correction_requested'].includes(revision.status);
+
+  // The candidate's identity details, shown above the form. Before approval
+  // they change on the registration; after it, with the new version.
   const verified = {
     name: candidate.full_name,
     dob: candidate.date_of_birth,
@@ -71,6 +81,8 @@ export default async function BiodataPage({
     // so it stays off while a new registration's biodata is being filled.
     <AppShell lang={lang} context={context} acting={applicationId ? null : acting} member={member && !applicationId}>
       <GuidedBiodata
+        // A new version (or a discarded one) is a fresh form, not a stale one.
+        key={revision?.id ?? 'new'}
         lang={lang}
         candidateId={candidateId}
         applicationId={applicationId}
@@ -80,8 +92,11 @@ export default async function BiodataPage({
         // form asks the right questions before the first one.
         initialValues={{ ...(revision?.data ?? {}) as Values, origin: candidate.is_sanatan ? 'sanatan' : 'samaj' }}
         verified={verified}
+        live={live}
+        detailChanges={(inHand ? revision.detail_changes : {}) as DetailChanges}
+        refusedChanges={refused?.decision_reason ?? null}
         relation={relationship}
-        decisionReason={revision?.decision_reason ?? null}
+        decisionReason={refused ? null : revision?.decision_reason ?? null}
         issues={issues.map((issue) => ({
           field_key: issue.field_key,
           message_gu: issue.message_gu,
