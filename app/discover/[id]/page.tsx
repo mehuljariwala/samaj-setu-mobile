@@ -89,7 +89,7 @@ export default async function ProfilePage({
               <div className="photo-strip">
                 {photos.slice(1).map((photo) => (
                   // oxlint-disable-next-line nextjs/no-img-element
-                  <img key={photo.id} src={photo.url} alt="" />
+                  <img key={photo.id} src={photo.url} alt="" loading="lazy" decoding="async" />
                 ))}
               </div>
             )}

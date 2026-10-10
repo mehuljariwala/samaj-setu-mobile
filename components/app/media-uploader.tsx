@@ -7,8 +7,9 @@ import { Check, CircleHelp, FileText, ImagePlus, Trash2 } from 'lucide-react';
 import { DocumentCapture } from '@/components/app/document-capture';
 import { registerMediaAction, removeMediaAction } from '@/app/actions/matching';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { photoThumbnail, shrinkDocument, shrinkPhoto } from '@/lib/shrink-image';
 import {
-  BUCKETS, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath,
+  BUCKETS, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
 } from '@/lib/storage';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -66,24 +67,31 @@ export function MediaUploader({
     }
 
     start(async () => {
-      const path = objectPath(candidateId, file.name);
+      const small = isPhoto ? await shrinkPhoto(file) : await shrinkDocument(file);
+      const path = objectPath(candidateId, small.name);
       const bucket = isPhoto ? BUCKETS.photo : BUCKETS.kundali;
+      const storage = getSupabaseBrowserClient().storage.from(bucket);
 
-      const { error: uploadError } = await getSupabaseBrowserClient()
-        .storage.from(bucket)
-        .upload(path, file, { contentType: file.type, upsert: false });
+      const { error: uploadError } = await storage.upload(path, small, { contentType: small.type, upsert: false });
 
       if (uploadError) {
         setError(t('અપલોડ થઈ શક્યું નથી. ફરી પ્રયાસ કરો.', 'The upload failed. Please try again.'));
         return;
       }
 
+      // Before the row, so Discover never has to wait for it. A failure here
+      // only means the cards show the photo itself.
+      const thumbnail = isPhoto ? await photoThumbnail(small) : null;
+      if (thumbnail) {
+        await storage.upload(thumbnailPath(path), thumbnail, { contentType: thumbnail.type, upsert: false });
+      }
+
       const registered = await registerMediaAction({
         candidateId,
         kind,
         storagePath: path,
-        mimeType: file.type,
-        sizeBytes: file.size,
+        mimeType: small.type,
+        sizeBytes: small.size,
         isPrimary: isPhoto && existing.length === 0,
       });
 

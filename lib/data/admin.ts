@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { signedUrl } from '@/lib/supabase/admin';
+import { photoUrl, signedUrl } from '@/lib/supabase/admin';
 import type { Enums, Json } from '@/lib/supabase/database.types';
 import { unwrap } from './errors';
 import { requireStaff } from './session';
@@ -150,7 +150,7 @@ export async function getProfilePhotos(candidateId: string) {
   return Promise.all(rows.map(async (row) => ({
     id: row.id,
     status: row.status,
-    url: await signedUrl(row.bucket_id, row.storage_path, 300),
+    url: await photoUrl(row.storage_path),
   })));
 }
 

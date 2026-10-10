@@ -17,7 +17,10 @@ import {
 import { DocumentCapture } from '@/components/app/document-capture';
 import { RulesSheet } from '@/components/onboarding/rules-sheet';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { BUCKETS, CERTIFICATE_TYPES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath } from '@/lib/storage';
+import { photoThumbnail, shrinkDocument, shrinkPhoto } from '@/lib/shrink-image';
+import {
+  BUCKETS, CERTIFICATE_TYPES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
+} from '@/lib/storage';
 import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -331,7 +334,7 @@ export function JoinFlow({
       for (const [field, picked, label] of uploads) {
         if (!picked) continue;
         setBusy(label);
-        const { file } = picked;
+        const file = await shrinkDocument(picked.file);
         const path = objectPath(candidateId, file.name);
         const { error: uploadError } = await getSupabaseBrowserClient()
           .storage.from(BUCKETS.certificates)
@@ -356,16 +359,21 @@ export function JoinFlow({
       // primary photo; it is approved together with the registration.
       if (photo) {
         setBusy(t('ફોટો અપલોડ થઈ રહ્યો છે…', 'Uploading the photo…'));
-        const path = objectPath(candidateId, photo.file.name);
-        const { error: photoError } = await getSupabaseBrowserClient()
-          .storage.from(BUCKETS.photo)
-          .upload(path, photo.file, { contentType: photo.file.type, upsert: false });
+        const small = await shrinkPhoto(photo.file);
+        const path = objectPath(candidateId, small.name);
+        const photos = getSupabaseBrowserClient().storage.from(BUCKETS.photo);
+        const { error: photoError } = await photos.upload(path, small, { contentType: small.type, upsert: false });
         if (photoError) {
           return fail('photo', t('ફોટો અપલોડ થઈ શક્યો નથી. ફરી પ્રયાસ કરો.', 'The photo could not be uploaded. Please try again.'));
         }
+        // The copy the Discover cards show. Without it they show the photo itself.
+        const thumbnail = await photoThumbnail(small);
+        if (thumbnail) {
+          await photos.upload(thumbnailPath(path), thumbnail, { contentType: thumbnail.type, upsert: false });
+        }
         const registered = await registerMediaAction({
           candidateId, kind: 'photo', storagePath: path,
-          mimeType: photo.file.type, sizeBytes: photo.file.size, isPrimary: true,
+          mimeType: small.type, sizeBytes: small.size, isPrimary: true,
         });
         if (!registered.ok) return fail('photo', registered.message);
       }

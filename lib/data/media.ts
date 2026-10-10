@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { signedUrl } from '@/lib/supabase/admin';
+import { photoUrl, signedUrl } from '@/lib/supabase/admin';
 import type { Enums, Tables } from '@/lib/supabase/database.types';
 import { BUCKETS } from '@/lib/storage';
 import { AppError, unwrap } from './errors';
@@ -62,7 +62,7 @@ export async function listOwnMedia(
   return Promise.all(
     rows.map(async (row) => ({
       ...row,
-      url: await signedUrl(row.bucket_id, row.storage_path),
+      url: kind === 'photo' ? await photoUrl(row.storage_path) : await signedUrl(row.bucket_id, row.storage_path),
     })),
   );
 }

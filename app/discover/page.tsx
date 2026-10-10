@@ -113,9 +113,10 @@ export default async function DiscoverPage({
                 <article className="profile-card">
                   <div className={`profile-cover ${COVERS[index % COVERS.length]}`}>
                     {photos.get(profile.id) ? (
-                      // Plain <img> on purpose: a five-minute signed URL, nothing to optimise or cache.
+                      // Plain <img> on purpose: a signed URL for a private object, already card-sized.
+                      // Lazy, so a card's photo downloads only when it is scrolled near.
                       // oxlint-disable-next-line nextjs/no-img-element
-                      <img className="cover-photo" src={photos.get(profile.id)} alt="" />
+                      <img className="cover-photo" src={photos.get(profile.id)} alt="" loading="lazy" decoding="async" />
                     ) : (
                       <span className="monogram">{profile.fullName.charAt(0)}</span>
                     )}

@@ -22,7 +22,7 @@ export function AdminPhotos({ lang, photos }: { lang: Lang; photos: { id: string
         <div className="admin-photos">
           {photos.map((photo, index) => (
             photo.url
-              // Plain <img> on purpose: a five-minute signed URL, nothing to optimise or cache.
+              // Plain <img> on purpose: a signed URL for a private object, nothing to optimise.
               // oxlint-disable-next-line nextjs/no-img-element
               ? <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={t(`ફોટો ${index + 1}`, `Photo ${index + 1}`)} /></a>
               : <span key={photo.id} className="admin-photo-missing"><Camera size={20} /></span>

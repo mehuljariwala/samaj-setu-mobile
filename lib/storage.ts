@@ -25,3 +25,12 @@ export function objectPath(candidateId: string, filename: string): string {
     : 'bin';
   return `${candidateId}/${crypto.randomUUID()}.${extension || 'bin'}`;
 }
+
+/**
+ * The card-sized copy of a photo, stored beside it in the same folder, so the
+ * same storage policies cover it and it needs no row of its own. Discover shows
+ * this; a photo without one (an older upload) falls back to the photo itself.
+ */
+export function thumbnailPath(photoPath: string): string {
+  return `${photoPath.replace(/\.[a-z0-9]*$/, '')}.thumb.jpg`;
+}
