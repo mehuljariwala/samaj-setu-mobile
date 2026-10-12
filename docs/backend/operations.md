@@ -100,7 +100,9 @@ against a real stack:
       and confirm you get only your own candidates.
 - [ ] As a member, try `GET /rest/v1/directory_profiles` and confirm it is
       refused.
-- [ ] Confirm a signed photo URL stops working after 60 seconds.
+- [ ] Confirm a signed certificate URL stops working after 120 seconds.
+- [ ] Open a photo's `/media/…` link twice and confirm the second answer has
+      `x-vercel-cache: HIT`; confirm a link from three days ago returns 404.
 - [ ] Grant yourself `admin`, refresh the session, and confirm the queues load.
 
 ## Recurring jobs

@@ -8,7 +8,13 @@ import { translator } from '@/lib/i18n';
  * next to the photo ID before deciding. They are approved together with the
  * profile (20261004000600).
  */
-export function AdminPhotos({ lang, photos }: { lang: Lang; photos: { id: string; url: string | null }[] }) {
+export function AdminPhotos({
+  lang,
+  photos,
+}: {
+  lang: Lang;
+  photos: { id: string; url: string | null; thumbnail: string | null }[];
+}) {
   const t = translator(lang);
   return (
     <>
@@ -22,9 +28,9 @@ export function AdminPhotos({ lang, photos }: { lang: Lang; photos: { id: string
         <div className="admin-photos">
           {photos.map((photo, index) => (
             photo.url
-              // Plain <img> on purpose: a signed URL for a private object, nothing to optimise.
+              // Plain <img> on purpose: a signed /media link, already card-sized.
               // oxlint-disable-next-line nextjs/no-img-element
-              ? <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={t(`ફોટો ${index + 1}`, `Photo ${index + 1}`)} /></a>
+              ? <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer"><img src={photo.thumbnail ?? photo.url} alt={t(`ફોટો ${index + 1}`, `Photo ${index + 1}`)} /></a>
               : <span key={photo.id} className="admin-photo-missing"><Camera size={20} /></span>
           ))}
         </div>

@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { photoUrl, signedUrl } from '@/lib/supabase/admin';
+import { photoThumbnailUrl, photoUrl } from '@/lib/photo-link';
+import { signedUrl } from '@/lib/supabase/admin';
 import type { Enums, Json } from '@/lib/supabase/database.types';
 import { unwrap } from './errors';
 import { requireStaff } from './session';
@@ -139,7 +140,7 @@ export async function getProfilePhotos(candidateId: string) {
   const rows = unwrap(
     await supabase
       .from('candidate_media')
-      .select('id, bucket_id, storage_path, status, is_primary')
+      .select('id, storage_path, status')
       .eq('candidate_id', candidateId)
       .eq('kind', 'photo')
       .is('deleted_at', null)
@@ -147,11 +148,13 @@ export async function getProfilePhotos(candidateId: string) {
       .order('is_primary', { ascending: false })
       .order('created_at'),
   );
-  return Promise.all(rows.map(async (row) => ({
+  // The page shows the card-sized copy; tapping it opens the photo itself.
+  return rows.map((row) => ({
     id: row.id,
     status: row.status,
-    url: await photoUrl(row.storage_path),
-  })));
+    url: photoUrl(row.storage_path),
+    thumbnail: photoThumbnailUrl(row.storage_path),
+  }));
 }
 
 /** The registration behind a biodata, so its review can link to the documents. */

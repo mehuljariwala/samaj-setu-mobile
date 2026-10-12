@@ -69,9 +69,9 @@ export default async function ProfilePage({
           <>
             <div className="profile-cover profile-hero c1">
               {/* Plain <img>, not next/image, and deliberately so: these are
-                  short-lived signed URLs for private objects. Next's image
+                  signed /media links for private photos. Next's image
                   optimiser would fetch and cache a copy at a stable, unsigned
-                  URL, which would outlive the grant that produced it. */}
+                  URL, which would outlive the link that produced it. */}
               {photos[0]
                 // oxlint-disable-next-line nextjs/no-img-element
                 ? <img src={photos[0].url} alt="" />

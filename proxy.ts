@@ -29,6 +29,12 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // The router's prefetch of a link renders only the loading screen (every
+  // page is dynamic and app/loading.tsx is the boundary), which reads no
+  // session, and a screen of links sends one each. The tap that follows
+  // refreshes. A browser prefetch of a whole page still comes through.
+  if (isRouterPrefetch(request)) return response;
+
   const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
       getAll: () => request.cookies.getAll(),
@@ -80,26 +86,27 @@ export async function proxy(request: NextRequest) {
  * them), not a Server Action POST, not framework or API traffic.
  */
 function isPageView(request: NextRequest) {
-  if (request.method !== 'GET') return false;
+  if (request.method !== 'GET' || isRouterPrefetch(request)) return false;
   const headers = request.headers;
-  if (
-    headers.has('next-router-prefetch') ||
-    headers.has('next-router-segment-prefetch') ||
-    headers.get('purpose') === 'prefetch' ||
-    headers.get('sec-purpose')?.includes('prefetch')
-  ) {
+  if (headers.get('purpose') === 'prefetch' || headers.get('sec-purpose')?.includes('prefetch')) {
     return false;
   }
   const path = request.nextUrl.pathname;
   return !/^\/(?:_next|api|\.well-known|auth)(?:\/|$)/.test(path) && !/\.[a-z0-9]+$/i.test(path);
 }
 
+/** Next's router fetching a link's loading screen before anyone taps it. */
+function isRouterPrefetch(request: NextRequest) {
+  return request.headers.has('next-router-prefetch') || request.headers.has('next-router-segment-prefetch');
+}
+
 export const config = {
   matcher: [
     /*
      * Everything except static assets and image files. Running on a PNG would
-     * refresh a session for a request that never reads one.
+     * refresh a session for a request that never reads one. /media must stay
+     * out: a refreshed cookie on a photo would stop the CDN from keeping it.
      */
-    '/((?!_next/static|_next/image|favicon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|media/|favicon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

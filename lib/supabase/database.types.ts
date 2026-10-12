@@ -1734,6 +1734,12 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: number;
       };
+      file_egress: {
+        Args: {
+          p_add?: number;
+        };
+        Returns: number;
+      };
       get_candidate_profile: {
         Args: {
           p_viewer_candidate?: string;

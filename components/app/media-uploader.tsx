@@ -28,8 +28,8 @@ export type UploadedMedia = {
  * 4 MB image has no business travelling through the Next.js server.
  *
  * Nothing here is public: the bucket is private, and the images shown are
- * short-lived signed URLs minted only after the database has authorised the
- * viewer.
+ * /media links signed only after the database has authorised the viewer
+ * (lib/photo-link.ts).
  */
 export function MediaUploader({
   lang,
@@ -106,9 +106,10 @@ export function MediaUploader({
         <div className="photo-strip">
           {existing.map((item) => (
             item.url && isPhoto
-              // Plain <img> on purpose: these are short-lived signed URLs for
-              // private objects. next/image would cache an optimised copy at a
-              // stable, unsigned address that outlives the grant.
+              // Plain <img> on purpose: a signed /media link, already shrunk at
+              // upload. next/image would cache an optimised copy at a stable,
+              // unsigned address that outlives the link, and spend the free
+              // plan's image allowance doing it.
               // oxlint-disable-next-line nextjs/no-img-element
               ? <img key={item.id} src={item.url} alt="" />
               : (

@@ -117,10 +117,20 @@ The photo policy calls the same `app.can_view_media_of()` that the
 cannot drift apart. Spec §8: "do not send full images to unauthorized clients
 and merely blur them."
 
-Files are served through signed URLs valid for 60 seconds (120 for a
-certificate), minted by the service-role client **after** the database has
-already authorised the caller. The service role is never used to decide whether
-signing is allowed — if a read needs it to succeed, the policy is wrong.
+Certificates, ID documents and janmakshar are served through signed URLs
+valid for 60 seconds (120 for a certificate), minted by the service-role client
+**after** the database has already authorised the caller. The service role is
+never used to decide whether signing is allowed — if a read needs it to
+succeed, the policy is wrong.
+
+Photographs are the exception, to stay inside the free plan's egress. They are
+served from the app's own `/media/…` address (`lib/photo-link.ts`,
+`app/media/…/route.ts`), with a link signed (HMAC of the secret key) only after
+the same database check. The link is the same for everyone that day and works
+until the end of the next day, so the Vercel CDN can keep one copy for every
+viewer. A forwarded photo link therefore works for up to two days. The route
+counts the bytes it takes from storage (`public.file_egress`) and shows a plain
+tile instead once a day's allowance (`FILE_EGRESS_DAILY_MB`, default 80) is used.
 
 ## Consent
 
@@ -202,6 +212,9 @@ Stated plainly so nobody assumes otherwise:
 
 * **Screenshots.** A member who can see a photograph can keep it. Revocation is
   forward-looking only.
+* **Photo links already handed out.** A `/media` link keeps working until the
+  end of the day after it was issued, for whoever holds it, even after the
+  owner hides the photo or revokes a grant.
 * **The application UI is not a security boundary.** `proxy.ts` refreshes the
   session and makes no authorisation decision. Server Actions are reachable by
   direct POST, so every one of them re-verifies through the data access layer

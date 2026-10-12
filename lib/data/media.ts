@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { photoUrl, signedUrl } from '@/lib/supabase/admin';
+import { photoUrl } from '@/lib/photo-link';
 import type { Enums, Tables } from '@/lib/supabase/database.types';
 import { BUCKETS } from '@/lib/storage';
 import { AppError, unwrap } from './errors';
@@ -41,17 +41,21 @@ export async function registerMedia(input: {
   ) as string;
 }
 
-/** A candidate's own media, including anything still awaiting review. */
+/**
+ * A candidate's own media, including anything still awaiting review. Only
+ * photos get a link: the biodata screen shows them, and lists a janmakshar by
+ * its review status alone.
+ */
 export async function listOwnMedia(
   candidateId: string,
   kind: Enums<'media_kind'> = 'photo',
-): Promise<(Tables<'candidate_media'> & { url: string | null })[]> {
+): Promise<(Pick<Tables<'candidate_media'>, 'id' | 'status' | 'is_primary'> & { url: string | null })[]> {
   const supabase = await createSupabaseServerClient();
 
   const rows = unwrap(
     await supabase
       .from('candidate_media')
-      .select('*')
+      .select('id, status, is_primary, storage_path')
       .eq('candidate_id', candidateId)
       .eq('kind', kind)
       .is('deleted_at', null)
@@ -59,12 +63,10 @@ export async function listOwnMedia(
       .order('sort_order'),
   );
 
-  return Promise.all(
-    rows.map(async (row) => ({
-      ...row,
-      url: kind === 'photo' ? await photoUrl(row.storage_path) : await signedUrl(row.bucket_id, row.storage_path),
-    })),
-  );
+  return rows.map(({ storage_path, ...row }) => ({
+    ...row,
+    url: kind === 'photo' ? photoUrl(storage_path) : null,
+  }));
 }
 
 export async function setPrimaryPhoto(candidateId: string, mediaId: string): Promise<void> {

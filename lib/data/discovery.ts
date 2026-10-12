@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { photoThumbnailUrl, photoUrl, signedUrl } from '@/lib/supabase/admin';
+import { photoThumbnailUrl, photoUrl } from '@/lib/photo-link';
+import { signedUrl } from '@/lib/supabase/admin';
 import type { Enums } from '@/lib/supabase/database.types';
 import { AppError, unwrap, unwrapMaybe } from './errors';
 
@@ -15,6 +16,13 @@ export type DiscoverFilters = {
   offset?: number;
 };
 
+/** The biodata answers a Discover card shows or its filters read. Nothing else is fetched. */
+export const CARD_BIODATA = [
+  'origin', 'height', 'caste', 'degree', 'role', 'education', 'work', 'marital', 'diet',
+] as const;
+
+export type CardBiodata = Partial<Record<(typeof CARD_BIODATA)[number], string>>;
+
 export type DirectoryCard = {
   id: string;
   publicCode: string;
@@ -23,13 +31,22 @@ export type DirectoryCard = {
   city: string | null;
   subCommunity: string | null;
   sect: string | null;
-  mosalFamily: string | null;
-  biodata: Record<string, string>;
+  biodata: CardBiodata;
   verdict: Enums<'eligibility_verdict'>;
   saved: boolean;
-  interestStatus: Enums<'interest_status'> | null;
   canViewPhotos: boolean;
 };
+
+/*
+ * Only the columns a card uses, and only CARD_BIODATA out of the biodata. The
+ * full rows were about twice the size, and Discover asks for every profile at
+ * once, so this is most of what the free plan's egress pays for in the
+ * database.
+ */
+const CARD_COLUMNS = [
+  'id, public_code, full_name, age, city, sub_community, sect, verdict, saved, can_view_photos',
+  ...CARD_BIODATA.map((key) => `${key}:biodata->>${key}`),
+].join(', ');
 
 /**
  * The directory as one acting candidate sees it.
@@ -46,31 +63,44 @@ export async function discover(
   const supabase = await createSupabaseServerClient();
 
   const rows = unwrap(
-    await supabase.rpc('discover', {
-      p_viewer_candidate: viewerCandidateId,
-      p_query: filters.query?.trim() || undefined,
-      p_city: filters.city || undefined,
-      p_sect: filters.sect || undefined,
-      p_sub_community: filters.subCommunity || undefined,
-      p_saved_only: filters.savedOnly ?? false,
-      p_limit: filters.limit ?? 20,
-      p_offset: filters.offset ?? 0,
-    }),
-  );
+    await supabase
+      .rpc('discover', {
+        p_viewer_candidate: viewerCandidateId,
+        p_query: filters.query?.trim() || undefined,
+        p_city: filters.city || undefined,
+        p_sect: filters.sect || undefined,
+        p_sub_community: filters.subCommunity || undefined,
+        p_saved_only: filters.savedOnly ?? false,
+        p_limit: filters.limit ?? 20,
+        p_offset: filters.offset ?? 0,
+      })
+      .select(CARD_COLUMNS),
+  ) as unknown as (Record<(typeof CARD_BIODATA)[number], string | null> & {
+    id: string;
+    public_code: string;
+    full_name: string;
+    age: number | null;
+    city: string | null;
+    sub_community: string | null;
+    sect: string | null;
+    verdict: Enums<'eligibility_verdict'>;
+    saved: boolean | null;
+    can_view_photos: boolean | null;
+  })[];
 
   return rows.map((row) => ({
-    id: row.id as string,
-    publicCode: row.public_code as string,
-    fullName: row.full_name as string,
+    id: row.id,
+    publicCode: row.public_code,
+    fullName: row.full_name,
     age: row.age,
     city: row.city,
     subCommunity: row.sub_community,
     sect: row.sect,
-    mosalFamily: row.mosal_family,
-    biodata: (row.biodata ?? {}) as Record<string, string>,
-    verdict: row.verdict as Enums<'eligibility_verdict'>,
+    biodata: Object.fromEntries(
+      CARD_BIODATA.filter((key) => row[key] != null).map((key) => [key, row[key] as string]),
+    ),
+    verdict: row.verdict,
     saved: row.saved ?? false,
-    interestStatus: row.interest_status,
     canViewPhotos: row.can_view_photos ?? false,
   }));
 }
@@ -78,9 +108,9 @@ export async function discover(
 /**
  * Every profile this candidate may see, not one page of it: `discover` returns
  * at most 50 at a time, so this asks page by page. The screen then filters by
- * age, height, education and the rest itself, which also lets it offer only
- * the cities and communities that are actually there. A samaj is a few
- * hundred profiles; the cap stops a runaway loop, not a real list.
+ * age, height, education and the rest itself, in the browser, which also lets
+ * it offer only the cities and communities that are actually there. A samaj
+ * is a few hundred profiles; the cap stops a runaway loop, not a real list.
  */
 export async function discoverAll(
   viewerCandidateId: string,
@@ -99,17 +129,21 @@ export async function discoverAll(
 /**
  * One photo per card, at card size, for the profiles this viewer may see
  * photos of. The database decides visibility (app.can_view_media_of, for the
- * signed-in viewer); only the paths it returns are signed.
+ * signed-in viewer); only the paths it returns get a link.
  */
 export async function discoverPhotos(candidateIds: string[]): Promise<Map<string, string>> {
   if (candidateIds.length === 0) return new Map();
   const supabase = await createSupabaseServerClient();
-  const rows = unwrap(await supabase.rpc('discover_photos', { p_candidates: candidateIds }));
+  const rows = unwrap(
+    await supabase.rpc('discover_photos', { p_candidates: candidateIds }).select('candidate_id, storage_path'),
+  );
 
-  const signed = await Promise.all(rows.map(async (row) =>
-    [row.candidate_id as string, await photoThumbnailUrl(row.storage_path as string)] as const));
-
-  return new Map(signed.filter((entry): entry is readonly [string, string] => entry[1] !== null));
+  const links = new Map<string, string>();
+  for (const row of rows) {
+    const url = photoThumbnailUrl(row.storage_path as string);
+    if (url) links.set(row.candidate_id as string, url);
+  }
+  return links;
 }
 
 export type ProfileDetail = {
@@ -242,9 +276,9 @@ export async function revokeShareLink(id: string): Promise<void> {
 /* ----------------------------------------------------------------- media -- */
 
 /**
- * Signed URLs for a candidate's photographs, but only once the database has
- * confirmed this viewer may see them. The service-role client signs the object;
- * it is never used to decide whether signing is allowed.
+ * Links to a candidate's photographs (/media, see lib/photo-link.ts) or signed
+ * URLs for a janmakshar, but only once the database has confirmed this viewer
+ * may see them. Neither signing step decides whether signing is allowed.
  */
 export async function getViewableMedia(
   viewerCandidateId: string,
@@ -254,18 +288,20 @@ export async function getViewableMedia(
   const supabase = await createSupabaseServerClient();
 
   const rows = unwrap(
-    await supabase.rpc('list_viewable_media', {
-      p_viewer_candidate: viewerCandidateId,
-      p_owner_candidate: ownerCandidateId,
-      p_kind: kind,
-    }),
+    await supabase
+      .rpc('list_viewable_media', {
+        p_viewer_candidate: viewerCandidateId,
+        p_owner_candidate: ownerCandidateId,
+        p_kind: kind,
+      })
+      .select('id, bucket_id, storage_path, is_primary'),
   );
 
   const signed = await Promise.all(
     rows.map(async (row) => ({
       id: row.id as string,
       url: kind === 'photo'
-        ? await photoUrl(row.storage_path as string)
+        ? photoUrl(row.storage_path as string)
         : await signedUrl(row.bucket_id as string, row.storage_path as string),
       isPrimary: row.is_primary ?? false,
     })),

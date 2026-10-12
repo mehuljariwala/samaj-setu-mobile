@@ -12,10 +12,14 @@ import { translator } from '@/lib/i18n';
 const PANEL_KEYS = ['city', 'community', 'sect', 'age', 'height', 'edu', 'work', 'marital', 'diet'] as const;
 
 /**
- * Filters live in the URL rather than in component state, so the server can do
- * the filtering — the community rules that decide what a member may see are
- * per-pair and cannot be evaluated in the browser. It also means a filtered
- * view survives a refresh and can be shared between the two screens.
+ * Filters live in the URL rather than in component state, so a filtered view
+ * survives a refresh and can be shared between the two screens.
+ *
+ * Only a search goes to the server, which matches names in the database. The
+ * community rules that decide what a member may see are per pair and were
+ * already applied there; the panel and Saved only narrow the profiles the
+ * screen already has (DiscoverResults), so they change the address and fetch
+ * nothing.
  *
  * Search and Saved are always in view; everything else sits behind one
  * Filters button, which shows how many are on.
@@ -48,7 +52,9 @@ export function DiscoverFilters({
       if (value === null || value === '') next.delete(key);
       else next.set(key, value);
     }
-    start(() => router.replace(`/discover?${next.toString()}`, { scroll: false }));
+    const url = `/discover?${next.toString()}`;
+    if ('q' in changes) start(() => router.replace(url, { scroll: false }));
+    else window.history.replaceState(null, '', url);
   }
 
   const fromModel = (key: string) =>
