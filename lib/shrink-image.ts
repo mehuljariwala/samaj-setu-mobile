@@ -24,8 +24,14 @@ type Fit = {
 const PHOTO: Fit = { longest: 1200, quality: 0.8, keepUnder: 300 * 1024 };
 /** What the Discover cards show, at about 30 KB. Saved beside the photo; see thumbnailPath. */
 const THUMBNAIL: Fit = { longest: 800, shortest: 400, quality: 0.72 };
-/** Certificates, ID cards and janmakshar: small print has to stay readable for the admin. */
-const DOCUMENT: Fit = { longest: 2000, quality: 0.85, keepUnder: 600 * 1024 };
+/**
+ * Certificates, ID cards and janmakshar: small print has to stay readable for
+ * the admin. 1600 pixels is about 190 dpi across a full page, and these
+ * settings halved the stored scans (from about 320 KB to 160 KB each) against
+ * the backup of October 2026, which matters because the free plan's 1 GB of
+ * storage is mostly documents.
+ */
+const DOCUMENT: Fit = { longest: 1600, quality: 0.72, keepUnder: 250 * 1024 };
 
 export const shrinkPhoto = (file: File) => shrink(file, PHOTO);
 export const shrinkDocument = (file: File) => shrink(file, DOCUMENT);

@@ -15,7 +15,10 @@
 // Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY from .env.local.
 // PDFs are left alone. The database rows keep their original mime_type and
 // size_bytes, so the admin certificate viewer shows the size as uploaded.
-// Running it again is safe: anything already shrunk is skipped.
+// Running it again is safe: a file is replaced only when the original, shrunk
+// to today's settings, comes out clearly smaller than what is stored. That is
+// also how a change of settings reaches files shrunk before it: they are made
+// again from the original in the backup, not from the stored copy.
 // ---------------------------------------------------------------------------
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
@@ -46,7 +49,7 @@ const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_
 
 // The same sizes as lib/shrink-image.ts.
 const PHOTO = { longest: 1200, quality: 80, keepUnder: 300 * 1024 };
-const DOCUMENT = { longest: 2000, quality: 85, keepUnder: 600 * 1024 };
+const DOCUMENT = { longest: 1600, quality: 72, keepUnder: 250 * 1024 };
 const THUMBNAIL_SHORTEST = 400;
 const THUMBNAIL_QUALITY = 72;
 const BUCKETS = [
@@ -114,17 +117,19 @@ async function shrinkOne(bucket, fit, file, existing, totals) {
     if (apply) await upload(bucket, thumbnailPath(file.name), thumbnail);
   }
 
-  // A file whose size no longer matches its backup has been shrunk already.
-  if (replaced) { totals.done += 1; return; }
-
+  // `replaced`: the stored file no longer matches its backup, so an earlier run
+  // shrank it. It is checked against today's settings all the same.
   const { width = 0, height = 0 } = await image().metadata();
-  if (Math.max(width, height) <= fit.longest && file.size <= fit.keepUnder) { totals.small += 1; return; }
+  if (!replaced && Math.max(width, height) <= fit.longest && file.size <= fit.keepUnder) {
+    totals.small += 1;
+    return;
+  }
 
   const small = await image()
     .resize({ width: fit.longest, height: fit.longest, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: fit.quality, mozjpeg: true })
     .toBuffer();
-  if (small.length > file.size * 0.9) { totals.small += 1; return; }
+  if (small.length > file.size * 0.9) { totals[replaced ? 'done' : 'small'] += 1; return; }
 
   totals.shrunk += 1;
   totals.before += file.size;

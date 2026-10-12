@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { ChevronRight, CopyCheck, RotateCcw, Search, Shield, Users } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
+import { FreePlanUsageCard } from '@/components/app/free-plan-usage';
 import { AdminCaughtUpArt } from '@/components/onboarding/art';
 import { loadAdminPage } from '@/lib/data/guards';
-import { getFamilyCounts, getFamilyQueue, type FamilyFilter } from '@/lib/data/admin';
+import { getFamilyCounts, getFamilyQueue, getFreePlanUsage, type FamilyFilter } from '@/lib/data/admin';
 import { familyTag, identityStage, rowHref } from '@/lib/family-stages';
 import { translator } from '@/lib/i18n';
+import { PHOTO_BYTES_PER_DAY } from '@/lib/photo-link';
 
 const FILTERS: FamilyFilter[] = ['review', 'overdue', 'family', 'live', 'all'];
 /** Rows per "Show more". The whole samaj fits in a few taps. */
@@ -40,9 +42,10 @@ export default async function AdminPage({
   const page = Math.min(10, Math.max(1, Number(params.page) || 1));
   const limit = PAGE * page;
 
-  const [counts, rows] = await Promise.all([
+  const [counts, rows, usage] = await Promise.all([
     getFamilyCounts(),
     getFamilyQueue({ filter, query, limit }),
+    getFreePlanUsage(),
   ]);
 
   const hrefFor = (key: FamilyFilter, nextPage = 1) => {
@@ -74,6 +77,8 @@ export default async function AdminPage({
           </span>
           <ChevronRight size={19} />
         </Link>
+
+        {usage && <FreePlanUsageCard lang={lang} usage={usage} photoAllowance={PHOTO_BYTES_PER_DAY} />}
 
         {/* A plain GET form: works without JavaScript, and the URL is the state. */}
         <search>

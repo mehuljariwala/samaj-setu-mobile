@@ -9,7 +9,7 @@ import { registerMediaAction, removeMediaAction } from '@/app/actions/matching';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { photoThumbnail, shrinkDocument, shrinkPhoto } from '@/lib/shrink-image';
 import {
-  BUCKETS, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
+  BUCKETS, MAX_PDF_BYTES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
 } from '@/lib/storage';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -62,6 +62,13 @@ export function MediaUploader({
       setError(t(
         `ફાઇલ ${Math.round(limit / 1048576)} MB કરતાં નાની હોવી જોઈએ.`,
         `The file must be under ${Math.round(limit / 1048576)} MB.`,
+      ));
+      return;
+    }
+    if (file.type === 'application/pdf' && file.size > MAX_PDF_BYTES) {
+      setError(t(
+        'PDF 2 MB કરતાં નાની હોવી જોઈએ. તેના બદલે પાનાનો ફોટો પાડો.',
+        'A PDF must be under 2 MB. Take a photo of the page instead.',
       ));
       return;
     }

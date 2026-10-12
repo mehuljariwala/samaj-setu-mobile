@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
     // fetch fails waits for the connection and then runs once, and
     // `useOffline()` tells `OfflineNotice` to say so.
     useOffline: true,
+    // A screen opened in the last two minutes is shown again from the phone's
+    // memory instead of being rendered and fetched afresh: Discover → a
+    // profile → back costs one trip to the database, not two. Anything the
+    // member changes still refreshes at once, because every Server Action
+    // revalidates and that clears this cache; only other people's changes can
+    // take up to two minutes to show. Keeps the free plan's egress down.
+    staleTimes: { dynamic: 120 },
   },
 };
 

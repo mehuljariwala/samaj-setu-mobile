@@ -26,6 +26,13 @@ import { thumbnailPath } from '@/lib/storage';
 
 const DAY = 24 * 60 * 60;
 
+/**
+ * How many bytes /media may fetch from storage in a day before it shows a
+ * plain tile instead (public.file_egress). 80 MB a day is at most 2.4 GB of
+ * the free plan's 5 GB a month, leaving the rest for the database.
+ */
+export const PHOTO_BYTES_PER_DAY = (Number(process.env.FILE_EGRESS_DAILY_MB) || 80) * 1024 * 1024;
+
 export type PhotoSize = 'card' | 'full';
 
 /** The candidate's id, then the file's own id and extension, as objectPath() writes them. */

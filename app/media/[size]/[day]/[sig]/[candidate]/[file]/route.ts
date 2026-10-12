@@ -1,6 +1,6 @@
 import { after } from 'next/server';
 
-import { openPhotoLink } from '@/lib/photo-link';
+import { PHOTO_BYTES_PER_DAY, openPhotoLink } from '@/lib/photo-link';
 import { BUCKETS } from '@/lib/storage';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -18,8 +18,6 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
  * instead of photos until tomorrow, rather than the project being switched off
  * for the rest of the month as it was in October 2026.
  */
-
-const DAILY_BYTES = (Number(process.env.FILE_EGRESS_DAILY_MB) || 80) * 1024 * 1024;
 
 const PLACEHOLDER =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><rect width="4" height="5" fill="#ece7e1"/></svg>';
@@ -46,7 +44,7 @@ export async function GET(
   const link = openPhotoLink(size, day, sig, `${candidate}/${file}`);
   if (!link) return refuse(404);
 
-  if ((await spentToday()) >= DAILY_BYTES) {
+  if ((await spentToday()) >= PHOTO_BYTES_PER_DAY) {
     console.warn('file_egress: daily allowance used, serving placeholders');
     return new Response(PLACEHOLDER, {
       headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store' },

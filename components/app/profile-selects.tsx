@@ -1,7 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 
@@ -9,8 +7,8 @@ type Option = { value: string; label: string };
 
 /**
  * City, sub-community and age for User management's profiles. A choice
- * applies at once — the URL holds every filter, so the page stays shareable
- * and the server does the counting.
+ * applies at once — the URL holds every filter, so the page stays shareable —
+ * and AdminProfiles narrows the list in the browser, so it fetches nothing.
  */
 export function ProfileSelects({
   lang,
@@ -27,14 +25,13 @@ export function ProfileSelects({
   ages: Option[];
 }) {
   const t = translator(lang);
-  const router = useRouter();
 
   const choose = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
     const qs = next.toString();
-    router.push(qs ? `/admin/users?${qs}` : '/admin/users', { scroll: false });
+    window.history.pushState(null, '', qs ? `/admin/users?${qs}` : '/admin/users');
   };
 
   const select = (key: string, label: string, all: string, options: Option[]) => (

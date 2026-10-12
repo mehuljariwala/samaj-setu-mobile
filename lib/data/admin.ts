@@ -18,6 +18,28 @@ import { requireStaff } from './session';
 
 export type FamilyFilter = 'review' | 'overdue' | 'family' | 'live' | 'all';
 
+/** What public.admin_usage() reports, in bytes. */
+export type FreePlanUsage = {
+  database_bytes: number;
+  storage_bytes: number;
+  photo_bytes_today: number;
+  photo_bytes_30_days: number;
+  /** The nightly clean-up's last run and the unused files it found. */
+  last_maintenance: { ran_at: string; files: number; file_bytes: number } | null;
+};
+
+/**
+ * How close the platform is to Supabase's free-plan limits. Null when it
+ * cannot be read, so the admin home never fails over a gauge.
+ */
+export async function getFreePlanUsage(): Promise<FreePlanUsage | null> {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('admin_usage');
+  if (error) console.error('admin_usage unreadable', error.message);
+  return error ? null : (data as unknown as FreePlanUsage);
+}
+
 /**
  * Every family in one list, each at the stage it has really reached across
  * the identity check and the biodata (see app.family_stages()).

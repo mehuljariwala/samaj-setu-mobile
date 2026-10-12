@@ -15,6 +15,13 @@ export const BUCKETS = {
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+/**
+ * A PDF cannot be made smaller in the browser the way a photo can, so it is
+ * held to a size near a shrunk scan's. Storage is 1 GB on the free plan, and
+ * the janmakshar PDFs stored by October 2026 averaged about 2.6 MB each, the
+ * space of fifteen shrunk scans.
+ */
+export const MAX_PDF_BYTES = 2 * 1024 * 1024;
 
 export const CERTIFICATE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];

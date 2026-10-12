@@ -19,7 +19,7 @@ import { RulesSheet } from '@/components/onboarding/rules-sheet';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { photoThumbnail, shrinkDocument, shrinkPhoto } from '@/lib/shrink-image';
 import {
-  BUCKETS, CERTIFICATE_TYPES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
+  BUCKETS, CERTIFICATE_TYPES, MAX_PDF_BYTES, MAX_PHOTO_BYTES, MAX_UPLOAD_BYTES, PHOTO_TYPES, objectPath, thumbnailPath,
 } from '@/lib/storage';
 import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
@@ -240,6 +240,12 @@ export function JoinFlow({
         }
         if (picked && picked.file.size > MAX_UPLOAD_BYTES) {
           return [field, t('ફાઇલ 10 MB કરતાં નાની હોવી જોઈએ.', 'The file must be under 10 MB.')];
+        }
+        if (picked && picked.file.type === 'application/pdf' && picked.file.size > MAX_PDF_BYTES) {
+          return [field, t(
+            'PDF 2 MB કરતાં નાની હોવી જોઈએ. તેના બદલે પાનાનો ફોટો પાડો.',
+            'A PDF must be under 2 MB. Take a photo of the page instead.',
+          )];
         }
       }
       // Required to send (20261004000600): families see the face before the biodata.

@@ -1637,6 +1637,10 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["app_settings"]["Row"];
       };
+      admin_usage: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
       attach_certificate: {
         Args: {
           p_application_id?: string;
@@ -1897,6 +1901,10 @@ export type Database = {
           p_id?: string;
         };
         Returns: undefined;
+      };
+      run_maintenance: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
       };
       save_biodata_draft: {
         Args: {

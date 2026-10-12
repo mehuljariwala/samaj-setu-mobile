@@ -4125,3 +4125,27 @@ button.bio-summary-card:focus-visible { outline: 3px solid var(--focus); outline
 @media (prefers-reduced-motion: reduce) {
   .skel, .route-loading-bar::after { animation-duration: 3s; }
 }
+
+/* Admin home: how close the platform is to the free plan's limits. */
+.usage-card {
+  margin-top: 10px; padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.usage-card summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.usage-card summary::-webkit-details-marker { display: none; }
+.usage-card summary > span:nth-child(2) { flex: 1; min-width: 0; }
+.usage-card summary b { display: block; font-size: 15px; font-weight: 800; }
+.usage-card summary small { display: block; color: var(--ink-3); font-size: 13px; }
+.usage-card .admin-account-icon { background: var(--ok-tint); color: var(--ok); }
+.usage-card.warn { border-color: var(--warn); background: var(--warn-tint); }
+.usage-card.warn .admin-account-icon { background: var(--surface); color: var(--warn); }
+.usage-card.bad { border-color: var(--bad); background: var(--bad-tint); }
+.usage-card.bad .admin-account-icon { background: var(--surface); color: var(--bad); }
+.usage-card dl { display: grid; gap: 8px; margin: 12px 0 0; }
+.usage-card dl > div { display: grid; grid-template-columns: 7.5em 1fr; align-items: center; gap: 10px; }
+.usage-card dt { font-size: 13.5px; font-weight: 700; }
+.usage-card dd { display: flex; align-items: center; gap: 8px; margin: 0; }
+.usage-card meter { flex: 1; height: 10px; }
+.usage-card dd small { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }

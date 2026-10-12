@@ -105,9 +105,45 @@ against a real stack:
       `x-vercel-cache: HIT`; confirm a link from three days ago returns 404.
 - [ ] Grant yourself `admin`, refresh the session, and confirm the queues load.
 
+## Staying on the free plan
+
+The trust cannot pay for hosting, and Supabase restricts a free project for the
+rest of the billing cycle once it passes a limit (it did in October 2026, at
+35 GB of egress against 5 GB). Vercel's Hobby plan pauses for 30 days instead.
+What keeps each limit in hand:
+
+| Limit | Free plan | What keeps it down |
+|---|---|---|
+| Supabase egress | 5 GB / month | Photos served from `/media` through the Vercel CDN, about one storage download per photo per day ([security model](security-model.md)); `public.file_egress` stops photo downloads for the day at `FILE_EGRESS_DAILY_MB` (80); Discover and User management fetch their lists once and filter in the browser; Discover asks only for card fields; `staleTimes.dynamic` (next.config.ts) reuses a screen opened in the last two minutes |
+| Supabase file storage | 1 GB | Photos and documents shrunk in the browser before upload (`lib/shrink-image.ts`); PDFs capped at 2 MB; the nightly job deletes files nothing refers to |
+| Supabase database | 500 MB | The nightly job drops page-view records older than 90 days |
+| Free project paused after 7 idle days | — | The nightly job's request |
+| Vercel Hobby | 100 GB transfer, 1M requests, 1M invocations, 4 CPU-hours | Photos cached by the CDN and by phones for up to two days; profile cards are not prefetched |
+
+The admin home shows a **Free plan** card (`public.admin_usage()`): files,
+database and today's photo bytes against their limits. It opens and turns amber
+past 70%, red past 90%. Total egress, which includes database answers, is only
+on Supabase's usage page.
+
+If files approach the limit anyway, three levers, in order:
+
+1. Run `scripts/shrink-storage.mjs <backup-folder>` (then `--apply`) to bring
+   stored files down to the current upload settings. It works from the
+   originals in the backup folder and backs up anything new first.
+2. Lower `FILE_EGRESS_DAILY_MB` in Vercel if egress, not storage, is the worry.
+3. Settle certificate retention (spec §14, `app_settings.certificate_retention_days`)
+   so documents of decided applications can be deleted. Nothing does this yet.
+
 ## Recurring jobs
 
-None are scheduled. Two are available:
+**Nightly upkeep** — Vercel cron (`vercel.json`) calls `GET /api/maintenance`
+at 21:30 UTC (03:00 IST). It runs `public.run_maintenance()`, at most once in
+20 hours however often it is called, which drops page views older than 90 days
+and lists stored files with no live row (7 days after upload, 30 days after
+the row was removed); the route then deletes those through the Storage API.
+Set `CRON_SECRET` in Vercel and only the cron can call it.
+
+Two more are available but not scheduled:
 
 * `public.expire_stale_interests()` — a no-op until
   `app_settings.interest_expiry_days` is set, which spec §14 leaves unsettled.
