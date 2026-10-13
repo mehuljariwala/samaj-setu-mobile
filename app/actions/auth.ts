@@ -109,6 +109,16 @@ export async function signInAction(
       throw new AppError('forbidden', 'This account is switched off. Please call a samaj volunteer.', ['switched_off']);
     }
 
+    // Only Supabase's own answer for a wrong number or password means that.
+    // Anything else (the project switched off over a free-plan limit, as on
+    // 12 October 2026; too many tries; no connection) was shown as a wrong
+    // password too, and families who had typed theirs right asked volunteers
+    // for resets. Say it is the site, and record nothing against the account.
+    if (error && error.code !== 'invalid_credentials') {
+      console.error('sign-in unavailable', error.status, error.code, error.message);
+      throw new AppError('unknown', 'Your password could not be checked just now. Please try again in a few minutes.', ['unavailable']);
+    }
+
     if (error || !data.user) {
       trackFailedSignIn(phone, 'wrong_password');
       // Deliberately the same message for a wrong number and a wrong password,
@@ -156,8 +166,10 @@ export async function changePasswordAction(input: { current: string; next: strin
     if (!user?.phone) throw new AppError('unauthenticated', 'Sign in to continue.');
 
     // GoTrue keeps the phone without its plus sign.
+    // Only a wrong-password answer blames the password, as in signInAction.
     const { error: wrong } = await supabase.auth.signInWithPassword({ phone: `+${user.phone}`, password: input.current });
-    if (wrong) throw new AppError('forbidden', 'The current password is not right.', ['current']);
+    if (wrong?.code === 'invalid_credentials') throw new AppError('forbidden', 'The current password is not right.', ['current']);
+    if (wrong) throw new AppError('unknown', wrong.message);
 
     const { error } = await supabase.auth.updateUser({ password: input.next });
     if (error) throw new AppError('unknown', error.message);

@@ -54,15 +54,25 @@ export function AuthForm({ lang }: { lang: Lang }) {
   // The server speaks in codes; the one a member actually meets here is said
   // in their language. Anything else falls back to the server's own wording.
   const switchedOff = serverError?.detail[0] === 'switched_off';
+  // The site, not the member: Supabase down or over a limit (signInAction).
+  const unavailable = serverError?.detail[0] === 'unavailable';
   const serverMessage = switchedOff
     ? t('આ એકાઉન્ટ બંધ કરવામાં આવ્યું છે. કૃપા કરીને સમાજના સ્વયંસેવકને ફોન કરો.', 'This account is switched off. Please call a samaj volunteer.')
-    : serverError?.code === 'forbidden'
-      ? t('મોબાઇલ નંબર અને પાસવર્ડ મેળ ખાતા નથી.', 'That mobile number and password do not match.')
-      : serverError?.message ?? '';
+    : unavailable
+      ? t(
+        'હાલ પાસવર્ડ ચકાસી શકાતો નથી. થોડી મિનિટ પછી ફરી પ્રયાસ કરો — પાસવર્ડ બદલવાની જરૂર નથી.',
+        'Your password could not be checked just now. Please try again in a few minutes — there is no need to reset it.',
+      )
+      : serverError?.code === 'forbidden'
+        ? t('મોબાઇલ નંબર અને પાસવર્ડ મેળ ખાતા નથી.', 'That mobile number and password do not match.')
+        : serverError?.message ?? '';
 
   const error = localError
     ?? (serverError
-      ? { field: switchedOff ? 'password' : (serverError.detail[0] as Field | undefined) ?? 'password', message: serverMessage }
+      ? {
+        field: unavailable ? null : switchedOff ? 'password' : (serverError.detail[0] as Field | undefined) ?? 'password',
+        message: serverMessage,
+      }
       : null);
 
   const fail = (field: Field, message: string) => {
