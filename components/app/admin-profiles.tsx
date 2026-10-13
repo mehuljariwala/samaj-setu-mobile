@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { RotateCcw, Search, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import { RotateCcw, Search, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 
 import { ProfileSelects } from '@/components/app/profile-selects';
 import { fieldByKey } from '@/components/biodata/model';
@@ -53,6 +54,47 @@ function inAgeBand(age: number | null, band: AgeBand) {
   return age >= 36;
 }
 
+/*
+ * "More filters": birth year, study, work and the other biodata answers
+ * (admin_profiles returns them from the latest biodata). Dropdowns match an
+ * answer exactly; the three text boxes find the words anywhere in it, so
+ * "computer" finds "B.E. Computer" and "bank" finds a bank's name.
+ */
+const MORE_KEYS = ['year', 'edu', 'deg', 'work', 'job', 'marital', 'diet', 'height', 'sect', 'mangal', 'native'] as const;
+
+/** Dropdowns over a biodata choice: the URL key, then the answer it reads. */
+const CHOICES = [
+  ['edu', 'education'], ['work', 'work'], ['marital', 'marital'],
+  ['diet', 'diet'], ['sect', 'sect'], ['mangal', 'mangal'],
+] as const;
+
+/** Height bands in centimetres, the same as Discover's. */
+const HEIGHTS: Record<string, [number, number]> = {
+  u152: [0, 151], '152-163': [152, 163], '164-173': [164, 173], '174-183': [174, 183], '184+': [184, 400],
+};
+
+const contains = (answers: (string | null)[], words: string) =>
+  answers.some((answer) => answer?.toLowerCase().includes(words.toLowerCase()));
+
+function passesMore(row: ProfileRow, one: (key: string) => string | undefined) {
+  const height = HEIGHTS[one('height') ?? ''];
+  const deg = one('deg');
+  const job = one('job');
+  const native = one('native');
+  return (!one('year') || String(row.birth_year) === one('year'))
+    && CHOICES.every(([key, answer]) => !one(key) || row[answer] === one(key))
+    && (!height || (row.height !== null && row.height >= height[0] && row.height <= height[1]))
+    && (!deg || contains([row.degree], deg))
+    && (!job || contains([row.role, row.employer], job))
+    && (!native || contains([row.native], native));
+}
+
+/** A stored choice ("master", "bhagat") in words. */
+function choiceLabel(t: T, key: string, value: string | null) {
+  const option = value ? fieldByKey.get(key)?.options?.find((entry) => entry[0] === value) : null;
+  return option ? t(option[1], option[2]) : value;
+}
+
 /** Boys on one side, girls on the other, under one set of filters. */
 export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }) {
   const t = translator(lang);
@@ -73,7 +115,8 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
     && (skip === 'missing' || !missing || missingFor(row).includes(missing))
     && (!city || row.city === city)
     && (!community || row.sub_community === community)
-    && (!age || inAgeBand(row.age, age));
+    && (!age || inAgeBand(row.age, age))
+    && passesMore(row, one);
 
   const shown = rows.filter((row) => passes(row));
   // Three groups: boys, girls of the samaj, and Sanatan daughters from outside
@@ -92,7 +135,7 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
 
   // The URL as it stands, for links that change one filter and keep the rest.
   const current: Record<string, string> = {};
-  for (const key of ['q', 'side', 'stage', 'missing', 'city', 'community', 'age']) {
+  for (const key of ['q', 'side', 'stage', 'missing', 'city', 'community', 'age', ...MORE_KEYS]) {
     const value = one(key);
     if (value) current[key] = value;
   }
@@ -188,6 +231,8 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
         ]}
       />
 
+      <MoreFilters lang={lang} rows={rows} params={current} />
+
       {filtered && (
         <FilterLink className="intro-login profile-clear" href={query ? `/admin/users?q=${encodeURIComponent(query)}` : '/admin/users'}>
           <RotateCcw size={16} /><b>{t('ફિલ્ટર સાફ કરો', 'Clear filters')}</b>
@@ -240,6 +285,11 @@ function ProfileMini({ row, t, lang }: { row: ProfileRow; t: T; lang: Lang }) {
         <b>{row.full_name}</b>
         <small>{[row.age !== null ? t(`${row.age} વર્ષ`, `${row.age} yrs`) : null, row.city].filter(Boolean).join(' · ')}</small>
         <small className="profile-mini-code">{row.public_code}</small>
+        {(row.degree || row.education || row.role) && (
+          <small className="profile-mini-work">
+            {[row.degree ?? choiceLabel(t, 'education', row.education), row.role].filter(Boolean).join(' · ')}
+          </small>
+        )}
         <span className={`queue-tag ${tag.tone}`}><tag.Icon size={13} strokeWidth={2.4} />{tag.label}</span>
         {gaps.length > 0 && (
           <span className="profile-mini-gaps">
@@ -253,6 +303,136 @@ function ProfileMini({ row, t, lang }: { row: ProfileRow; t: T; lang: Lang }) {
         )}
       </Link>
     </li>
+  );
+}
+
+/** The panel behind the "More filters" button; closed unless one of its filters is on. */
+function MoreFilters({ lang, rows, params }: { lang: Lang; rows: ProfileRow[]; params: Record<string, string> }) {
+  const t = translator(lang);
+  const active = MORE_KEYS.filter((key) => params[key]).length;
+  const [open, setOpen] = useState(active > 0);
+
+  // A choice is a step back can undo; typing replaces, so Back is not a letter at a time.
+  const set = (key: string, value: string, replace = false) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const qs = next.toString();
+    const href = qs ? `/admin/users?${qs}` : '/admin/users';
+    if (replace) window.history.replaceState(null, '', href);
+    else window.history.pushState(null, '', href);
+  };
+
+  const fromModel = (key: string) =>
+    (fieldByKey.get(key)?.options ?? []).map(([value, gu, en]) => ({ value, label: t(gu, en) }));
+  const years = [...new Set(rows.map((row) => row.birth_year).filter((year): year is number => year !== null))]
+    .sort((a, b) => b - a)
+    .map((year) => ({ value: String(year), label: String(year) }));
+
+  const dropdowns: { key: (typeof MORE_KEYS)[number]; label: string; options: { value: string; label: string }[] }[] = [
+    { key: 'year', label: t('જન્મ વર્ષ', 'Birth year'), options: years },
+    { key: 'edu', label: t('લાયકાત', 'Qualification'), options: fromModel('education') },
+    { key: 'work', label: t('કામ', 'Work'), options: fromModel('work') },
+    { key: 'marital', label: t('વૈવાહિક સ્થિતિ', 'Marital status'), options: fromModel('marital') },
+    {
+      key: 'height', label: t('ઊંચાઈ', 'Height'), options: [
+        { value: 'u152', label: t('5′ થી ઓછી', 'Under 5′') },
+        { value: '152-163', label: '5′ – 5′4″' },
+        { value: '164-173', label: '5′5″ – 5′8″' },
+        { value: '174-183', label: '5′9″ – 6′' },
+        { value: '184+', label: t('6′ થી વધુ', 'Over 6′') },
+      ],
+    },
+    { key: 'diet', label: t('આહાર', 'Diet'), options: fromModel('diet') },
+    { key: 'sect', label: t('ભક્ત / જગત', 'Sect'), options: fromModel('sect') },
+    { key: 'mangal', label: t('મંગળ', 'Mangal'), options: fromModel('mangal') },
+  ];
+
+  return (
+    <>
+      <div className="member-chips more-filters">
+        <button
+          type="button"
+          className={`chip ${open || active > 0 ? 'on' : ''}`}
+          aria-expanded={open}
+          aria-controls="profile-more"
+          onClick={() => setOpen((value) => !value)}
+        >
+          <SlidersHorizontal size={14} />
+          {t('વધુ ફિલ્ટર', 'More filters')}
+          {active > 0 && <i>{active}</i>}
+        </button>
+      </div>
+
+      {open && (
+        <div id="profile-more" className="discover-panel">
+          {dropdowns.map((dropdown) => (
+            <label key={dropdown.key} className={`profile-select${params[dropdown.key] ? ' on' : ''}`}>
+              <span>{dropdown.label}</span>
+              <select value={params[dropdown.key] ?? ''} onChange={(event) => set(dropdown.key, event.target.value)}>
+                <option value="">{t('બધા', 'Any')}</option>
+                {dropdown.options.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <TextFilter
+            label={t('અભ્યાસ (ડિગ્રી / વિષય)', 'Studied (degree / subject)')}
+            placeholder={t('જેમ કે B.Com, કમ્પ્યુટર', 'e.g. B.Com, computer')}
+            value={params.deg ?? ''}
+            onChange={(value) => set('deg', value, true)}
+          />
+          <TextFilter
+            label={t('વ્યવસાય / કંપની', 'Job / company')}
+            placeholder={t('જેમ કે એન્જિનિયર, બેંક', 'e.g. engineer, bank')}
+            value={params.job ?? ''}
+            onChange={(value) => set('job', value, true)}
+          />
+          <TextFilter
+            label={t('મૂળ વતન', 'Native place')}
+            placeholder={t('ગામ / શહેર', 'Village or town')}
+            value={params.native ?? ''}
+            onChange={(value) => set('native', value, true)}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Words to look for, kept as typed while the address follows. */
+function TextFilter({
+  label, placeholder, value, onChange,
+}: {
+  label: string;
+  placeholder: string;
+  /** The words in the address now. */
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  // "Clear filters" empties the address; empty the box with it.
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    if (value !== text.trim()) setText(value);
+  }
+
+  return (
+    <label className={`profile-select wide${value ? ' on' : ''}`}>
+      <span>{label}</span>
+      <input
+        type="search"
+        value={text}
+        placeholder={placeholder}
+        enterKeyHint="search"
+        onChange={(event) => {
+          setText(event.target.value);
+          onChange(event.target.value.trim());
+        }}
+      />
+    </label>
   );
 }
 
