@@ -52,13 +52,17 @@ declare
   v_boy    uuid;
   v_dir    jsonb;
 begin
-  -- A son cannot be a Sanatan daughter.
+  -- A son can be ticked too (20261021000200); this one is a samaj boy, so the
+  -- box goes back off.
   perform pg_temp.as_user(v_rajesh);
   v_start := public.start_registration('son', 'Varun Notsanatan', date '1994-06-06', 'male', 'Father', null, 'Surat', 'Surat');
   v_boy := (v_start ->> 'candidate_id')::uuid;
   perform pg_temp.ok(
-    pg_temp.fails(v_rajesh, format('select public.set_sanatan(%L, true)', v_boy), 'invalid:%'),
-    'only a daughter can be registered as a Sanatan daughter');
+    not pg_temp.fails(v_rajesh, format('select public.set_sanatan(%L, true)', v_boy), '%'),
+    'a son can be registered as Sanatan');
+  perform pg_temp.ok((select is_sanatan from public.candidates where id = v_boy), 'the box marks him as Sanatan');
+  perform pg_temp.as_user(v_rajesh);
+  perform public.set_sanatan(v_boy, false);
 
   -- A daughter from outside the samaj.
   perform pg_temp.as_user(v_meena);
@@ -81,7 +85,7 @@ begin
   -- The samaj biodata alone is not enough for her, and Khatri fields are not asked.
   perform public.save_biodata_draft(v_girl, jsonb_build_object(
     'gender', 'female', 'height', '160', 'marital', 'never', 'sect', 'bhagat',
-    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876502222'));
+    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876502222', 'address', '1, Khatri Mohalla, Surat'));
   perform pg_temp.ok(
     (select data ->> 'origin' from public.biodata_revisions where candidate_id = v_girl) = 'sanatan',
     'her biodata is stamped as a Sanatan biodata');

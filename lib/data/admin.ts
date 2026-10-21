@@ -180,6 +180,26 @@ export async function getProfilePhotos(candidateId: string) {
 }
 
 /** The registration behind a biodata, so its review can link to the documents. */
+/**
+ * Whether a family running this candidate is switched off. Approving its
+ * biodata switches it back on (migration 20261021000300), which the admin
+ * deciding should know before they press approve.
+ */
+export async function isFamilySwitchedOff(candidateId: string): Promise<boolean> {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  const rows = unwrap(
+    await supabase
+      .from('candidate_memberships')
+      .select('accounts!inner(status)')
+      .eq('candidate_id', candidateId)
+      .is('revoked_at', null)
+      .eq('accounts.status', 'disabled')
+      .limit(1),
+  );
+  return rows.length > 0;
+}
+
 export async function getApplicationIdFor(candidateId: string): Promise<string | null> {
   await requireStaff();
   const supabase = await createSupabaseServerClient();

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import {
-  ArrowLeft, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, Eye, FileCheck2, Hourglass, Pencil, X, type LucideIcon,
+  ArrowLeft, Check, CheckCheck, ChevronRight, CircleHelp, Clock3, Eye, FileCheck2, Hourglass, Pencil, Power, X,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
@@ -8,8 +9,9 @@ import { BiodataDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
 import { GenderRow } from '@/components/app/gender-move';
+import { sanatanLabel } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
-import { getApplicationIdFor, getBiodataDetail, getProfilePhotos } from '@/lib/data/admin';
+import { getApplicationIdFor, getBiodataDetail, getProfilePhotos, isFamilySwitchedOff } from '@/lib/data/admin';
 import { reviewActionLabel } from '@/lib/admin-labels';
 import { ageFrom } from '@/lib/age';
 import { whatChanged } from '@/lib/biodata-changes';
@@ -57,8 +59,12 @@ export default async function BiodataReviewPage({
 
   const detail = await getBiodataDetail(id) as unknown as Detail;
   const { revision, candidate, community, history, published } = detail;
-  const [applicationId, photos] = await Promise.all([getApplicationIdFor(candidate.id), getProfilePhotos(candidate.id)]);
   const decidable = revision.status === 'submitted' || revision.status === 'under_review';
+  const [applicationId, photos, switchedOff] = await Promise.all([
+    getApplicationIdFor(candidate.id),
+    getProfilePhotos(candidate.id),
+    decidable ? isFamilySwitchedOff(candidate.id) : false,
+  ]);
   const status = revisionStatus(t, revision.status, candidate.discoverable);
   const age = ageFrom(candidate.date_of_birth);
   // A change to an approved profile, still to be decided or being fixed.
@@ -88,7 +94,7 @@ export default async function BiodataReviewPage({
             <small>{candidate.public_code}</small>
             <h1>{candidate.full_name}</h1>
             <span className={`queue-tag ${status.tone}`}><status.Icon size={14} strokeWidth={2.4} />{status.label}</span>
-            {candidate.is_sanatan && <span className="sanatan-tag">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>}
+            {candidate.is_sanatan && <span className="sanatan-tag">{t(...sanatanLabel(candidate.gender))}</span>}
           </div>
           <p className="admin-person-facts">{facts}</p>
         </div>
@@ -111,7 +117,6 @@ export default async function BiodataReviewPage({
             candidateId={candidate.id}
             name={candidate.full_name}
             gender={candidate.gender}
-            sanatan={candidate.is_sanatan}
             canMove={isAdmin(context)}
           />
         </dl>
@@ -177,6 +182,18 @@ export default async function BiodataReviewPage({
           communityConfirmed={Boolean(community?.confirmed_at)}
           age={age}
         />
+
+        {decidable && switchedOff && (
+          <p className="admin-alert">
+            <Power size={18} />
+            <span>
+              {t(
+                'આ પરિવારનું એકાઉન્ટ બંધ છે. આ બાયોડેટા મંજૂર કરશો તો એકાઉન્ટ ફરી ચાલુ થશે અને પ્રોફાઇલ ફરી દેખાશે.',
+                'This family’s account is switched off. Approving this biodata switches it back on and shows the profile again.',
+              )}
+            </span>
+          </p>
+        )}
 
         {decidable ? (
           <BiodataDecision

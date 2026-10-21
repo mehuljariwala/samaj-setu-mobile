@@ -78,6 +78,29 @@ export async function loadApplicantPage(): Promise<PageContext> {
 }
 
 /**
+ * A family an admin switched off, but did not block, may come back on the same
+ * number: it opens its own biodata, updates it and sends it back, and the
+ * admin's approval switches it on again (migration 20261021000300). This is
+ * the verified candidate it would update, or null when that path is closed —
+ * blocked, staff, or never approved.
+ */
+export function returningCandidate({ context, acting }: PageContext): CandidateSummary | null {
+  if (context.access_state !== 'suspended' || context.account?.status !== 'disabled') return null;
+  if (context.roles.length > 0) return null;
+  if (acting?.identity_status === 'verified') return acting;
+  return context.candidates.find((candidate) => candidate.identity_status === 'verified') ?? null;
+}
+
+/** The biodata form: applicants, members, and a switched-off family coming back. */
+export async function loadBiodataPage(): Promise<PageContext & { returning: CandidateSummary | null }> {
+  const page = await load();
+  if (page.context.access_state === 'signed_out') redirect('/sign-in');
+  const returning = returningCandidate(page);
+  if (page.context.access_state === 'suspended' && !returning) redirect('/account-off');
+  return { ...page, returning };
+}
+
+/**
  * Member screens. Spec §2: these open only once a candidate has been verified,
  * and the first approved child is enough to unlock them for a parent.
  */

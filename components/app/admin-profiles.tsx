@@ -119,8 +119,8 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
     && passesMore(row, one);
 
   const shown = rows.filter((row) => passes(row));
-  // Three groups: boys, girls of the samaj, and Sanatan daughters from outside
-  // it — a Sanatan daughter is counted only in her own tab.
+  // Three groups: boys and girls of the samaj, and the Sanatan sons and
+  // daughters from outside it — who are counted only in their own tab.
   const groups = {
     boys: shown.filter((row) => row.gender === 'male' && !row.is_sanatan),
     girls: shown.filter((row) => row.gender === 'female' && !row.is_sanatan),
@@ -243,7 +243,7 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
         {([
           ['boys', t('છોકરાઓ', 'Boys')],
           ['girls', t('છોકરીઓ', 'Girls')],
-          ['sanatan', t('સનાતન દીકરીઓ', 'Sanatan daughters')],
+          ['sanatan', t('સનાતન દીકરા-દીકરીઓ', 'Sanatan sons and daughters')],
         ] as const).map(([key, label]) => (
           <FilterLink
             key={key}

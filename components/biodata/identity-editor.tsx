@@ -18,14 +18,12 @@ export type IdentityDetails = { name: string; dob: string; father: string; city:
  * against the documents already on file.
  */
 export function IdentityEditor({
-  lang, candidateId, current, genderLocked, onSaved, onCancel,
+  lang, candidateId, current, onSaved, onCancel,
 }: {
   lang: Lang;
   candidateId: string;
   /** What the family sees now: the approved details with any earlier change over them. */
   current: IdentityDetails;
-  /** A Sanatan daughter is a girl; only an admin changes that. */
-  genderLocked: boolean;
   onSaved: (pending: DetailChanges) => void;
   onCancel: () => void;
 }) {
@@ -50,7 +48,7 @@ export function IdentityEditor({
     const result = await proposeDetailChangesAction(candidateId, {
       full_name: name.trim(),
       date_of_birth: dob,
-      gender: genderLocked ? undefined : gender || undefined,
+      gender: gender || undefined,
       father_name: father.trim() || undefined,
       city: city || undefined,
     });
@@ -79,20 +77,18 @@ export function IdentityEditor({
         <input id="edit-dob" type="date" max={LATEST_BIRTH_DATE} value={dob} onChange={(e) => { setDob(e.target.value); setError(''); }} />
       </div>
 
-      {!genderLocked && (
-        <fieldset className="auth-choices two spaced">
-          <legend className="auth-label">{t('લિંગ', 'Gender')}</legend>
-          {([
-            ['female', t('સ્ત્રી', 'Female')],
-            ['male', t('પુરુષ', 'Male')],
-          ] as const).map(([value, label]) => (
-            <label key={value} className={`auth-choice${gender === value ? ' on' : ''}`}>
-              <input type="radio" name="edit-gender" value={value} checked={gender === value} onChange={() => setGender(value)} />
-              <span>{label}</span>
-            </label>
-          ))}
-        </fieldset>
-      )}
+      <fieldset className="auth-choices two spaced">
+        <legend className="auth-label">{t('લિંગ', 'Gender')}</legend>
+        {([
+          ['female', t('સ્ત્રી', 'Female')],
+          ['male', t('પુરુષ', 'Male')],
+        ] as const).map(([value, label]) => (
+          <label key={value} className={`auth-choice${gender === value ? ' on' : ''}`}>
+            <input type="radio" name="edit-gender" value={value} checked={gender === value} onChange={() => setGender(value)} />
+            <span>{label}</span>
+          </label>
+        ))}
+      </fieldset>
 
       <label className="auth-label spaced" htmlFor="edit-father">{t('પિતાનું પૂરું નામ', 'Father’s full name')}</label>
       <div className="auth-input">

@@ -54,7 +54,10 @@ export function UserControls({
     {
       key: 'disabled', tone: 'warn', Icon: CirclePause,
       title: t('બંધ કરો', 'Disable'),
-      body: t('હાલ પૂરતું બંધ — વિરામ, નંબર બદલાયો. કારણ વૈકલ્પિક.', 'Off for now — a break, a changed number. Reason optional.'),
+      body: t(
+        'હાલ પૂરતું બંધ — લગ્ન થયા, વિરામ. પ્રોફાઇલ છુપાય; પરિવાર લૉગ ઇન કરીને ફક્ત બાયોડેટા અપડેટ કરી મોકલી શકે, મંજૂર થતાં ફરી ચાલુ. કારણ વૈકલ્પિક.',
+        'Off for now — married, a break. Profiles are hidden; the family can sign in only to update the biodata and send it, and approving it switches them back on. Reason optional.',
+      ),
     },
     {
       key: 'blocked', tone: 'bad', Icon: Ban,
@@ -227,10 +230,10 @@ export function UserControls({
               {t('WhatsApp પર મોકલો', 'Send on WhatsApp')}
             </a>
             <small>{t('આ પાસવર્ડ ફરી દેખાશે નહીં — હમણાં જ મોકલો.', 'This password will not be shown again — send it now.')}</small>
-            {current !== 'active' && (
+            {current === 'blocked' && (
               <p className="auth-hint">
                 <CircleHelp size={15} />
-                {t('એકાઉન્ટ હજી બંધ છે — ઉપરથી ચાલુ કરો, નહીં તો લૉગ ઇન નહીં થાય.', 'The account is still switched off — enable it above or they still cannot sign in.')}
+                {t('એકાઉન્ટ હજી બ્લૉક છે — ઉપરથી ચાલુ કરો, નહીં તો લૉગ ઇન નહીં થાય.', 'The account is still blocked — enable it above or they still cannot sign in.')}
               </p>
             )}
             <button type="button" className="text-button muted" onClick={() => setIssued(null)}>

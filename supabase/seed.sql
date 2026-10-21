@@ -116,7 +116,7 @@ as $$
     'gender', p_gender, 'height', '168', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', p_surname, 'mosal', p_mosal,
     'education', 'bachelor', 'work', 'employed',
-    'contactKind', 'father', 'phone', p_phone)
+    'contactKind', 'father', 'phone', p_phone, 'address', '1, Khatri Mohalla, Surat')
 $$;
 
 -- ------------------------------------------------------------------ staff --
@@ -173,7 +173,7 @@ begin
     'mother', 'Nayana Shah', 'native', 'Surat', 'diet', 'vegetarian',
     'brothers', '0', 'sisters', '1',
     'birthplace', 'Surat', 'birthtime', '06:20', 'rashi', 'Pisces', 'gan', 'dev', 'mangal', 'no',
-    'contactKind', 'father', 'phone', '9876543210'));
+    'contactKind', 'father', 'phone', '9876543210', 'address', '1, Khatri Mohalla, Surat'));
 
   -- Aarav also holds his own account alongside his father's.
   insert into public.candidate_memberships
@@ -192,7 +192,7 @@ begin
     'mother', 'Bhavna Desai', 'native', 'Surat', 'diet', 'vegetarian',
     'brothers', '1', 'sisters', '0',
     'birthplace', 'Surat', 'birthtime', '11:45', 'rashi', 'Gemini', 'gan', 'manushya', 'mangal', 'unknown',
-    'contactKind', 'self', 'phone', '9876500012'));
+    'contactKind', 'self', 'phone', '9876500012', 'address', '1, Khatri Mohalla, Surat'));
 
   c_riya := pg_temp.verified_candidate(
     v_riya, v_admin, 'self', 'રિયા મહેતા', date '2001-01-19', 'female', 'કિરીટ મહેતા', 'Ahmedabad', jsonb_build_object(
@@ -203,7 +203,7 @@ begin
     'mother', 'Rekha Mehta', 'native', 'Ahmedabad', 'diet', 'jain',
     'brothers', '0', 'sisters', '2',
     'birthplace', 'Ahmedabad', 'birthtime', '19:05', 'rashi', 'Capricorn', 'gan', 'dev', 'mangal', 'no',
-    'contactKind', 'self', 'phone', '9876500013'));
+    'contactKind', 'self', 'phone', '9876500013', 'address', '1, Khatri Mohalla, Surat'));
 
   -- Nidhi's mosal matches Aarav's, so spec §7's hard exclusion applies to that
   -- pair and to nobody else. The seed exists to make that visible.
@@ -216,7 +216,7 @@ begin
     'mother', 'Jyoti Patel', 'native', 'Surat', 'diet', 'vegetarian',
     'brothers', '2', 'sisters', '0',
     'birthplace', 'Surat', 'birthtime', '04:30', 'rashi', 'Scorpio', 'gan', 'rakshas', 'mangal', 'yes',
-    'contactKind', 'self', 'phone', '9876500014'));
+    'contactKind', 'self', 'phone', '9876500014', 'address', '1, Khatri Mohalla, Surat'));
 
   -- --------------------------------------------- an application under review
   perform pg_temp.as_user(v_meena);

@@ -27,6 +27,7 @@ import { translator } from '@/lib/i18n';
 import { isValidLocalPhone } from '@/lib/phone';
 import { RULES_VERSION } from '@/lib/rules';
 import { CITIES, LATEST_BIRTH_DATE } from '@/lib/candidate-details';
+import { sanatanLabel } from '@/components/biodata/model';
 
 const MIN_PASSWORD = 8;
 
@@ -38,7 +39,7 @@ export type ExistingApplication = {
   fatherName: string;
   city: string;
   gender: 'male' | 'female';
-  /** Ticked as a સનાતન દીકરી, a daughter from outside the Khatri samaj. */
+  /** Ticked as સનાતન: a son or daughter from another Hindu caste. */
   isSanatan: boolean;
   relationship: string;
   documents: AttachedDocuments;
@@ -323,8 +324,8 @@ export function JoinFlow({
         return fail(undefined, t('કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.', 'Something went wrong. Please try again.'));
       }
 
-      // Before the biodata, which asks different things of a Sanatan daughter.
-      const wantSanatan = effectiveGender === 'female' && sanatan;
+      // Before the biodata, which asks different things of a Sanatan profile.
+      const wantSanatan = sanatan;
       if (wantSanatan !== Boolean(existing?.isSanatan)) {
         const marked = await setSanatanAction(candidateId, wantSanatan);
         if (!marked.ok) return fail(undefined, marked.message);
@@ -562,18 +563,23 @@ export function JoinFlow({
                 </fieldset>
               )}
 
-              {/* Off by default; only ever for a girl. */}
-              {effectiveGender === 'female' && (
+              {/* Off by default; for a son or a daughter once the gender is known. */}
+              {effectiveGender && (
                 <label className={`bio-confirm sanatan-box${sanatan ? ' on' : ''}`}>
                   <input type="checkbox" checked={sanatan} onChange={(event) => setSanatanBox(event.target.checked)} />
                   <i aria-hidden="true"><Check size={14} strokeWidth={3.5} /></i>
                   <span>
-                    <b>{t('સનાતન દીકરી', 'Sanatan daughter')}</b>
+                    <b>{t(...sanatanLabel(effectiveGender))}</b>
                     <small>
-                      {t(
-                        'ખત્રી સમાજ બહારની દીકરી હોય તો જ ટિક કરો. બાયોડેટામાં જ્ઞાતિ, સરનામું જેવી થોડી વધુ વિગતો પૂછાશે.',
-                        'Tick only if the girl is from outside the Khatri samaj. The biodata then asks a few more details, like caste and address.',
-                      )}
+                      {effectiveGender === 'male'
+                        ? t(
+                          'ખત્રી સમાજ બહારનો, અન્ય હિન્દુ જ્ઞાતિનો દીકરો હોય તો જ ટિક કરો. બાયોડેટામાં જ્ઞાતિ જેવી થોડી વધુ વિગતો પૂછાશે.',
+                          'Tick only if the boy is from another Hindu caste, outside the Khatri samaj. The biodata then asks a few more details, like caste.',
+                        )
+                        : t(
+                          'ખત્રી સમાજ બહારની, અન્ય હિન્દુ જ્ઞાતિની દીકરી હોય તો જ ટિક કરો. બાયોડેટામાં જ્ઞાતિ જેવી થોડી વધુ વિગતો પૂછાશે.',
+                          'Tick only if the girl is from another Hindu caste, outside the Khatri samaj. The biodata then asks a few more details, like caste.',
+                        )}
                     </small>
                   </span>
                 </label>

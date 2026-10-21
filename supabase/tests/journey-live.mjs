@@ -93,7 +93,7 @@ const biodataFor = (gender, mosal, extra = {}) => ({
   gender, height: gender === 'male' ? '176' : '163', marital: 'never',
   community: 'surti', sect: 'bhagat', surname: 'Testsurname', mosal,
   education: 'master', work: 'employed', role: 'Engineer',
-  contactKind: 'self', phone: '9812345678',
+  contactKind: 'self', phone: '9812345678', address: '1, Khatri Mohalla, Surat',
   ...extra,
 });
 

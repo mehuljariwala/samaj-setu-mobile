@@ -3737,6 +3737,7 @@ body:has(.capture-dialog[open]) { overflow: hidden; }
 .account-off { display: grid; gap: 14px; justify-items: start; padding-top: 28px; }
 .account-off .page-title p { margin-top: 8px; color: var(--ink-2); font-size: 16px; line-height: 1.55; }
 .account-off > .primary { justify-self: stretch; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.account-off > .intro-login { justify-self: stretch; }
 .account-off > .text-button { justify-self: center; }
 .account-off-icon {
   display: flex; align-items: center; justify-content: center;

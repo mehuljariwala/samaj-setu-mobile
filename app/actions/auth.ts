@@ -101,9 +101,10 @@ export async function signInAction(
       password,
     });
 
-    // An admin switched this account off (admin_set_account_status bans the
-    // auth user). Said plainly, so they call a volunteer instead of retrying
-    // a password that is not the problem.
+    // An admin blocked this account, or switched off a staff account
+    // (admin_set_account_status bans the auth user; a family that is only
+    // switched off may still sign in). Said plainly, so they call a volunteer
+    // instead of retrying a password that is not the problem.
     if (error?.code === 'user_banned') {
       trackFailedSignIn(phone, 'switched_off');
       throw new AppError('forbidden', 'This account is switched off. Please call a samaj volunteer.', ['switched_off']);

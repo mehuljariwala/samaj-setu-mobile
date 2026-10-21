@@ -19,8 +19,8 @@ import { formatPhone } from '@/lib/org';
 import { ageFrom, formatDate } from '@/lib/age';
 import { isValidLocalPhone, normalizeLocalPhone } from '@/lib/phone';
 import {
-  validateKeys, completion, displayValue, fieldByKey, isRequired, isSanatan, persistable, SAMAJ_ONLY, SANATAN_ONLY,
-  type Values, type Field,
+  allFields, validateKeys, completion, displayValue, fieldByKey, isAsked, isRequired, isSanatan, persistable,
+  SAMAJ_ONLY, SANATAN_ONLY, type Values, type Field,
 } from './model';
 import { IdentityEditor, type IdentityDetails } from './identity-editor';
 
@@ -62,12 +62,12 @@ type Props = {
  * dropdowns. Steps are a layout over model.ts, which still owns validation.
  */
 const STEPS = [
-  { id: 'about', Icon: UserRound, keys: ['gender', 'height', 'marital', 'diet'] },
-  { id: 'community', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'mosal'] },
+  { id: 'about', Icon: UserRound, keys: ['gender', 'height', 'marital', 'divorceDate', 'divorceDetails', 'widowedDate', 'diet'] },
+  { id: 'community', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'shakh', 'mosal'] },
   { id: 'work', Icon: GraduationCap, keys: ['education', 'degree', 'work', 'role', 'employer'] },
   { id: 'family', Icon: Heart, keys: ['mother', 'fatherWork', 'native', 'hometown', 'state', 'brothers', 'sisters'] },
   { id: 'birth', Icon: Clock3, keys: ['birthplace', 'birthtime', 'rashi', 'gan', 'mangal'], optional: true },
-  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address'] },
+  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address', 'nativeAddress'] },
   { id: 'photos', Icon: Camera, keys: [] as string[], optional: true },
 ] as const;
 type Step = (typeof STEPS)[number];
@@ -77,6 +77,11 @@ const REVIEW = STEPS.length;
 
 /** Roles where an employer/role question does not apply. */
 const NOT_WORKING = ['student', 'not_working'];
+/**
+ * The latest day a date question accepts. Computed once at module load, like
+ * LATEST_BIRTH_DATE in lib/candidate-details.ts, so render stays pure.
+ */
+const TODAY = new Date().toISOString().slice(0, 10);
 /** Long enough that typing a sentence is one write, short enough to feel safe. */
 const AUTOSAVE_MS = 1200;
 
@@ -153,13 +158,14 @@ export function GuidedBiodata({
   /** Fields a step asks, honouring the work-status and implied-gender rules. */
   function visibleKeys(s: Step, values: Values = data): string[] {
     const hideJob = NOT_WORKING.includes(values.work);
-    // A Sanatan daughter is asked her caste and family details instead of the
-    // Khatri sub-community and mosal; a samaj biodata never sees hers.
+    // A Sanatan son or daughter is asked the caste and family details instead
+    // of the Khatri sub-community and mosal; a samaj biodata never sees those.
     const sanatan = isSanatan(values);
     return s.keys.filter((k) =>
       !(hideJob && (k === 'role' || k === 'employer'))
       && !(k === 'gender' && impliedGender && values.gender === impliedGender)
-      && !(sanatan ? SAMAJ_ONLY : SANATAN_ONLY).includes(k));
+      && !(sanatan ? SAMAJ_ONLY : SANATAN_ONLY).includes(k)
+      && isAsked(fieldByKey.get(k)!, values));
   }
 
   /**
@@ -202,6 +208,8 @@ export function GuidedBiodata({
     // draft and out of the summary when the answer switches to "student".
     if (k === 'work' && NOT_WORKING.includes(v)) { next.role = ''; next.employer = ''; }
     if (k === 'birthUnknown' && v) next.birthtime = '';
+    // Likewise a divorce date once the answer is no longer "divorced".
+    for (const f of allFields) if (!isAsked(f, next) && next[f.key]) next[f.key] = '';
     setData(next);
     queueSave(next);
     setErrors((e) => e.filter((x) => x !== k));
@@ -459,6 +467,7 @@ export function GuidedBiodata({
           <span>
             {f.key === 'height' ? t('ઊંચાઈ પસંદ કરો.', 'Choose a height.')
               : f.options ? t('એક પસંદ કરો.', 'Choose one.')
+                : f.type === 'date' ? t('તારીખ પસંદ કરો.', 'Choose a date.')
                 : f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone' ? t('10 અંકનો મોબાઇલ નંબર લખો.', 'Enter a 10-digit mobile number.')
                   : t('સાચી વિગત લખો.', 'Enter a valid value.')}
           </span>
@@ -578,6 +587,26 @@ export function GuidedBiodata({
       );
     }
 
+    if (f.type === 'date') {
+      return (
+        <div key={key} className={`bio-field${jump?.key === key ? ' attention' : ''}`} data-field={key}>
+          <label className="auth-label" htmlFor={id}>{label(f)}{optionalMark(f, s)}</label>
+          <div className={`auth-input${bad}${value ? ' filled' : ''}`}>
+            <input
+              id={id}
+              type="date"
+              min="1940-01-01"
+              max={TODAY}
+              value={value}
+              onChange={(e) => update(key, e.target.value)}
+              aria-invalid={Boolean(bad)}
+            />
+          </div>
+          {problem(f)}
+        </div>
+      );
+    }
+
     if (key === 'birthtime') {
       const unknown = data.birthUnknown === 'yes';
       return (
@@ -622,7 +651,6 @@ export function GuidedBiodata({
       lang={lang}
       candidateId={candidateId}
       current={shown}
-      genderLocked={isSanatan(data)}
       onSaved={identitySaved}
       onCancel={() => setEditingIdentity(false)}
     />
@@ -719,6 +747,7 @@ export function GuidedBiodata({
             const rows = s.keys
               .filter((k) => !(NOT_WORKING.includes(data.work) && (k === 'role' || k === 'employer')))
               .map((k) => fieldByKey.get(k)!)
+              .filter((f) => isAsked(f, data))
               .filter((f) => data[f.key] || gaps.includes(f.key));
             const Tag = editable ? 'button' : 'div';
             return (

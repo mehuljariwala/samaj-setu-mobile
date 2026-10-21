@@ -5,7 +5,16 @@ import { ArrowRight, Check, ScrollText, X } from 'lucide-react';
 
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
-import { DISCLAIMER, DISCLAIMER_TITLE, NON_COMMERCIAL, RULES, RULES_INTRO, RULES_TITLE } from '@/lib/rules';
+import {
+  DECLARATION,
+  DECLARATION_TITLE,
+  DISCLAIMER,
+  DISCLAIMER_TITLE,
+  NON_COMMERCIAL,
+  RULES,
+  RULES_INTRO,
+  RULES_TITLE,
+} from '@/lib/rules';
 
 /**
  * The bureau's rules, as a sheet that rises over the account screen when
@@ -73,6 +82,13 @@ export function RulesSheet({
           <p className="rules-intro">{NON_COMMERCIAL}</p>
           <ol className="rules-list">
             {DISCLAIMER.map((point, i) => (
+              <li key={i}><span>{i + 1}</span><p>{point}</p></li>
+            ))}
+          </ol>
+
+          <h3 className="rules-section">{DECLARATION_TITLE}</h3>
+          <ol className="rules-list">
+            {DECLARATION.map((point, i) => (
               <li key={i}><span>{i + 1}</span><p>{point}</p></li>
             ))}
           </ol>

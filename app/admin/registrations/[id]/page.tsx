@@ -9,7 +9,7 @@ import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-
 import { AdminPhotos } from '@/components/app/admin-photos';
 import { GenderRow } from '@/components/app/gender-move';
 import { BiodataView } from '@/components/app/biodata-view';
-import { fieldsFor } from '@/components/biodata/model';
+import { fieldsFor, sanatanLabel } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getLatestBiodata, getProfilePhotos, getRegistrationDetail } from '@/lib/data/admin';
 import {
@@ -105,7 +105,7 @@ export default async function RegistrationDetailPage({
             <small>{candidate.public_code}</small>
             <h1>{candidate.full_name}</h1>
             <span className="admin-status">{applicationStatusLabel(t, application.status)}</span>
-            {candidate.is_sanatan && <span className="sanatan-tag">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>}
+            {candidate.is_sanatan && <span className="sanatan-tag">{t(...sanatanLabel(candidate.gender))}</span>}
           </div>
           {sla && sla.state !== 'none' && (
             <div className={`admin-person-sla sla-${sla.state}`}>
@@ -126,7 +126,6 @@ export default async function RegistrationDetailPage({
             candidateId={candidate.id}
             name={candidate.full_name}
             gender={candidate.gender}
-            sanatan={candidate.is_sanatan}
             canMove={isAdmin(context)}
           />
           <div><dt><CalendarDays size={16} />{t('જન્મ તારીખ', 'Date of birth')}</dt><dd>{formatDate(candidate.date_of_birth, lang)}{age !== null && <small>{t(`${age} વર્ષ`, `${age} yrs`)}</small>}</dd></div>

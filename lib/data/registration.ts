@@ -227,9 +227,9 @@ export async function editRegistration(applicationId: string): Promise<void> {
 }
 
 /**
- * The registration's સનાતન દીકરી box: a daughter from outside the Khatri
- * samaj, whose biodata asks her caste and family details instead of the
- * sub-community and mosal.
+ * The registration's સનાતન box: a son or daughter from another Hindu caste,
+ * outside the Khatri samaj, whose biodata asks the caste and family details
+ * instead of the sub-community and mosal.
  */
 export async function setSanatan(candidateId: string, sanatan: boolean): Promise<void> {
   const supabase = await createSupabaseServerClient();

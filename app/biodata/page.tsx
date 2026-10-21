@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app/shell';
 import { GuidedBiodata } from '@/components/biodata/guided-form';
-import { homeFor, loadApplicantPage } from '@/lib/data/guards';
+import { homeFor, loadBiodataPage } from '@/lib/data/guards';
 import { getEditableBiodata } from '@/lib/data/biodata';
 import { listOwnMedia } from '@/lib/data/media';
 import { getOpenApplication } from '@/lib/data/registration';
@@ -20,13 +20,18 @@ import type { DetailChanges } from '@/lib/data/biodata';
  *
  * While the registration is with an admin the biodata is closed, so that
  * family is shown its status instead of a form the server would refuse.
+ *
+ * A family an admin switched off edits here too, as a member would, to send
+ * its biodata back for the approval that switches it on again; it gets no
+ * member chrome, since every other member screen is closed to it.
  */
 export default async function BiodataPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { context, lang, acting } = await loadApplicantPage();
+  const { context, lang, acting: chosen, returning } = await loadBiodataPage();
+  const acting = returning ?? chosen;
   const member = context.access_state === 'approved';
   // Arriving from the registration form: the biodata of the application being
   // prepared, even for a parent already acting for an approved child.
@@ -36,7 +41,7 @@ export default async function BiodataPage({
   let relationship: string;
   let applicationId: string | null = null;
 
-  if (!applying && member && acting?.identity_status === 'verified') {
+  if (!applying && (member || returning) && acting?.identity_status === 'verified') {
     candidateId = acting.id;
     relationship = acting.relationship;
   } else {

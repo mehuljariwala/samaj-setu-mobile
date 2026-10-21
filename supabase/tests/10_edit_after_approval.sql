@@ -66,12 +66,6 @@ begin
     pg_temp.fails(v_riya, format('select public.propose_detail_changes(%L, p_date_of_birth => %L)', c_riya, current_date - 365), 'invalid:%'),
     'a date of birth under 18 is refused');
   perform pg_temp.ok(
-    pg_temp.fails(v_meena,
-      format('select public.propose_detail_changes(%L, p_gender => %L)',
-             (select id from public.candidates where full_name = 'Pooja Sanatandikri'), 'male'),
-      'invalid:%Sanatan%'),
-    'a Sanatan daughter cannot be changed to a son');
-  perform pg_temp.ok(
     pg_temp.fails(v_rajesh,
       format('select public.propose_detail_changes(%L, p_city => %L)',
              (select id from public.candidates where full_name = 'Varun Notsanatan'), 'Surat'),

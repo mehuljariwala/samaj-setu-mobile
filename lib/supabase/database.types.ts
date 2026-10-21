@@ -316,6 +316,7 @@ export type Database = {
           options: Json;
           affects_eligibility: boolean;
           required_for: string;
+          asked_when: Json | null;
         };
         Insert: {
           key: string;
@@ -330,6 +331,7 @@ export type Database = {
           options?: Json;
           affects_eligibility?: boolean;
           required_for?: string;
+          asked_when?: Json | null;
         };
         Update: {
           key?: string;
@@ -344,6 +346,7 @@ export type Database = {
           options?: Json;
           affects_eligibility?: boolean;
           required_for?: string;
+          asked_when?: Json | null;
         };
         Relationships: [];
       };

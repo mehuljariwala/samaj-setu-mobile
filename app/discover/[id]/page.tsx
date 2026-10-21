@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, LockKeyhole, Phone, ShieldCheck } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
+import { BiodataView } from '@/components/app/biodata-view';
 import { ProfileActions } from '@/components/app/profile-actions';
 import { SaveButton } from '@/components/app/save-button';
 import { loadActingPage } from '@/lib/data/guards';
@@ -34,16 +35,6 @@ export default async function ProfilePage({
 
   const biodata = profile.biodata ?? {};
   const height = centimetresToFeet(biodata.height);
-
-  const rows: [string, string | null | undefined][] = [
-    // Age, height and city lead the heading, so they are not repeated here.
-    [t('અભ્યાસ', 'Education'), biodata.degree || biodata.education],
-    [t('વ્યવસાય', 'Occupation'), biodata.role || biodata.work],
-    [t('પેટા સમાજ', 'Sub-community'), profile.subCommunity],
-    [t('સંપ્રદાય', 'Sect'), profile.sect],
-    [t('મોસાળ', 'Mosal'), profile.mosalFamily],
-    [t('મૂળ વતન', 'Native place'), profile.nativePlace],
-  ];
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member>
@@ -103,17 +94,11 @@ export default async function ProfilePage({
               <p>{[profile.age ? `${profile.age} ${t('વર્ષ', 'yrs')}` : null, height, profile.city].filter(Boolean).join(' · ')}</p>
             </div>
 
-            <h2 className="admin-h2">{t('વિગતો', 'About')}</h2>
-            <dl className="admin-facts-card">
-              {rows
-                .filter(([, value]) => value)
-                .map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-            </dl>
+            {/* The whole biodata as the samaj asked (2026-10-21): every answer
+                except the phone numbers and addresses, which the directory
+                copy never carries. */}
+            <h2 className="admin-h2">{t('બાયોડેટા', 'Biodata')}</h2>
+            <BiodataView lang={lang} data={biodata} member />
 
             {/* Spec §8: released by an accepted introduction, and only then. */}
             {(profile.contacts?.length ?? 0) > 0 && (

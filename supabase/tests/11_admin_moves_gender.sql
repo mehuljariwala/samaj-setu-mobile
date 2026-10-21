@@ -60,11 +60,17 @@ begin
   perform pg_temp.ok(
     pg_temp.fails(v_rajesh, format('select public.admin_set_gender(%L, %L)', c_riya, 'male'), 'forbidden:%'),
     'a family cannot move a profile');
+  -- Since 20261021000200 a Sanatan profile can be a boy; she goes back after.
   perform pg_temp.ok(
-    pg_temp.fails(v_admin,
+    not pg_temp.fails(v_admin,
       format('select public.admin_set_gender(%L, %L)', (select id from public.candidates where full_name = 'Pooja Sanatandikri'), 'male'),
-      'invalid:%Sanatan%'),
-    'a Sanatan daughter is not moved to the boys');
+      '%'),
+    'a Sanatan profile can be moved to the boys');
+  perform pg_temp.ok(
+    not pg_temp.fails(v_admin,
+      format('select public.admin_set_gender(%L, %L)', (select id from public.candidates where full_name = 'Pooja Sanatandikri'), 'female'),
+      '%'),
+    'and back to the girls');
 
   -- A boy's family is interested in her, and her own family has a version open
   -- that asks to change her gender and city.

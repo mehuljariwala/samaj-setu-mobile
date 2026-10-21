@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/age';
+
 export type Values = Record<string, string>;
 
 export type Field = {
@@ -7,10 +9,16 @@ export type Field = {
   required?: boolean;
   /**
    * Whom `required` binds, as public.biodata_fields.required_for: a Khatri
-   * samaj biodata, a Sanatan daughter's (સનાતન દીકરી), or both when absent.
+   * samaj biodata, a Sanatan one (a son or daughter from another Hindu caste),
+   * or both when absent.
    */
   requiredFor?: 'samaj' | 'sanatan';
-  type?: 'text' | 'number' | 'time' | 'select';
+  /**
+   * Asked only while another answer has this value, as
+   * public.biodata_fields.asked_when; `required` binds only then.
+   */
+  askedWhen?: { key: string; value: string };
+  type?: 'text' | 'number' | 'time' | 'select' | 'date';
   options?: [string, string, string][];
   min?: number;
   max?: number;
@@ -55,6 +63,19 @@ export const steps: Step[] = [
         ['divorced', 'છૂટાછેડા થયેલ', 'Divorced'],
         ['widowed', 'વિધુર / વિધવા', 'Widowed'],
       ], true),
+      {
+        key: 'divorceDate', gu: 'છૂટાછેડાની તારીખ', en: 'Date of divorce', type: 'date', required: true,
+        askedWhen: { key: 'marital', value: 'divorced' },
+      },
+      {
+        key: 'divorceDetails', gu: 'છૂટાછેડાની વિગત', en: 'Divorce details', required: true, wide: true,
+        askedWhen: { key: 'marital', value: 'divorced' },
+        hint: ['ટૂંકમાં લખો', 'In a few words'],
+      },
+      {
+        key: 'widowedDate', gu: 'જીવનસાથીના અવસાનની તારીખ', en: 'Date of spouse’s death', type: 'date', required: true,
+        askedWhen: { key: 'marital', value: 'widowed' },
+      },
     ],
   },
   {
@@ -68,6 +89,7 @@ export const steps: Step[] = [
       ], true), requiredFor: 'samaj' },
       choice('sect', 'ભક્ત / જગત', 'Sect', [['bhagat', 'ભક્ત', 'Bhagat'], ['jagat', 'જગત', 'Jagat']], true),
       { key: 'surname', gu: 'પિતૃપક્ષની અટક', en: 'Paternal surname', required: true, requiredFor: 'samaj', wide: true },
+      { key: 'shakh', gu: 'શાખ', en: 'Shakh', wide: true },
       { key: 'caste', gu: 'કઈ જ્ઞાતિ', en: 'Caste', required: true, requiredFor: 'sanatan', wide: true },
     ],
   },
@@ -179,8 +201,12 @@ export const steps: Step[] = [
       { key: 'extraPhone', gu: 'વધારાનો નંબર', en: 'Additional number' },
       { key: 'fatherPhone', gu: 'પિતાનો મોબાઇલ નંબર', en: 'Father’s mobile number', required: true, requiredFor: 'sanatan' },
       {
-        key: 'address', gu: 'સરનામું', en: 'Address', required: true, requiredFor: 'sanatan', wide: true,
-        hint: ['ફક્ત એડમિન જુએ છે.', 'Only an admin sees it.'],
+        key: 'address', gu: 'હાલનું સરનામું', en: 'Current address', required: true, wide: true,
+        hint: ['જ્યાં હાલ રહો છો · ફક્ત એડમિન જુએ છે', 'Where you live now · only an admin sees it'],
+      },
+      {
+        key: 'nativeAddress', gu: 'મૂળ વતનનું સરનામું', en: 'Native address', wide: true,
+        hint: ['ફક્ત એડમિન જુએ છે', 'Only an admin sees it'],
       },
     ],
   },
@@ -191,7 +217,7 @@ export const steps: Step[] = [
     fields: [
       choice('origin', 'પ્રોફાઇલ પ્રકાર', 'Profile type', [
         ['samaj', 'ખત્રી સમાજ', 'Khatri samaj'],
-        ['sanatan', 'સનાતન દીકરી', 'Sanatan daughter'],
+        ['sanatan', 'સનાતન (અન્ય હિન્દુ જ્ઞાતિ)', 'Sanatan (another Hindu caste)'],
       ]),
     ],
   },
@@ -200,12 +226,17 @@ export const steps: Step[] = [
 export const allFields = steps.flatMap((s) => s.fields);
 export const fieldByKey = new Map(allFields.map((f) => [f.key, f]));
 
-/** A Sanatan daughter's biodata (origin stamped by the server). */
+/** A Sanatan son's or daughter's biodata (origin stamped by the server). */
 export const isSanatan = (data: Values) => data.origin === 'sanatan';
 
-/** Fields only a Khatri samaj biodata asks, and only a Sanatan daughter's. */
-export const SAMAJ_ONLY = ['community', 'mosal'];
-export const SANATAN_ONLY = ['caste', 'fatherWork', 'hometown', 'state', 'fatherPhone', 'address'];
+/** What a Sanatan profile is called, [gu, en]: a son or a daughter from another Hindu caste. */
+export function sanatanLabel(gender: string | null | undefined): [string, string] {
+  return gender === 'male' ? ['સનાતન દીકરો', 'Sanatan son'] : ['સનાતન દીકરી', 'Sanatan daughter'];
+}
+
+/** Fields only a Khatri samaj biodata asks, and only a Sanatan one. */
+export const SAMAJ_ONLY = ['community', 'mosal', 'shakh'];
+export const SANATAN_ONLY = ['caste', 'fatherWork', 'hometown', 'state', 'fatherPhone'];
 
 /** The questions a biodata of this kind asks — what an admin may flag in it. */
 export function fieldsFor(sanatan: boolean): Field[] {
@@ -213,9 +244,14 @@ export function fieldsFor(sanatan: boolean): Field[] {
   return allFields.filter((f) => f.key !== 'origin' && !skip.includes(f.key));
 }
 
+/** Whether this biodata is asked the field at all, by its `askedWhen`. */
+export function isAsked(f: Field, data: Values): boolean {
+  return !f.askedWhen || data[f.askedWhen.key] === f.askedWhen.value;
+}
+
 /** Whether a field must be filled for this biodata, by whom `required` binds. */
 export function isRequired(f: Field, data: Values): boolean {
-  if (!f.required) return false;
+  if (!f.required || !isAsked(f, data)) return false;
   if (!f.requiredFor) return true;
   return f.requiredFor === (isSanatan(data) ? 'sanatan' : 'samaj');
 }
@@ -239,6 +275,17 @@ export function persistable(data: Values): Values {
 }
 
 const PHONE = /^[6-9]\d{9}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A real day, from 1940 on and not in the future, as the server checks it. */
+function isPastDate(v: string): boolean {
+  if (!ISO_DATE.test(v)) return false;
+  const date = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(date.getTime())
+    && date.toISOString().slice(0, 10) === v
+    && v >= '1940-01-01'
+    && date.getTime() <= Date.now();
+}
 
 /** Validate a single field in isolation. Returns true when the value is unusable. */
 export function fieldInvalid(f: Field, data: Values): boolean {
@@ -250,6 +297,7 @@ export function fieldInvalid(f: Field, data: Values): boolean {
     if (!Number.isInteger(n) || n < (f.min ?? 0) || n > (f.max ?? 999)) return true;
   }
   if (f.options && !f.options.some((o) => o[0] === v)) return true;
+  if (f.type === 'date') return !isPastDate(v);
   if (f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone') return !PHONE.test(v);
   return false;
 }
@@ -272,5 +320,6 @@ export function completion(data: Values) {
 }
 
 export function displayValue(f: Field, value: string, english: boolean) {
+  if (f.type === 'date') return formatDate(value, english ? 'en' : 'gu');
   return f.options?.find((o) => o[0] === value)?.[english ? 2 : 1] || value;
 }

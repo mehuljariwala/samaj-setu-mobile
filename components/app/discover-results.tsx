@@ -77,9 +77,9 @@ export function DiscoverResults({
   const communities = [
     ...[...new Set(profiles.map((profile) => profile.subCommunity).filter((value): value is string => Boolean(value)))]
       .map((value) => ({ value, label: optionLabel('community', value) ?? value })),
-    // Daughters from outside the Khatri samaj, as one more choice.
+    // Sons or daughters from other Hindu castes, as one more choice.
     ...(profiles.some((profile) => profile.biodata.origin === 'sanatan')
-      ? [{ value: 'sanatan', label: t('સનાતન દીકરીઓ', 'Sanatan daughters') }]
+      ? [{ value: 'sanatan', label: t('સનાતન (અન્ય હિન્દુ જ્ઞાતિ)', 'Sanatan (another Hindu caste)') }]
       : []),
   ];
 
@@ -144,7 +144,7 @@ export function DiscoverResults({
 
                   <div className="admin-facts">
                     {profile.biodata.origin === 'sanatan' && (
-                      <span className="sanatan-chip">{t('સનાતન દીકરી', 'Sanatan daughter')}</span>
+                      <span className="sanatan-chip">{t('સનાતન', 'Sanatan')}</span>
                     )}
                     {profile.biodata.caste && <span>{profile.biodata.caste}</span>}
                     {profile.biodata.degree && (

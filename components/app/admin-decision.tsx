@@ -366,7 +366,7 @@ export function BiodataDecision({
   revisionId: string;
   expectedStatus: Enums<'revision_status'>;
   canDecide: boolean;
-  /** A Sanatan daughter's biodata, whose fix chips are her own questions. */
+  /** A Sanatan biodata, whose fix chips are its own questions. */
   sanatan?: boolean;
 }) {
   const t = translator(lang);

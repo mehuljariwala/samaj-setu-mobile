@@ -16,14 +16,12 @@ import { translator } from '@/lib/i18n';
  * family out.
  */
 export function GenderRow({
-  lang, candidateId, name, gender, sanatan, canMove,
+  lang, candidateId, name, gender, canMove,
 }: {
   lang: Lang;
   candidateId: string;
   name: string;
   gender: Enums<'gender'>;
-  /** A Sanatan daughter stays among the girls. */
-  sanatan: boolean;
   /** Admins move profiles; other staff see the gender only. */
   canMove: boolean;
 }) {
@@ -59,7 +57,7 @@ export function GenderRow({
       <dt><Users size={16} />{t('લિંગ', 'Gender')}</dt>
       <dd>
         {gender === 'male' ? t('છોકરો', 'Boy') : t('છોકરી', 'Girl')}
-        {canMove && !(sanatan && to === 'male') && (
+        {canMove && (
           <button type="button" className="admin-move" disabled={pending} onClick={move}>
             <ArrowRightLeft size={13} />
             {pending
