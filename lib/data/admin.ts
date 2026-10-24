@@ -256,6 +256,15 @@ export async function setCandidateGender(candidateId: string, gender: Enums<'gen
   ) as unknown as { gender: Enums<'gender'>; withdrawn_interests: number };
 }
 
+/** Between the Khatri samaj and Sanatan (migration 20261024000300). */
+export async function setCandidateSanatan(candidateId: string, sanatan: boolean) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  return unwrap(
+    await supabase.rpc('admin_set_sanatan', { p_candidate_id: candidateId, p_sanatan: sanatan }),
+  ) as unknown as { is_sanatan: boolean };
+}
+
 export async function resolveDuplicate(
   id: string,
   status: 'confirmed' | 'not_duplicate',

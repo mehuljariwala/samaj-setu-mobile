@@ -46,6 +46,18 @@ export async function setCandidateGenderAction(
   });
 }
 
+export async function setCandidateSanatanAction(
+  candidateId: string,
+  sanatan: boolean,
+): Promise<ActionResult<{ is_sanatan: boolean }>> {
+  return actionResult(async () => {
+    const result = await admin.setCandidateSanatan(candidateId, sanatan);
+    track('admin.sanatan_moved', { candidateId, detail: { sanatan } });
+    revalidatePath('/', 'layout');
+    return result;
+  });
+}
+
 export async function resolveDuplicateAction(
   id: string,
   status: 'confirmed' | 'not_duplicate',

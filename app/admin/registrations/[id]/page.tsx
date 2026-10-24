@@ -7,7 +7,7 @@ import { AppShell } from '@/components/app/shell';
 import { CertificateViewer } from '@/components/app/certificate-viewer';
 import { DuplicateDecision, RegistrationDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
-import { GenderRow } from '@/components/app/gender-move';
+import { GenderRow, ProfileTypeRow } from '@/components/app/gender-move';
 import { BiodataView } from '@/components/app/biodata-view';
 import { fieldsFor, sanatanLabel } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
@@ -126,6 +126,14 @@ export default async function RegistrationDetailPage({
             candidateId={candidate.id}
             name={candidate.full_name}
             gender={candidate.gender}
+            canMove={isAdmin(context)}
+          />
+          <ProfileTypeRow
+            lang={lang}
+            candidateId={candidate.id}
+            name={candidate.full_name}
+            gender={candidate.gender}
+            sanatan={candidate.is_sanatan}
             canMove={isAdmin(context)}
           />
           <div><dt><CalendarDays size={16} />{t('જન્મ તારીખ', 'Date of birth')}</dt><dd>{formatDate(candidate.date_of_birth, lang)}{age !== null && <small>{t(`${age} વર્ષ`, `${age} yrs`)}</small>}</dd></div>

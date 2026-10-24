@@ -1671,6 +1671,13 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_set_sanatan: {
+        Args: {
+          p_candidate_id?: string;
+          p_sanatan?: boolean;
+        };
+        Returns: Json;
+      };
       admin_start_support: {
         Args: {
           p_account_id?: string;

@@ -8,7 +8,7 @@ import { AppShell } from '@/components/app/shell';
 import { BiodataDecision } from '@/components/app/admin-decision';
 import { AdminPhotos } from '@/components/app/admin-photos';
 import { BiodataView } from '@/components/app/biodata-view';
-import { GenderRow } from '@/components/app/gender-move';
+import { GenderRow, ProfileTypeRow } from '@/components/app/gender-move';
 import { sanatanLabel } from '@/components/biodata/model';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getApplicationIdFor, getBiodataDetail, getProfilePhotos, isFamilySwitchedOff } from '@/lib/data/admin';
@@ -117,6 +117,14 @@ export default async function BiodataReviewPage({
             candidateId={candidate.id}
             name={candidate.full_name}
             gender={candidate.gender}
+            canMove={isAdmin(context)}
+          />
+          <ProfileTypeRow
+            lang={lang}
+            candidateId={candidate.id}
+            name={candidate.full_name}
+            gender={candidate.gender}
+            sanatan={candidate.is_sanatan}
             canMove={isAdmin(context)}
           />
         </dl>
