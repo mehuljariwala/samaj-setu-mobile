@@ -191,7 +191,9 @@ export async function isFamilySwitchedOff(candidateId: string): Promise<boolean>
   const rows = unwrap(
     await supabase
       .from('candidate_memberships')
-      .select('accounts!inner(status)')
+      // Named, because memberships point at accounts three ways (the member,
+      // who linked them, who revoked them) and PostgREST will not guess.
+      .select('accounts!candidate_memberships_account_id_fkey!inner(status)')
       .eq('candidate_id', candidateId)
       .is('revoked_at', null)
       .eq('accounts.status', 'disabled')
