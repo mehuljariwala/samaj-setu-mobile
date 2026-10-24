@@ -8,10 +8,11 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 
 /**
- * The address banner again, as a popup on the home screen, for an approved
- * biodata without the full address (migration 20261024000200). It opens once
- * per visit, so coming back to home does not bring it up each time; the banner
- * under the top bar stays until the address is saved.
+ * The address banner again, as a sheet over the home screen, for an approved
+ * biodata without the full address (migration 20261024000200). Drawn like the
+ * rules sheet, the one other sheet families know. It opens once per visit, so
+ * coming back to home does not bring it up each time; the banner under the top
+ * bar stays until the address is saved.
  */
 export function AddressPopup({
   lang,
@@ -46,19 +47,24 @@ export function AddressPopup({
       className="address-popup"
       aria-labelledby="address-popup-title"
     >
-      <div className="address-popup-body">
-        <span className="address-popup-icon"><MapPin size={26} /></span>
-        <h2 id="address-popup-title">{t('પૂરું સરનામું ઉમેરો', 'Add the full address')}</h2>
-        <p>
-          {self
-            ? t('તમારા બાયોડેટામાં હાલનું પૂરું સરનામું બાકી છે.', 'Your biodata is missing the full current address.')
-            : t(`${name}ના બાયોડેટામાં હાલનું પૂરું સરનામું બાકી છે.`, `${name}’s biodata is missing the full current address.`)}
-          {' '}
-          {t(
-            'એક મિનિટનું કામ છે, અને એડમિનની મંજૂરી જોઈતી નથી. ફક્ત એડમિન તે જુએ છે.',
-            'It takes a minute and needs no admin approval. Only an admin sees it.',
-          )}
-        </p>
+      <div className="address-popup-head">
+        <span className="address-popup-badge"><MapPin size={22} /></span>
+        <div>
+          <h2 id="address-popup-title">{t('પૂરું સરનામું ઉમેરો', 'Add the full address')}</h2>
+          <p>
+            {self
+              ? t('તમારા બાયોડેટામાં હાલનું સરનામું બાકી છે', 'Your biodata is missing the current address')
+              : t(`${name}ના બાયોડેટામાં હાલનું સરનામું બાકી છે`, `${name}’s biodata is missing the current address`)}
+          </p>
+        </div>
+      </div>
+      <p className="address-popup-text">
+        {t(
+          'એક મિનિટનું કામ છે, અને એડમિનની મંજૂરી જોઈતી નથી. સરનામું ફક્ત એડમિન જુએ છે, બીજા પરિવારો નહીં.',
+          'It takes a minute and needs no admin approval. Only an admin sees the address, not other families.',
+        )}
+      </p>
+      <div className="address-popup-foot">
         <Link className="cta" href={`/biodata/address?candidate=${candidateId}`}>
           {t('હમણાં ઉમેરો', 'Add it now')}<ArrowRight size={20} />
         </Link>

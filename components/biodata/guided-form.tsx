@@ -22,6 +22,7 @@ import {
   allFields, validateKeys, completion, displayValue, fieldByKey, isAsked, isRequired, isSanatan, persistable,
   SAMAJ_ONLY, SANATAN_ONLY, type Values, type Field,
 } from './model';
+import { AddressLanguageNote } from './address-note';
 import { IdentityEditor, type IdentityDetails } from './identity-editor';
 
 type Props = {
@@ -934,7 +935,10 @@ export function GuidedBiodata({
             </section>
           </>
         ) : (
-          visibleKeys(s).map((k) => renderField(k, s))
+          <>
+            {(s.id === 'address' || s.id === 'native') && <AddressLanguageNote lang={lang} />}
+            {visibleKeys(s).map((k) => renderField(k, s))}
+          </>
         )}
 
         {s.id === 'community' && !isSanatan(data) && (

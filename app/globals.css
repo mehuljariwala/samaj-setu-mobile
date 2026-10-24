@@ -2189,29 +2189,47 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 .address-banner b { color: var(--ink); font-size: 14px; font-weight: 700; }
 .address-banner small { color: var(--ink-2); font-size: 12px; }
 
-/* The same ask as a popup on the home screen, once per visit
-   (components/app/address-popup.tsx). */
+/* The same ask as a sheet over the home screen, once per visit
+   (components/app/address-popup.tsx), drawn like the rules sheet. */
 .address-popup {
-  width: min(calc(100vw - 2 * var(--pad)), 380px);
-  margin: auto;
-  padding: 0;
+  inset: auto 0 0;
+  width: min(100vw, var(--app-w)); max-width: 100vw;
+  margin: 0 auto; padding: 0;
   border: 0;
-  border-radius: 26px;
+  border-radius: 28px 28px 0 0;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: var(--sh-2);
+  box-shadow: 0 -18px 40px -12px rgb(22 25 42 / 30%);
 }
-.address-popup::backdrop { background: rgb(8 10 18 / 55%); }
-.address-popup-body { display: grid; justify-items: center; gap: 12px; padding: 26px 22px 14px; text-align: center; }
-.address-popup-icon {
-  display: grid; place-items: center;
-  width: 56px; height: 56px;
-  border-radius: 18px;
-  background: var(--gold-tint); color: var(--gold);
+.address-popup::backdrop { background: rgb(22 25 42 / 55%); }
+.address-popup:focus { outline: none; }
+.address-popup-head {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  padding: 24px var(--pad) 12px;
+  background: linear-gradient(to bottom, var(--gold-tint), var(--surface));
 }
-.address-popup h2 { font-size: 20px; font-weight: 800; }
-.address-popup p { color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
-.address-popup .cta { width: 100%; margin-top: 4px; }
+.address-popup-head::before {
+  content: ''; position: absolute; top: 8px; left: 50%; translate: -50% 0;
+  width: 40px; height: 5px; border-radius: var(--r-full);
+  background: rgb(22 25 42 / 14%);
+}
+.address-popup-head > div { flex: 1; min-width: 0; }
+.address-popup-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+.address-popup-head p { margin-top: 2px; color: var(--ink-2); font-size: 14px; }
+.address-popup-badge {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 16px;
+  background: var(--gold); color: #fff;
+}
+.address-popup-text { padding: 4px var(--pad) 16px; color: var(--ink); font-size: 15.5px; line-height: 1.6; }
+.address-popup-foot {
+  display: grid; gap: 4px;
+  padding: 14px var(--pad);
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
 
 .member-cards { display: grid; gap: 12px; margin-top: 14px; list-style: none; }
 

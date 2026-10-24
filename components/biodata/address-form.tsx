@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Check, CircleHelp, House, LockKeyhole, MapPin } 
 import { saveLiveAddressAction } from '@/app/actions/biodata';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
+import { AddressLanguageNote } from './address-note';
 import { isRequired, steps, validateKeys, type Field, type Values } from './model';
 
 const CURRENT = steps.find((s) => s.id === 'address')!.fields;
@@ -154,6 +155,7 @@ export function AddressForm({
       </div>
 
       <div className="auth-fields bio-fields">
+        <AddressLanguageNote lang={lang} />
         <h2 className="bio-group-title"><MapPin size={18} />{t('હાલનું સરનામું', 'Current address')}</h2>
         {CURRENT.map((f) => renderField(f, true))}
         <h2 className="bio-group-title">
