@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app/shell';
-import { JOIN_STEPS, JoinFlow } from '@/components/onboarding/join-flow';
+import { JoinFlow } from '@/components/onboarding/join-flow';
 import { homeFor, loadPublicPage } from '@/lib/data/guards';
+import { JOIN_STEPS } from '@/lib/join-steps';
 import { getAttachedDocuments, getOpenApplication } from '@/lib/data/registration';
 
 /**

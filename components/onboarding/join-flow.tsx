@@ -25,6 +25,7 @@ import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import { formatPhone } from '@/lib/org';
+import { JOIN_STEPS } from '@/lib/join-steps';
 import { isValidLocalPhone } from '@/lib/phone';
 import { RULES_VERSION } from '@/lib/rules';
 import { CITIES, LATEST_BIRTH_DATE } from '@/lib/candidate-details';
@@ -107,13 +108,6 @@ function pick(file: File | null | undefined, previous: Picked | null): Picked | 
  * approval. An interruption partway leaves a draft, which is exactly what the
  * member returns to, with whatever already went up marked as attached.
  */
-/**
- * Each screen's name in the address (`/register?step=documents`), so the
- * phone's own back and forward buttons move between the three screens instead
- * of leaving the page, and the biodata's Back can open the documents again.
- */
-export const JOIN_STEPS = ['account', 'candidate', 'documents'] as const;
-
 export function JoinFlow({
   lang,
   signedIn,
