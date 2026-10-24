@@ -8,6 +8,7 @@ import { SAMAJ } from '@/lib/org';
 import { AddressBanner } from './address-banner';
 import { LangToggle } from './lang-toggle';
 import { SignOutButton } from './sign-out-button';
+import { SupportBanner } from './support-mode';
 import { TabBar } from './tabbar';
 import { TrustCredit } from './trust-credit';
 
@@ -50,6 +51,16 @@ export function AppShell({
   return (
     <div className="app-frame">
       <div className="app">
+        {context.support && (
+          <SupportBanner
+            lang={lang}
+            accountId={context.support.account_id}
+            name={context.account?.display_name
+              || context.candidates[0]?.full_name
+              || `+91 ${context.account?.phone ?? ''}`}
+            until={context.support.expires_at}
+          />
+        )}
         <header className="topbar">
           {member && acting ? (
             // Spec §6: the acting candidate stays visible, the way a delivery

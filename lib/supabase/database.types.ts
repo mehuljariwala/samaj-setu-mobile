@@ -1420,6 +1420,39 @@ export type Database = {
           { foreignKeyName: "share_links_revoked_by_account_id_fkey"; columns: ["revoked_by_account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
         ];
       };
+      support_sessions: {
+        Row: {
+          id: string;
+          staff_account_id: string;
+          account_id: string;
+          started_at: string;
+          expires_at: string;
+          ended_at: string | null;
+          session_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          staff_account_id: string;
+          account_id: string;
+          started_at?: string;
+          expires_at: string;
+          ended_at?: string | null;
+          session_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          staff_account_id?: string;
+          account_id?: string;
+          started_at?: string;
+          expires_at?: string;
+          ended_at?: string | null;
+          session_id?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: "support_sessions_account_id_fkey"; columns: ["account_id"]; isOneToOne: false; referencedRelation: "accounts"; referencedColumns: ["id"] },
+          { foreignKeyName: "support_sessions_staff_account_id_fkey"; columns: ["staff_account_id"]; isOneToOne: true; referencedRelation: "accounts"; referencedColumns: ["id"] },
+        ];
+      };
     };
     Views: {
       directory_profiles: {
@@ -1531,6 +1564,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_end_support: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
       admin_family_counts: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
@@ -1631,6 +1668,12 @@ export type Database = {
         Args: {
           p_candidate_id?: string;
           p_gender?: Database["public"]["Enums"]["gender"];
+        };
+        Returns: Json;
+      };
+      admin_start_support: {
+        Args: {
+          p_account_id?: string;
         };
         Returns: Json;
       };

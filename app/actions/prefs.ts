@@ -26,7 +26,9 @@ export async function setLanguageAction(value: string): Promise<ActionResult> {
     });
 
     const context = await getMyContext();
-    if (context.account && context.account.preferred_language !== lang) {
+    // In support mode the account is the family's: the superadmin's choice of
+    // language is theirs, and stays in the cookie.
+    if (context.account && !context.support && context.account.preferred_language !== lang) {
       await updateAccountProfile({ preferredLanguage: lang });
       track('settings.language', { detail: { language: lang } });
     }

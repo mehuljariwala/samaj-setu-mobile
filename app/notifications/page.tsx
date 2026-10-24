@@ -34,7 +34,8 @@ export default async function NotificationsPage() {
           <h1>{t('સૂચનાઓ', 'Notifications')}</h1>
         </div>
 
-        {unread.length > 0 && <MarkAllRead lang={lang} ids={unread} />}
+        {/* In support mode what is new stays new until the family sees it. */}
+        {unread.length > 0 && !context.support && <MarkAllRead lang={lang} ids={unread} />}
 
         {notifications.length === 0 ? (
           <div className="empty">

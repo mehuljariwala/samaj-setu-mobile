@@ -271,15 +271,20 @@ export async function requestCandidateAccess(
  * which only ever returns candidates this account operates.
  */
 export async function getOpenApplication() {
+  const context = await getMyContext();
   const supabase = await createSupabaseServerClient();
 
   // Two queries rather than a PostgREST embed: postgrest-js types an embedded
   // select from the literal string, and this one would have to be built by
   // concatenation to stay readable, which loses the literal type.
+  //
+  // Scoped to the family's own candidates, not left to RLS: staff may read
+  // every application, and a superadmin in support mode is staff.
   const rows = unwrap(
     await supabase
       .from('registration_applications')
       .select('id, candidate_id, status, operator_relationship, decision_reason, correction_fields')
+      .in('candidate_id', context.candidates.map((candidate) => candidate.id))
       .in('status', ['draft', 'correction_requested'])
       .order('updated_at', { ascending: false })
       .limit(1),
@@ -339,11 +344,15 @@ export async function getOpenApplication() {
 }
 
 export async function listMyAccessRequests() {
+  const context = await getMyContext();
+  if (!context.account) return [];
   const supabase = await createSupabaseServerClient();
   return unwrap(
     await supabase
       .from('access_requests')
       .select('id, candidate_id, claimed_relationship, status, decision_reason, created_at, decided_at')
+      // Staff may read every request; this screen lists the family's own.
+      .eq('account_id', context.account.id)
       .order('created_at', { ascending: false }),
   );
 }
@@ -358,6 +367,9 @@ export async function updateAccountProfile(patch: {
 }): Promise<void> {
   const context = await getMyContext();
   if (!context.account) throw new AppError('unauthenticated', 'Sign in to continue.');
+  // accounts_update_own still checks auth.uid(): the family's own name and
+  // language are the family's to set.
+  if (context.support) throw new AppError('forbidden', 'Only the family can change its own account details.');
 
   const supabase = await createSupabaseServerClient();
   unwrap(

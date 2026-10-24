@@ -243,7 +243,7 @@ export function AdminProfiles({ lang, rows }: { lang: Lang; rows: ProfileRow[] }
         {([
           ['boys', t('છોકરાઓ', 'Boys')],
           ['girls', t('છોકરીઓ', 'Girls')],
-          ['sanatan', t('સનાતન દીકરા-દીકરીઓ', 'Sanatan sons and daughters')],
+          ['sanatan', t('અન્ય હિન્દુ જ્ઞાતિની છોકરીઓ', 'Sanatan sons and daughters')],
         ] as const).map(([key, label]) => (
           <FilterLink
             key={key}
@@ -344,7 +344,7 @@ function MoreFilters({ lang, rows, params }: { lang: Lang; rows: ProfileRow[]; p
       ],
     },
     { key: 'diet', label: t('આહાર', 'Diet'), options: fromModel('diet') },
-    { key: 'sect', label: t('ભક્ત / જગત', 'Sect'), options: fromModel('sect') },
+    { key: 'sect', label: t('ભગત / જગત', 'Sect'), options: fromModel('sect') },
     { key: 'mangal', label: t('મંગળ', 'Mangal'), options: fromModel('mangal') },
   ];
 

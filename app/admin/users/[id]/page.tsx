@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
+import { OpenAsFamily } from '@/components/app/support-mode';
 import { UserControls } from '@/components/app/user-controls';
 import { isAdmin, loadAdminPage } from '@/lib/data/guards';
 import { getAccount, getAccountActivity, type ActivityEntry } from '@/lib/data/users';
@@ -41,6 +42,8 @@ export default async function UserDetailPage({
       : account.roles.includes('moderator') ? t('મૉડરેટર', 'Moderator') : null;
   const tone = account.status === 'blocked' ? 'bad' : account.status === 'active' ? 'green' : 'gold';
   const self = context.account?.id === account.id;
+  // Support mode is the superadmin's alone, and never opens a staff account.
+  const canOpen = context.roles.includes('superadmin') && !self && account.roles.length === 0;
 
   const days = groupByDay(activity, lang);
   const oldest = activity.at(-1)?.occurred_at;
@@ -133,6 +136,8 @@ export default async function UserDetailPage({
             ))}
           </div>
         )}
+
+        {canOpen && <OpenAsFamily lang={lang} accountId={account.id} />}
 
         {account.can_manage ? (
           <UserControls

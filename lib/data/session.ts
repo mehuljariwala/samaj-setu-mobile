@@ -60,6 +60,12 @@ export type MyContext = {
   roles: Enums<'app_role'>[];
   candidates: CandidateSummary[];
   unread_notifications: number;
+  /**
+   * Set while a superadmin acts for this family (migration 20261024000100).
+   * Everything above is then the family's, roles included, so every member
+   * screen shows what the family would see.
+   */
+  support?: { account_id: string; started_at: string; expires_at: string } | null;
 };
 
 const SIGNED_OUT: MyContext = {

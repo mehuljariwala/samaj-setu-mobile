@@ -100,7 +100,7 @@ export const steps: Step[] = [
         ['ahmedabadi', 'અમદાવાદી', 'Ahmedabadi'],
         ['indori', 'ઇન્દોરી', 'Indori'],
       ], true), requiredFor: 'samaj' },
-      choice('sect', 'ભક્ત / જગત', 'Sect', [['bhagat', 'ભક્ત', 'Bhagat'], ['jagat', 'જગત', 'Jagat']], true),
+      choice('sect', 'ભગત / જગત', 'Sect', [['bhagat', 'ભગત', 'Bhagat'], ['jagat', 'જગત', 'Jagat']], true),
       { key: 'surname', gu: 'પિતૃપક્ષની અટક', en: 'Paternal surname', required: true, requiredFor: 'samaj', wide: true },
       { key: 'shakh', gu: 'શાખ', en: 'Shakh', wide: true },
       { key: 'caste', gu: 'કઈ જ્ઞાતિ', en: 'Caste', required: true, requiredFor: 'sanatan', wide: true },

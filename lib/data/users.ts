@@ -154,3 +154,20 @@ export async function resetPassword(accountId: string, password: string) {
   const supabase = await createSupabaseServerClient();
   unwrap(await supabase.rpc('admin_reset_password', { p_account_id: accountId, p_password: password }));
 }
+
+/**
+ * Support mode (migration 20261024000100): the superadmin acts as this family
+ * until the session is closed or lapses after two hours. The RPC refuses
+ * anyone but the superadmin, and any staff account as the target.
+ */
+export async function startSupport(accountId: string) {
+  await requireStaff();
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('admin_start_support', { p_account_id: accountId }));
+}
+
+/** No staff check: while acting for a family, the context holds the family's roles. */
+export async function endSupport() {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('admin_end_support'));
+}

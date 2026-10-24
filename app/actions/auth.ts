@@ -6,8 +6,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { actionResult, AppError, type ActionResult } from '@/lib/data/errors';
 import { field, trimmedField } from '@/lib/data/form';
 import { isValidLocalPhone, normalizeLocalPhone, toE164 } from '@/lib/phone';
-import { signOut as signOutOfSession } from '@/lib/data/session';
+import { getMyContext, signOut as signOutOfSession } from '@/lib/data/session';
 import { recordActivity, track, trackFailedSignIn } from '@/lib/data/activity';
+import { endSupport } from '@/lib/data/users';
 import { RULES_VERSION } from '@/lib/rules';
 
 /**
@@ -135,6 +136,10 @@ export async function signInAction(
 
 export async function signOutAction(): Promise<ActionResult> {
   return actionResult(async () => {
+    // Otherwise the next sign-in would land straight back in the family's
+    // account until the session lapsed. First, so the sign-out below is
+    // recorded on the superadmin's own timeline rather than the family's.
+    if ((await getMyContext()).support) await endSupport();
     // Before, not after: once signed out there is no session to record it with.
     await recordActivity('auth.sign_out');
     await signOutOfSession();
@@ -160,6 +165,10 @@ export async function changePasswordAction(input: { current: string; next: strin
     }
     if (input.next === input.current) {
       throw new AppError('invalid', 'Choose a password different from the current one.', ['next']);
+    }
+    // The session is the superadmin's own, so this would change theirs.
+    if ((await getMyContext()).support) {
+      throw new AppError('forbidden', 'Go back to admin first. A family’s password is reset from User management.');
     }
 
     const supabase = await createSupabaseServerClient();

@@ -35,7 +35,18 @@ export default async function ChangePasswordPage() {
             )}
           </p>
         </div>
-        <ChangePasswordForm lang={lang} home={home} />
+        {/* The session is the superadmin's, so the form would change theirs. */}
+        {context.support ? (
+          <p className="admin-alert soft">
+            <KeyRound size={18} />
+            {t(
+              'તમે પરિવાર તરીકે ખોલ્યું છે. પરિવારનો પાસવર્ડ એડમિન → યુઝર્સમાંથી રીસેટ કરો.',
+              'You are acting for a family. Reset the family’s password from Admin → Users instead.',
+            )}
+          </p>
+        ) : (
+          <ChangePasswordForm lang={lang} home={home} />
+        )}
       </section>
     </AppShell>
   );

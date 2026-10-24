@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 import { AppError, actionResult, type ActionResult } from '@/lib/data/errors';
 import * as users from '@/lib/data/users';
+import { CANDIDATE_COOKIE } from '@/lib/i18n';
 
 /**
  * Switching accounts on and off, and resetting passwords. Both RPCs check the
@@ -44,6 +46,29 @@ export async function resetPasswordAction(
     }
     await users.resetPassword(accountId, password);
     revalidatePath(`/admin/users/${accountId}`);
+    return null;
+  });
+}
+
+/**
+ * Opening and closing a family's account. The candidate choice is cleared
+ * both ways: it names one of the superadmin's own or another family's
+ * candidates, and the next screen should pick from the family now in view.
+ */
+export async function openAsFamilyAction(accountId: string): Promise<ActionResult> {
+  return actionResult(async () => {
+    await users.startSupport(accountId);
+    (await cookies()).delete(CANDIDATE_COOKIE);
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
+export async function returnToAdminAction(): Promise<ActionResult> {
+  return actionResult(async () => {
+    await users.endSupport();
+    (await cookies()).delete(CANDIDATE_COOKIE);
+    revalidatePath('/', 'layout');
     return null;
   });
 }

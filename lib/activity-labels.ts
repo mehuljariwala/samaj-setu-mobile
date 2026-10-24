@@ -150,6 +150,14 @@ export function activityLabel(
     case 'staff.account.status_changed':
       return { title: t(`યુઝરનું એકાઉન્ટ: ${accountStatusWord(t, to)}`, `Set a user to ${accountStatusWord(t, to).toLowerCase()}`), tone: 'staff' };
     case 'staff.account.password_reset': return { title: t('યુઝરનો પાસવર્ડ બદલ્યો', 'Reset a user’s password'), tone: 'staff' };
+    case 'account.support_started': return { title: t('સુપરએડમિને આ એકાઉન્ટ ખોલ્યું', 'The superadmin opened this account'), tone: 'staff' };
+    case 'account.support_ended':
+      return {
+        title: detail?.lapsed
+          ? t('સુપરએડમિનનું સત્ર સમય પૂરો થતાં બંધ થયું', 'The superadmin’s session ran out')
+          : t('સુપરએડમિને એકાઉન્ટ બંધ કર્યું', 'The superadmin closed this account'),
+        tone: 'staff',
+      };
   }
 
   const [scope, subject = '', action = ''] = kind.split('.');

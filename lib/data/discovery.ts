@@ -5,6 +5,7 @@ import { photoThumbnailUrl, photoUrl } from '@/lib/photo-link';
 import { signedUrl } from '@/lib/supabase/admin';
 import type { Enums } from '@/lib/supabase/database.types';
 import { AppError, unwrap, unwrapMaybe } from './errors';
+import { getMyContext } from './session';
 
 export type DiscoverFilters = {
   query?: string;
@@ -206,8 +207,8 @@ export async function getProfile(
 
 export async function setSaved(candidateId: string, saved: boolean): Promise<void> {
   const supabase = await createSupabaseServerClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const accountId = claims?.claims?.sub as string | undefined;
+  // The family's account, which in support mode is not the signed-in one.
+  const accountId = (await getMyContext()).account?.id;
   if (!accountId) throw new AppError('unauthenticated', 'Sign in to continue.');
 
   if (saved) {
