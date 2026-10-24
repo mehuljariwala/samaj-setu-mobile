@@ -14,11 +14,11 @@ export type Field = {
    */
   requiredFor?: 'samaj' | 'sanatan';
   /**
-   * Asked only while another answer has this value, as
-   * public.biodata_fields.asked_when; `required` binds only then.
+   * Asked only while another answer has this value, or one of these values,
+   * as public.biodata_fields.asked_when; `required` binds only then.
    */
-  askedWhen?: { key: string; value: string };
-  type?: 'text' | 'number' | 'time' | 'select' | 'date';
+  askedWhen?: { key: string; value: string | string[] };
+  type?: 'text' | 'number' | 'time' | 'select' | 'date' | 'pin';
   options?: [string, string, string][];
   min?: number;
   max?: number;
@@ -26,6 +26,8 @@ export type Field = {
   hint?: [string, string];
   /** Span both columns in the two-up grid. */
   wide?: boolean;
+  /** What the browser may fill in from its saved address (the input's autocomplete). */
+  autoComplete?: string;
 };
 
 /**
@@ -76,12 +78,23 @@ export const steps: Step[] = [
         key: 'widowedDate', gu: 'જીવનસાથીના અવસાનની તારીખ', en: 'Date of spouse’s death', type: 'date', required: true,
         askedWhen: { key: 'marital', value: 'widowed' },
       },
+      {
+        ...choice('children', 'બાળકોની સંખ્યા', 'Number of children', [
+          ['0', 'કોઈ નહીં', 'None'],
+          ['1', '1', '1'],
+          ['2', '2', '2'],
+          ['3', '3', '3'],
+          ['4', '4', '4'],
+          ['5+', '5 કે વધુ', '5 or more'],
+        ], true),
+        askedWhen: { key: 'marital', value: ['divorced', 'widowed'] },
+      },
     ],
   },
   {
     id: 'community',
     fields: [
-      { ...choice('community', 'પેટા સમાજ', 'Sub-community', [
+      { ...choice('community', 'જ્ઞાતિ - પેટા સમાજ', 'Caste - Sub-community', [
         ['surti', 'સુરતી', 'Surti'],
         ['khambhati', 'ખંભાતી', 'Khambhati'],
         ['ahmedabadi', 'અમદાવાદી', 'Ahmedabadi'],
@@ -200,14 +213,40 @@ export const steps: Step[] = [
       { key: 'phone', gu: 'સંપર્ક નંબર', en: 'Contact number', required: true },
       { key: 'extraPhone', gu: 'વધારાનો નંબર', en: 'Additional number' },
       { key: 'fatherPhone', gu: 'પિતાનો મોબાઇલ નંબર', en: 'Father’s mobile number', required: true, requiredFor: 'sanatan' },
+    ],
+  },
+  {
+    // Where they live now, in parts. Only an admin sees it; `address` is the
+    // first line, and keeps the one-line address families wrote before.
+    id: 'address',
+    fields: [
       {
-        key: 'address', gu: 'હાલનું સરનામું', en: 'Current address', required: true, wide: true,
-        hint: ['જ્યાં હાલ રહો છો · ફક્ત એડમિન જુએ છે', 'Where you live now · only an admin sees it'],
+        key: 'address', gu: 'મકાન નંબર, સોસાયટી / બિલ્ડિંગ', en: 'House no., society / building', required: true, wide: true,
+        autoComplete: 'address-line1',
+        hint: ['જેમ કે 12, શાંતિ સોસાયટી', 'For example 12, Shanti Society'],
       },
+      { key: 'addressArea', gu: 'શેરી / વિસ્તાર', en: 'Street / area', required: true, wide: true, autoComplete: 'address-line2' },
       {
-        key: 'nativeAddress', gu: 'મૂળ વતનનું સરનામું', en: 'Native address', wide: true,
-        hint: ['ફક્ત એડમિન જુએ છે', 'Only an admin sees it'],
+        key: 'addressLandmark', gu: 'લેન્ડમાર્ક', en: 'Landmark', wide: true,
+        hint: ['નજીકનું જાણીતું સ્થળ', 'A well-known place nearby'],
       },
+      { key: 'addressCity', gu: 'હાલનું ગામ / શહેર', en: 'Current village / city', required: true, autoComplete: 'address-level2' },
+      { key: 'addressTaluka', gu: 'તાલુકો', en: 'Taluka' },
+      { key: 'addressDistrict', gu: 'જિલ્લો', en: 'District', required: true },
+      { key: 'addressState', gu: 'હાલનું રાજ્ય', en: 'Current state', required: true, autoComplete: 'address-level1' },
+      { key: 'addressPin', gu: 'પિન કોડ', en: 'PIN code', type: 'pin', required: true, autoComplete: 'postal-code' },
+    ],
+  },
+  {
+    // The address back home (મૂળ વતન), in the same parts, all optional.
+    id: 'native',
+    fields: [
+      { key: 'nativeAddress', gu: 'વતનનું ઘર, શેરી / ફળિયું', en: 'Native house, street / area', wide: true },
+      { key: 'nativeVillage', gu: 'વતનનું ગામ / શહેર', en: 'Native village / town' },
+      { key: 'nativeTaluka', gu: 'વતનનો તાલુકો', en: 'Native taluka' },
+      { key: 'nativeDistrict', gu: 'વતનનો જિલ્લો', en: 'Native district' },
+      { key: 'nativeState', gu: 'વતનનું રાજ્ય', en: 'Native state' },
+      { key: 'nativePin', gu: 'વતનનો પિન કોડ', en: 'Native PIN code', type: 'pin' },
     ],
   },
   {
@@ -246,7 +285,7 @@ export function fieldsFor(sanatan: boolean): Field[] {
 
 /** Whether this biodata is asked the field at all, by its `askedWhen`. */
 export function isAsked(f: Field, data: Values): boolean {
-  return !f.askedWhen || data[f.askedWhen.key] === f.askedWhen.value;
+  return !f.askedWhen || [f.askedWhen.value].flat().includes(data[f.askedWhen.key] ?? '');
 }
 
 /** Whether a field must be filled for this biodata, by whom `required` binds. */
@@ -275,6 +314,7 @@ export function persistable(data: Values): Values {
 }
 
 const PHONE = /^[6-9]\d{9}$/;
+const PIN = /^[1-9]\d{5}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A real day, from 1940 on and not in the future, as the server checks it. */
@@ -298,6 +338,7 @@ export function fieldInvalid(f: Field, data: Values): boolean {
   }
   if (f.options && !f.options.some((o) => o[0] === v)) return true;
   if (f.type === 'date') return !isPastDate(v);
+  if (f.type === 'pin') return !PIN.test(v);
   if (f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone') return !PHONE.test(v);
   return false;
 }

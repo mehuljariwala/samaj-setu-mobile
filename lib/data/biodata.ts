@@ -5,6 +5,7 @@ import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Enums, Tables } from '@/lib/supabase/database.types';
 import { AppError, unwrap, unwrapMaybe } from './errors';
+import type { CandidateSummary, MyContext } from './session';
 
 export type BiodataValues = Record<string, string>;
 
@@ -231,6 +232,58 @@ export async function getEditableBiodata(candidateId: string): Promise<OpenRevis
     : null;
 
   return { revision, published, community, issues, candidate };
+}
+
+/**
+ * The approved biodatas on this account whose live version still lacks part
+ * of the current address (migration 20261024000200), for the banner on member
+ * screens. An empty list when the check itself fails: a banner must never take
+ * a screen down with it.
+ */
+export const getAddressGaps = cache(async (): Promise<string[]> => {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const rows = unwrap(await supabase.rpc('my_address_gaps'));
+    return rows.flatMap((row) => (row.candidate_id ? [row.candidate_id] : []));
+  } catch (error) {
+    console.error('address gaps not checked', error);
+    return [];
+  }
+});
+
+/**
+ * The child the banner and the home popup ask about: the first on this account
+ * whose approved biodata lacks the full address, or null. An account with
+ * nothing approved yet is not asked, and skips the round trip.
+ */
+export async function firstAddressGap(context: MyContext): Promise<CandidateSummary | null> {
+  if (!context.candidates.some((candidate) => candidate.identity_status === 'verified')) return null;
+  const gaps = await getAddressGaps();
+  return context.candidates.find((candidate) => gaps.includes(candidate.id)) ?? null;
+}
+
+/** The live biodata families see, or null while it has never been approved. */
+export async function getLiveBiodata(candidateId: string): Promise<BiodataValues | null> {
+  const supabase = await createSupabaseServerClient();
+  const candidate = unwrap(
+    await supabase.from('candidates').select('published_revision_id').eq('id', candidateId).single(),
+  );
+  if (!candidate.published_revision_id) return null;
+  const revision = unwrap(
+    await supabase.from('biodata_revisions').select('data').eq('id', candidate.published_revision_id).single(),
+  );
+  return revision.data as BiodataValues;
+}
+
+/**
+ * Writes the current and native address straight onto the approved biodata,
+ * and onto any change waiting beside it, with no new version and no admin
+ * approval: other families never see the address. Fails with `incomplete:
+ * <keys>` while a required part of the current address is empty.
+ */
+export async function saveLiveAddress(candidateId: string, values: BiodataValues): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  unwrap(await supabase.rpc('save_live_address', { p_candidate_id: candidateId, p_data: values }));
 }
 
 /** Everything the Family screen shows for one candidate. */

@@ -5,6 +5,7 @@ import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
 import type { CandidateSummary, MyContext } from '@/lib/data/session';
 import { SAMAJ } from '@/lib/org';
+import { AddressBanner } from './address-banner';
 import { LangToggle } from './lang-toggle';
 import { SignOutButton } from './sign-out-button';
 import { TabBar } from './tabbar';
@@ -20,6 +21,8 @@ type Props = {
   admin?: boolean;
   /** Off on the support screen itself, where the button would lead nowhere. */
   help?: boolean;
+  /** Off on the address screen itself, which is where the banner leads. */
+  addressBanner?: boolean;
   children: React.ReactNode;
 };
 
@@ -28,7 +31,9 @@ type Props = {
  * bar. Same markup and the same classes as the prototype, so `app/globals.css`
  * needed no changes — only where the data comes from has changed.
  */
-export function AppShell({ lang, context, acting, member = false, admin = false, help = true, children }: Props) {
+export function AppShell({
+  lang, context, acting, member = false, admin = false, help = true, addressBanner = true, children,
+}: Props) {
   const t = translator(lang);
 
   // Spec §2 keeps admin a separate role, so staff may hold no candidate at all
@@ -102,6 +107,8 @@ export function AppShell({ lang, context, acting, member = false, admin = false,
             )}
           </div>
         </header>
+
+        {member && addressBanner && <AddressBanner lang={lang} context={context} />}
 
         <div className="screen">
           {children}

@@ -94,6 +94,22 @@ export async function proposeDetailChangesAction(
   });
 }
 
+/**
+ * The full address, added to an approved biodata without a new version or an
+ * admin's approval. Fails with `incomplete: <field keys>` like a send does.
+ */
+export async function saveLiveAddressAction(
+  candidateId: string,
+  values: biodata.BiodataValues,
+): Promise<ActionResult> {
+  return actionResult(async () => {
+    await biodata.saveLiveAddress(candidateId, values);
+    track('biodata.address_updated', { candidateId });
+    revalidatePath('/', 'layout');
+    return null;
+  });
+}
+
 export async function discardBiodataChangesAction(candidateId: string): Promise<ActionResult> {
   return actionResult(async () => {
     await biodata.discardBiodataChanges(candidateId);

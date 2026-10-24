@@ -94,6 +94,7 @@ const biodataFor = (gender, mosal, extra = {}) => ({
   community: 'surti', sect: 'bhagat', surname: 'Testsurname', mosal,
   education: 'master', work: 'employed', role: 'Engineer',
   contactKind: 'self', phone: '9812345678', address: '1, Khatri Mohalla, Surat',
+  addressArea: 'Gopipura', addressCity: 'Surat', addressDistrict: 'Surat', addressState: 'Gujarat', addressPin: '395001',
   ...extra,
 });
 

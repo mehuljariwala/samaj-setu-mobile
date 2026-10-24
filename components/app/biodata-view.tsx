@@ -1,4 +1,4 @@
-import { Clock3, GraduationCap, Heart, Phone, ShieldCheck, TriangleAlert, UserRound, Users } from 'lucide-react';
+import { Clock3, GraduationCap, Heart, House, MapPin, Phone, ShieldCheck, TriangleAlert, UserRound, Users } from 'lucide-react';
 
 import { displayValue, fieldByKey, isAsked } from '@/components/biodata/model';
 import type { Lang } from '@/lib/i18n';
@@ -6,17 +6,28 @@ import { translator } from '@/lib/i18n';
 import { formatPhone } from '@/lib/org';
 
 /**
- * The same six topics the family fills in (components/biodata/guided-form.tsx),
+ * The same topics the family fills in (components/biodata/guided-form.tsx),
  * so the admin reads the biodata in the order it was written.
  */
 const SECTIONS = [
-  { id: 'about', gu: 'વ્યક્તિગત', en: 'About', Icon: UserRound, keys: ['gender', 'height', 'marital', 'divorceDate', 'divorceDetails', 'widowedDate', 'diet'] },
+  { id: 'about', gu: 'વ્યક્તિગત', en: 'About', Icon: UserRound, keys: ['gender', 'height', 'marital', 'divorceDate', 'divorceDetails', 'widowedDate', 'children', 'diet'] },
   { id: 'community', gu: 'સમાજ અને મોસાળ', en: 'Community and mosal', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'shakh', 'mosal'] },
   { id: 'work', gu: 'અભ્યાસ અને કામ', en: 'Studies and work', Icon: GraduationCap, keys: ['education', 'degree', 'work', 'role', 'employer'] },
   { id: 'family', gu: 'પરિવાર', en: 'Family', Icon: Heart, keys: ['mother', 'fatherWork', 'native', 'hometown', 'state', 'brothers', 'sisters'] },
   { id: 'birth', gu: 'જન્મ અને જ્યોતિષ', en: 'Birth and horoscope', Icon: Clock3, keys: ['birthplace', 'birthtime', 'rashi', 'gan', 'mangal'] },
-  { id: 'contact', gu: 'સંપર્ક', en: 'Contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address', 'nativeAddress'] },
+  { id: 'contact', gu: 'સંપર્ક', en: 'Contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone'] },
+  {
+    id: 'address', gu: 'હાલનું સરનામું', en: 'Current address', Icon: MapPin,
+    keys: ['address', 'addressArea', 'addressLandmark', 'addressCity', 'addressTaluka', 'addressDistrict', 'addressState', 'addressPin'],
+  },
+  {
+    id: 'native', gu: 'મૂળ વતનનું સરનામું', en: 'Native address', Icon: House,
+    keys: ['nativeAddress', 'nativeVillage', 'nativeTaluka', 'nativeDistrict', 'nativeState', 'nativePin'],
+  },
 ] as const;
+
+/** Cards only an admin reads: the directory copy strips these fields. */
+const PRIVATE: string[] = ['contact', 'address', 'native'];
 
 /**
  * A biodata as the admin reads it: one short card per topic, two facts to a
@@ -24,9 +35,9 @@ const SECTIONS = [
  * fields are included because a reviewer checks them; members only ever see
  * the directory copy, which strips them.
  *
- * `member` is that directory copy on another family's screen: the contact
- * card, which would only say "not filled in", and the gender, which the
- * profile already shows, are left out.
+ * `member` is that directory copy on another family's screen: the contact and
+ * address cards, which would only say "not filled in", and the gender, which
+ * the profile already shows, are left out.
  *
  * `flagged` marks the fields an admin has asked to be fixed. `communityConfirmed`
  * says whether the family confirmed the four community details that matching
@@ -64,7 +75,7 @@ export function BiodataView({
 
   return (
     <div className="bio-cards">
-      {SECTIONS.filter((section) => !(member && section.id === 'contact')).map((section) => {
+      {SECTIONS.filter((section) => !(member && PRIVATE.includes(section.id))).map((section) => {
         // A divorce date left over from before the answer changed is not shown.
         const filled = section.keys.filter((key) => {
           const field = fieldByKey.get(key);

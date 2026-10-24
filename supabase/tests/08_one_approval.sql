@@ -64,7 +64,8 @@ create or replace function pg_temp.full_bio() returns jsonb language sql as $$
   select jsonb_build_object(
     'gender', 'male', 'height', '172', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', 'Testwala', 'mosal', 'Mosalwala',
-    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876501234', 'address', '1, Khatri Mohalla, Surat')
+    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876501234', 'address', '1, Khatri Mohalla, Surat',
+    'addressArea', 'Gopipura', 'addressCity', 'Surat', 'addressDistrict', 'Surat', 'addressState', 'Gujarat', 'addressPin', '395001')
 $$;
 
 do $$

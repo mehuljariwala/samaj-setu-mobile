@@ -4,7 +4,9 @@ import {
   ShieldCheck, Sparkles, UserPlus, Users,
 } from 'lucide-react';
 
+import { AddressPopup } from '@/components/app/address-popup';
 import { AppShell } from '@/components/app/shell';
+import { firstAddressGap } from '@/lib/data/biodata';
 import { loadMemberPage } from '@/lib/data/guards';
 import { translator } from '@/lib/i18n';
 import type { CandidateSummary } from '@/lib/data/session';
@@ -24,6 +26,8 @@ type Tone = 'rose' | 'gold' | 'green' | 'warn';
 export default async function HomePage() {
   const { context, lang, acting } = await loadMemberPage();
   const t = translator(lang);
+  // The same child the banner names; the two share one check per request.
+  const noAddress = await firstAddressGap(context);
 
   const name = (context.account?.display_name?.trim() || acting?.full_name || '').split(' ')[0];
   const step = acting ? nextStep(acting, t) : null;
@@ -43,6 +47,9 @@ export default async function HomePage() {
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member>
+      {noAddress && (
+        <AddressPopup lang={lang} candidateId={noAddress.id} name={noAddress.full_name} self={noAddress.is_self} />
+      )}
       <section className={`member-screen tone-${step?.tone ?? 'rose'}`}>
         <div className="member-hero">
           <div className="admin-hero-copy">

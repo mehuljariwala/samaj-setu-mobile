@@ -85,7 +85,8 @@ begin
   -- The samaj biodata alone is not enough for her, and Khatri fields are not asked.
   perform public.save_biodata_draft(v_girl, jsonb_build_object(
     'gender', 'female', 'height', '160', 'marital', 'never', 'sect', 'bhagat',
-    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876502222', 'address', '1, Khatri Mohalla, Surat'));
+    'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876502222', 'address', '1, Khatri Mohalla, Surat',
+    'addressArea', 'Gopipura', 'addressCity', 'Surat', 'addressDistrict', 'Surat', 'addressState', 'Gujarat', 'addressPin', '395001'));
   perform pg_temp.ok(
     (select data ->> 'origin' from public.biodata_revisions where candidate_id = v_girl) = 'sanatan',
     'her biodata is stamped as a Sanatan biodata');
@@ -99,7 +100,8 @@ begin
   perform pg_temp.as_user(v_meena);
   perform public.save_biodata_draft(v_girl, jsonb_build_object(
     'caste', 'Brahmin', 'hometown', 'Sihor', 'state', 'Gujarat', 'mother', 'Asha Joshi',
-    'fatherWork', 'Teacher', 'fatherPhone', '9876503333', 'address', '12, Station Road, Sihor'));
+    'fatherWork', 'Teacher', 'fatherPhone', '9876503333', 'address', '12, Station Road', 'addressArea', 'Station Area',
+    'addressCity', 'Sihor', 'addressDistrict', 'Bhavnagar', 'addressState', 'Gujarat', 'addressPin', '364240'));
   perform pg_temp.ok(
     (select completion from public.biodata_revisions where candidate_id = v_girl) = 100,
     'her completion counts her own required fields');

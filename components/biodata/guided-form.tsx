@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRight, Camera, Check, CircleAlert, CircleHelp, Clock3, GraduationCap, Heart,
-  Info, LockKeyhole, MessageSquareText, Minus, Pencil, Phone, Plus, Send, ShieldCheck, Sparkles,
+  ArrowLeft, ArrowRight, Camera, Check, CircleAlert, CircleHelp, Clock3, GraduationCap, Heart, House,
+  Info, LockKeyhole, MapPin, MessageSquareText, Minus, Pencil, Phone, Plus, Send, ShieldCheck, Sparkles,
   UserRound, Users,
 } from 'lucide-react';
 import { MediaUploader, type UploadedMedia } from '@/components/app/media-uploader';
@@ -62,12 +62,23 @@ type Props = {
  * dropdowns. Steps are a layout over model.ts, which still owns validation.
  */
 const STEPS = [
-  { id: 'about', Icon: UserRound, keys: ['gender', 'height', 'marital', 'divorceDate', 'divorceDetails', 'widowedDate', 'diet'] },
+  { id: 'about', Icon: UserRound, keys: ['gender', 'height', 'marital', 'divorceDate', 'divorceDetails', 'widowedDate', 'children', 'diet'] },
   { id: 'community', Icon: Users, keys: ['community', 'caste', 'sect', 'surname', 'shakh', 'mosal'] },
   { id: 'work', Icon: GraduationCap, keys: ['education', 'degree', 'work', 'role', 'employer'] },
   { id: 'family', Icon: Heart, keys: ['mother', 'fatherWork', 'native', 'hometown', 'state', 'brothers', 'sisters'] },
   { id: 'birth', Icon: Clock3, keys: ['birthplace', 'birthtime', 'rashi', 'gan', 'mangal'], optional: true },
-  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone', 'address', 'nativeAddress'] },
+  { id: 'contact', Icon: Phone, keys: ['contactKind', 'phone', 'extraPhone', 'fatherPhone'] },
+  {
+    id: 'address',
+    Icon: MapPin,
+    keys: ['address', 'addressArea', 'addressLandmark', 'addressCity', 'addressTaluka', 'addressDistrict', 'addressState', 'addressPin'],
+  },
+  {
+    id: 'native',
+    Icon: House,
+    keys: ['nativeAddress', 'nativeVillage', 'nativeTaluka', 'nativeDistrict', 'nativeState', 'nativePin'],
+    optional: true,
+  },
   { id: 'photos', Icon: Camera, keys: [] as string[], optional: true },
 ] as const;
 type Step = (typeof STEPS)[number];
@@ -434,6 +445,16 @@ export function GuidedBiodata({
       title: t('કોનો સંપર્ક કરવો?', 'Who should families call?'),
       lead: t('નંબર ફક્ત બંને પરિવાર હા કહે પછી જ દેખાય છે.', 'The number is shown only after both families say yes.'),
     },
+    address: {
+      name: t('સરનામું', 'Address'),
+      title: t('હાલનું સરનામું', 'Current address'),
+      lead: t('જ્યાં હાલ રહો છો તે પૂરું સરનામું. ફક્ત એડમિન જુએ છે, બીજા પરિવારો નહીં.', 'The full address where you live now. Only an admin sees it, not other families.'),
+    },
+    native: {
+      name: t('વતન', 'Native'),
+      title: t('મૂળ વતનનું સરનામું', 'Native address'),
+      lead: t('હાલના સરનામા જેવું જ હોય તો છોડી દો. આ પણ ફક્ત એડમિન જુએ છે.', 'Skip it if it is the same as the current address. Only an admin sees this too.'),
+    },
     photos: {
       name: t('ફોટો', 'Photos'),
       title: t('ફોટો અને જન્માક્ષર', 'Photos and janmakshar'),
@@ -469,6 +490,7 @@ export function GuidedBiodata({
               : f.options ? t('એક પસંદ કરો.', 'Choose one.')
                 : f.type === 'date' ? t('તારીખ પસંદ કરો.', 'Choose a date.')
                 : f.key === 'phone' || f.key === 'extraPhone' || f.key === 'fatherPhone' ? t('10 અંકનો મોબાઇલ નંબર લખો.', 'Enter a 10-digit mobile number.')
+                : f.type === 'pin' ? t('6 અંકનો પિન કોડ લખો.', 'Enter the 6-digit PIN code.')
                   : t('સાચી વિગત લખો.', 'Enter a valid value.')}
           </span>
         </p>
@@ -632,11 +654,13 @@ export function GuidedBiodata({
         <div className={`auth-input${bad}`}>
           <input
             id={id}
-            maxLength={150}
+            maxLength={f.type === 'pin' ? 6 : 150}
+            inputMode={f.type === 'pin' ? 'numeric' : undefined}
+            autoComplete={f.autoComplete}
             enterKeyHint="next"
             placeholder={f.hint ? (en ? f.hint[1] : f.hint[0]) : undefined}
             value={value}
-            onChange={(e) => update(key, e.target.value)}
+            onChange={(e) => update(key, f.type === 'pin' ? e.target.value.replace(/\D/g, '') : e.target.value)}
             aria-invalid={Boolean(bad)}
           />
         </div>

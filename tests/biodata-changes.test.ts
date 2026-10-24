@@ -23,7 +23,7 @@ describe('whatChanged', () => {
     expect(rows).toEqual([
       { label: 'Gender', before: 'Female', after: 'Male' },
       { label: 'City', before: 'Surat', after: 'Ahmedabad' },
-      { label: 'Sub-community', before: 'Surti', after: 'Khambhati' },
+      { label: 'Caste - Sub-community', before: 'Surti', after: 'Khambhati' },
     ]);
   });
 

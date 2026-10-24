@@ -1788,6 +1788,10 @@ export type Database = {
         };
         Returns: { id: string | null; bucket_id: string | null; storage_path: string | null; is_primary: boolean | null; sort_order: number | null }[];
       };
+      my_address_gaps: {
+        Args: Record<PropertyKey, never>;
+        Returns: { candidate_id: string | null }[];
+      };
       my_application_documents: {
         Args: {
           p_application_id?: string;
@@ -1916,6 +1920,13 @@ export type Database = {
           p_source?: string;
         };
         Returns: Json;
+      };
+      save_live_address: {
+        Args: {
+          p_candidate_id?: string;
+          p_data?: Json;
+        };
+        Returns: undefined;
       };
       send_interest: {
         Args: {

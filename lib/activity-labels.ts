@@ -93,6 +93,7 @@ const ACTIONS: Record<string, [gu: string, en: string]> = {
   'biodata.edit_started': ['મંજૂર બાયોડેટા બદલવાનું શરૂ કર્યું', 'Started changing the approved biodata'],
   'biodata.details_changed': ['નોંધણીની વિગત બદલી', 'Changed registration details'],
   'biodata.changes_discarded': ['બાયોડેટાના ફેરફાર રદ કર્યા', 'Discarded biodata changes'],
+  'biodata.address_updated': ['બાયોડેટામાં સરનામું ઉમેર્યું (મંજૂરી વગર)', 'Added the address to the biodata (no approval needed)'],
   'consent.granted': ['પ્રોફાઇલ બતાવવા સંમતિ આપી', 'Gave consent to publish'],
   'consent.withdrawn': ['સંમતિ પાછી ખેંચી', 'Withdrew consent to publish'],
   'privacy.changed': ['ગોપનીયતા સેટિંગ બદલ્યું', 'Changed privacy settings'],

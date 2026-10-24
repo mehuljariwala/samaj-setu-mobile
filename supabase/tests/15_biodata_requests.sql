@@ -31,7 +31,8 @@ declare
     'origin', 'samaj', 'gender', 'male', 'height', '170', 'marital', 'never',
     'community', 'surti', 'sect', 'bhagat', 'surname', 'Testwala', 'mosal', 'Mosalwala',
     'education', 'bachelor', 'work', 'employed', 'contactKind', 'father', 'phone', '9876501234',
-    'address', '1, Khatri Mohalla, Surat');
+    'address', '1, Khatri Mohalla, Surat',
+    'addressArea', 'Gopipura', 'addressCity', 'Surat', 'addressDistrict', 'Surat', 'addressState', 'Gujarat', 'addressPin', '395001');
   v_rev  public.biodata_revisions;
   v_dir  jsonb;
 begin
@@ -59,8 +60,8 @@ begin
     'a widowed biodata needs the date of the spouse''s death');
   perform pg_temp.ok(
     not exists (select 1 from app.validate_biodata(
-      v_base || '{"marital":"divorced","divorceDate":"2022-03-14","divorceDetails":"Final decree, Surat family court"}', true)),
-    'a divorced biodata with both answers is complete');
+      v_base || '{"marital":"divorced","divorceDate":"2022-03-14","divorceDetails":"Final decree, Surat family court","children":"0"}', true)),
+    'a divorced biodata with both answers (and, since 2026-10-24, the number of children) is complete');
   perform pg_temp.ok(pg_temp.problem(v_base || '{"marital":"divorced"}', 'divorceDate', false) is null,
     'a draft may leave the divorce date for later');
 

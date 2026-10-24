@@ -48,7 +48,7 @@ export function ProfileSelects({
     <div className="profile-selects">
       {/* Unset, each reads as its own name, which a narrow select can show whole. */}
       {select('city', t('શહેર', 'City'), t('શહેર', 'City'), cities)}
-      {select('community', t('પેટા સમાજ', 'Sub-community'), t('સમાજ', 'Community'), communities)}
+      {select('community', t('જ્ઞાતિ - પેટા સમાજ', 'Caste - Sub-community'), t('સમાજ', 'Community'), communities)}
       {select('age', t('ઉંમર', 'Age'), t('ઉંમર', 'Age'), ages)}
     </div>
   );
