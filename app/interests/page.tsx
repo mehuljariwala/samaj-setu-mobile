@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, ChevronRight, Eye, HeartHandshake, Phone } from 'lucide-react';
 
 import { AppShell } from '@/components/app/shell';
-import { InterestReply, PhotoRequestReply } from '@/components/app/interest-actions';
+import { InterestReply, OtherInbox, PhotoRequestReply } from '@/components/app/interest-actions';
 import { InterestsEmptyArt } from '@/components/onboarding/art';
 import { interestStatusLabel } from '@/lib/admin-labels';
 import { loadActingPage } from '@/lib/data/guards';
@@ -44,6 +44,13 @@ export default async function InterestsPage({
     accepted: t('સ્વીકાર્યા', 'Accepted'),
   };
   const waiting = acting.pending_interests + acting.pending_photo_requests;
+  const othersWaiting = context.candidates
+    .filter((candidate) => candidate.id !== acting.id)
+    .map((candidate) => ({
+      candidate,
+      waiting: candidate.pending_interests + candidate.pending_photo_requests,
+    }))
+    .filter((other) => other.waiting > 0);
 
   return (
     <AppShell lang={lang} context={context} acting={acting} member>
@@ -83,6 +90,16 @@ export default async function InterestsPage({
             </Link>
           ))}
         </nav>
+
+        {othersWaiting.map(({ candidate, waiting: count }) => (
+          <OtherInbox
+            key={candidate.id}
+            lang={lang}
+            candidateId={candidate.id}
+            name={candidate.full_name}
+            waiting={count}
+          />
+        ))}
 
         {/* Photo requests are a separate permission from contact consent, so
             they get their own section rather than looking like introductions. */}

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Check, CircleHelp, X } from 'lucide-react';
+import { ArrowRight, Check, CircleHelp, Users, X } from 'lucide-react';
 
 import { decideMediaAccessAction, respondToInterestAction } from '@/app/actions/matching';
+import { setActingCandidateAction } from '@/app/actions/prefs';
 import type { ActionResult } from '@/lib/data/errors';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
@@ -56,6 +57,53 @@ export function InterestReply({ lang, interestId }: { lang: Lang; interestId: st
           {t('નમ્રતાથી ના પાડો', 'Politely decline')}
         </button>
       </div>
+      {error && (
+        <p role="alert" className="error">
+          <CircleHelp size={17} />
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+/**
+ * The tab badge counts every candidate on the account, but this inbox is the
+ * acting candidate's alone (spec §6). Without this, a family managing two
+ * candidates sees a badge and an empty inbox, with nothing saying whose
+ * introductions are waiting.
+ */
+export function OtherInbox({
+  lang,
+  candidateId,
+  name,
+  waiting,
+}: {
+  lang: Lang;
+  candidateId: string;
+  name: string;
+  waiting: number;
+}) {
+  const t = translator(lang);
+  const { pending, error, run } = useAction();
+
+  return (
+    <>
+      <button
+        className="member-alert"
+        disabled={pending}
+        onClick={() => run(async () => setActingCandidateAction(candidateId))}
+      >
+        <Users size={18} />
+        <span>
+          {waiting === 1
+            ? t(`${name} માટે 1 પરિવાર જવાબની રાહ જુએ છે.`, `1 family is waiting to hear back from ${name}.`)
+            : t(`${name} માટે ${waiting} પરિવાર જવાબની રાહ જુએ છે.`, `${waiting} families are waiting to hear back from ${name}.`)}
+          {' '}
+          {t('જવાબ આપવા અહીં દબાવો.', `Tap to switch to ${name} and reply.`)}
+        </span>
+        <ArrowRight size={17} />
+      </button>
       {error && (
         <p role="alert" className="error">
           <CircleHelp size={17} />

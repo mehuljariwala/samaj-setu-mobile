@@ -2173,6 +2173,8 @@ body:has(.rules-sheet[open]) { overflow: hidden; }
 }
 .member-alert > span { flex: 1; min-width: 0; color: var(--ink); font-weight: 600; }
 .member-alert > svg { flex-shrink: 0; }
+button.member-alert { width: 100%; text-align: start; }
+button.member-alert:disabled { opacity: 0.6; }
 
 /* An approved biodata without the full address: under the top bar of every
    member screen until it is added (components/app/address-banner.tsx). */
