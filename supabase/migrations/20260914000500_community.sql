@@ -92,8 +92,8 @@ values
    now()),
 
   ('same_sect', 'family_preference',
-   'સમાન ભક્ત / જગત', 'Same sect',
-   'આ પરિવારે સમાન ભક્ત / જગતની શરત રાખી છે.',
+   'સમાન ભગત / જગત', 'Same sect',
+   'આ પરિવારે સમાન ભગત / જગતની શરત રાખી છે.',
    'This family requires a match from the same sect.',
    true,
    '{"compare": "exact", "field": "sect"}'::jsonb,

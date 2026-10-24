@@ -46,8 +46,8 @@ values
 
   ('community',   'community', 1, 'પેટા સમાજ', 'Sub-community', true, 'enum', null, null,
    '[{"value":"surti","gu":"સુરતી","en":"Surti"},{"value":"khambhati","gu":"ખંભાતી","en":"Khambhati"},{"value":"ahmedabadi","gu":"અમદાવાદી","en":"Ahmedabadi"},{"value":"indori","gu":"ઇન્દોરી","en":"Indori"}]', true),
-  ('sect',        'community', 2, 'ભક્ત / જગત', 'Sect', true, 'enum', null, null,
-   '[{"value":"bhagat","gu":"ભક્ત","en":"Bhagat"},{"value":"jagat","gu":"જગત","en":"Jagat"}]', true),
+  ('sect',        'community', 2, 'ભગત / જગત', 'Sect', true, 'enum', null, null,
+   '[{"value":"bhagat","gu":"ભગત","en":"Bhagat"},{"value":"jagat","gu":"જગત","en":"Jagat"}]', true),
   ('surname',     'community', 3, 'પિતૃપક્ષની અટક', 'Paternal surname', true, 'text', null, null, '[]', true),
   ('mosal',       'community', 4, 'મોસાળનું કુટુંબ / અટક', 'Maternal grandfather''s family / surname', true, 'text', null, null, '[]', true),
 

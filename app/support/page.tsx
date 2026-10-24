@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowLeft, BadgeIndianRupee, Camera, ChevronDown, ChevronRight, FileLock2, Hash, KeyRound, Landmark, LockKeyhole, Mail,
+  ArrowLeft, BadgeIndianRupee, Camera, ChevronDown, ChevronRight, FileLock2, Hash, HeartHandshake, KeyRound, Landmark, LockKeyhole, Mail,
   MapPin, MessageCircle, Phone, PhoneCall, ShieldCheck,
 } from 'lucide-react';
 
@@ -218,6 +218,11 @@ export default async function SupportPage() {
             </div>
           )}
         </dl>
+        <Link className="member-alert" href="/donate">
+          <HeartHandshake size={19} />
+          <span>{t('ટ્રસ્ટને દાન આપો — UPI કે બેંક ટ્રાન્સફરથી', 'Donate to the trust, by UPI or bank transfer')}</span>
+          <ChevronRight size={18} />
+        </Link>
       </section>
     </AppShell>
   );

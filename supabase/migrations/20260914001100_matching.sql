@@ -208,7 +208,7 @@ as $$
     ('excluded_gender', 'આ ડિરેક્ટરી વિરુદ્ધ લિંગના ઉમેદવારો બતાવે છે.', 'The directory introduces candidates of the opposite gender.'),
     ('excluded_shared_mosal', 'બંને પરિવારોનું મોસાળ એક જ છે.', 'Both families share the same mosal.'),
     ('excluded_sub_community', 'આ પરિવારે સમાન પેટા સમાજની શરત રાખી છે.', 'This family requires the same sub-community.'),
-    ('excluded_sect', 'આ પરિવારે સમાન ભક્ત / જગતની શરત રાખી છે.', 'This family requires the same sect.'),
+    ('excluded_sect', 'આ પરિવારે સમાન ભગત / જગતની શરત રાખી છે.', 'This family requires the same sect.'),
     ('excluded_blocked', 'આ પ્રોફાઇલ ઉપલબ્ધ નથી.', 'This profile is not available.'),
     ('not_discoverable', 'આ પ્રોફાઇલ હાલ પ્રકાશિત નથી.', 'This profile is not published at the moment.')
   ) as t(verdict, gu, en)

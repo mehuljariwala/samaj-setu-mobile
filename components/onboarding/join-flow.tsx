@@ -24,6 +24,7 @@ import {
 import type { AttachedDocuments, IdentityType } from '@/lib/data/registration';
 import type { Lang } from '@/lib/i18n';
 import { translator } from '@/lib/i18n';
+import { formatPhone } from '@/lib/org';
 import { isValidLocalPhone } from '@/lib/phone';
 import { RULES_VERSION } from '@/lib/rules';
 import { CITIES, LATEST_BIRTH_DATE } from '@/lib/candidate-details';
@@ -106,23 +107,44 @@ function pick(file: File | null | undefined, previous: Picked | null): Picked | 
  * approval. An interruption partway leaves a draft, which is exactly what the
  * member returns to, with whatever already went up marked as attached.
  */
+/**
+ * Each screen's name in the address (`/register?step=documents`), so the
+ * phone's own back and forward buttons move between the three screens instead
+ * of leaving the page, and the biodata's Back can open the documents again.
+ */
+export const JOIN_STEPS = ['account', 'candidate', 'documents'] as const;
+
 export function JoinFlow({
   lang,
   signedIn,
   existing,
+  initialStep,
+  accountPhone = null,
+  member = false,
 }: {
   lang: Lang;
   signedIn: boolean;
   /** The open draft or correction, if the account already has one. */
   existing: ExistingApplication | null;
+  /** The screen the address asked for; the first one that applies otherwise. */
+  initialStep?: number;
+  /** The signed-in account's number, shown on the first screen once it exists. */
+  accountPhone?: string | null;
+  /** An approved family adding another child: Back on the first screen goes to Family. */
+  member?: boolean;
 }) {
   const t = translator(lang);
   const router = useRouter();
 
-  // Once the account exists there is no going back to screen 1.
+  // Once the account exists, screen 1 only says so; it is not made again.
   const [hasAccount, setHasAccount] = useState(signedIn);
-  const [step, setStep] = useState(signedIn ? 1 : 0);
+  /** Where a visit opens when the address names no screen. */
+  const defaultStep = hasAccount ? 1 : 0;
+  // Nothing past screen 1 can be saved without an account.
+  const [step, setStep] = useState(() => (signedIn ? initialStep ?? 1 : 0));
   const [direction, setDirection] = useState<'next' | 'back'>('next');
+  /** Screens this page has put on the browser's history, so Back can take them off again. */
+  const pushed = useRef(0);
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -156,8 +178,22 @@ export function JoinFlow({
 
   // The account screen opens with the keyboard already up for the number.
   useEffect(() => {
-    if (step === 0) phoneRef.current?.focus({ preventScroll: true });
-  }, [step]);
+    if (step === 0 && !hasAccount) phoneRef.current?.focus({ preventScroll: true });
+  }, [step, hasAccount]);
+
+  // The phone's back and forward buttons: the address changed, so follow it.
+  useEffect(() => {
+    const onPop = () => {
+      const named = JOIN_STEPS.indexOf(new URLSearchParams(window.location.search).get('step') as never);
+      const to = hasAccount ? (named === -1 ? defaultStep : named) : 0;
+      pushed.current = Math.max(0, pushed.current + (to < step ? -1 : 1));
+      setError(null);
+      setDirection(to < step ? 'back' : 'next');
+      setStep(to);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [step, hasAccount, defaultStep]);
 
   const phoneOk = isValidLocalPhone(phone);
   const passwordOk = password.length >= MIN_PASSWORD;
@@ -207,11 +243,16 @@ export function JoinFlow({
     phone: phoneRef, password: passwordRef, fullName: nameRef, dateOfBirth: birthRef, fatherName: fatherRef,
   };
 
+  /** Opens another screen as a new entry in the browser's history. */
+  const go = (to: number) => {
+    setDirection(to < step ? 'back' : 'next');
+    setStep(to);
+    pushed.current += 1;
+    window.history.pushState(null, '', `?step=${JOIN_STEPS[to]}`);
+  };
+
   const fail = (field: Field | undefined, message: string, conflict = false) => {
-    if (field && STEP_OF[field] !== step && STEP_OF[field] >= firstStep) {
-      setDirection(STEP_OF[field] < step ? 'back' : 'next');
-      setStep(STEP_OF[field]);
-    }
+    if (field && STEP_OF[field] !== step && STEP_OF[field] >= firstStep) go(STEP_OF[field]);
     setError({ field, message, conflict });
     setShake((n) => n + 1);
     if (field) requestAnimationFrame(() => refs[field]?.current?.focus());
@@ -261,10 +302,20 @@ export function JoinFlow({
     return null;
   };
 
+  /**
+   * The screen before. When this page put it on the history, step back
+   * through the history, so the phone's forward button can return; when the
+   * visit opened partway (from the biodata, say), replace the address instead.
+   */
   const back = () => {
     setError(null);
+    if (pushed.current > 0) {
+      window.history.back();
+      return;
+    }
     setDirection('back');
-    setStep((s) => s - 1);
+    setStep(step - 1);
+    window.history.replaceState(null, '', `?step=${JOIN_STEPS[step - 1]}`);
   };
 
   async function createAccount() {
@@ -293,8 +344,7 @@ export function JoinFlow({
     // component and what has been typed are kept.
     setBusy('');
     setHasAccount(true);
-    setDirection('next');
-    setStep(1);
+    go(1);
     router.refresh();
   }
 
@@ -398,6 +448,8 @@ export function JoinFlow({
   const onSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
+    // The account already exists: its screen only says so.
+    if (step === 0 && hasAccount) return go(1);
     const found = problem(step);
     if (found) return fail(...found);
     setError(null);
@@ -407,11 +459,7 @@ export function JoinFlow({
       rulesRef.current?.focus();
       return;
     }
-    if (step === 1) {
-      setDirection('next');
-      setStep(2);
-      return;
-    }
+    if (step === 1) return go(2);
     // Screen 3 also re-checks screen 2, in case a correction emptied a field.
     const earlier = problem(1);
     if (earlier) return fail(...earlier);
@@ -419,7 +467,7 @@ export function JoinFlow({
   };
 
   const ctaLabel = step === 0
-    ? t('ખાતું બનાવો', 'Create account')
+    ? hasAccount ? t('આગળ', 'Continue') : t('ખાતું બનાવો', 'Create account')
     : step === 1
       ? t('આગળ', 'Continue')
       : t('આગળ: બાયોડેટા', 'Next: biodata');
@@ -428,16 +476,17 @@ export function JoinFlow({
     <>
       <form className="auth" noValidate onSubmit={onSubmit}>
         <div className="auth-top">
-          {step > firstStep ? (
+          {step > 0 ? (
             <button type="button" className="round-button" aria-label={t('પાછળ', 'Back')} onClick={back}>
               <ArrowLeft size={20} />
             </button>
-          ) : !hasAccount ? (
-            <Link className="round-button" href="/" aria-label={t('પાછળ', 'Back')}>
+          ) : !hasAccount || member ? (
+            // A visitor came from the welcome screen; a member adding a child, from Family.
+            <Link className="round-button" href={member ? '/family' : '/'} aria-label={t('પાછળ', 'Back')}>
               <ArrowLeft size={20} />
             </Link>
           ) : (
-            // The account already exists, so there is nothing to go back to.
+            // The account is the first thing there is, so there is nothing before it.
             <span className="round-button done" aria-hidden="true"><Check size={20} strokeWidth={2.6} /></span>
           )}
           <div className="auth-progress">
@@ -452,8 +501,12 @@ export function JoinFlow({
 
         <div key={step} className={`auth-step from-${direction}`}>
           <span className="auth-badge"><screen.Icon size={26} /></span>
-          <h1>{screen.title}</h1>
-          <p className="auth-lead">{screen.lead}</p>
+          <h1>{step === 0 && hasAccount ? t('તમારું ખાતું તૈયાર છે', 'Your account is ready') : screen.title}</h1>
+          <p className="auth-lead">
+            {step === 0 && hasAccount
+              ? t('આ નંબર અને પાસવર્ડથી તમે લૉગ ઇન કરો છો.', 'You log in with this number and password.')
+              : screen.lead}
+          </p>
         </div>
 
         {/* What the admin asked for, above the fields they flagged. */}
@@ -465,7 +518,18 @@ export function JoinFlow({
         )}
 
         <div className={`auth-fields${shake ? ` shake${shake % 2 ? '' : ' again'}` : ''}`}>
-          {step === 0 && (
+          {step === 0 && hasAccount && (
+            <div key="account-ready" className="bio-identity">
+              <span className="bio-identity-icon"><ShieldCheck size={20} /></span>
+              <div>
+                <small>{t('ખાતું બની ગયું છે', 'Account created')}</small>
+                <b>{accountPhone || phone ? formatPhone((accountPhone || phone).replace(/^\+?91(?=\d{10}$)/, '')) : t('તમારો નંબર', 'Your number')}</b>
+                <span>{t('હવે ઉમેદવારની વિગતો અને દસ્તાવેજ.', 'Next, the candidate’s details and documents.')}</span>
+              </div>
+            </div>
+          )}
+
+          {step === 0 && !hasAccount && (
             <div key="account" className="auth-field">
               <label className="auth-label" htmlFor="phone">{t('મોબાઇલ નંબર', 'Mobile number')}</label>
               <div className={`auth-phone${invalid('phone')}${phoneOk ? ' valid' : ''}`}>
@@ -769,7 +833,7 @@ export function JoinFlow({
         </div>
 
         <div className="auth-actions">
-          {step === 0 && (
+          {step === 0 && !hasAccount && (
             <p className="auth-note">
               <ShieldCheck size={16} />
               {t(
@@ -787,7 +851,7 @@ export function JoinFlow({
             )}
           </button>
 
-          {step === 0 && (
+          {step === 0 && !hasAccount && (
             <p className="auth-switch">
               {t('પહેલેથી ખાતું છે?', 'Already have an account?')}{' '}
               <Link href="/sign-in">{t('લૉગ ઇન કરો', 'Log in')}</Link>

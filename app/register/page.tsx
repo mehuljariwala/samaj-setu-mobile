@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app/shell';
-import { JoinFlow } from '@/components/onboarding/join-flow';
+import { JOIN_STEPS, JoinFlow } from '@/components/onboarding/join-flow';
 import { homeFor, loadPublicPage } from '@/lib/data/guards';
 import { getAttachedDocuments, getOpenApplication } from '@/lib/data/registration';
 
@@ -14,9 +14,18 @@ import { getAttachedDocuments, getOpenApplication } from '@/lib/data/registratio
  * asked for (they start at step 2). Also to an approved member, which is how a
  * parent adds another child — the Family screen's "Add" leads here. Anything
  * else lands on the screen its state owns.
+ *
+ * `?step=account|candidate|documents` names the screen, so the phone's back
+ * and forward buttons move between them, and the biodata's Back reopens the
+ * documents.
  */
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { context, lang } = await loadPublicPage();
+  const named = JOIN_STEPS.indexOf((await searchParams).step as never);
 
   const state = context.access_state;
   const signedIn = state !== 'signed_out';
@@ -37,6 +46,9 @@ export default async function RegisterPage() {
           lang={lang}
           signedIn={signedIn}
           existing={open && documents ? { ...open, documents } : null}
+          initialStep={named === -1 ? undefined : named}
+          accountPhone={context.account?.phone ?? null}
+          member={state === 'approved'}
         />
       </section>
     </AppShell>

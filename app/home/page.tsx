@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Check, ChevronRight, FileText, Heart, Hourglass, LockKeyhole, Pencil, Search,
+  ArrowRight, Check, ChevronRight, FileText, Heart, HeartHandshake, Hourglass, LockKeyhole, Pencil, Search,
   ShieldCheck, Sparkles, UserPlus, Users,
 } from 'lucide-react';
 
@@ -108,6 +108,12 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
+
+        <Link className="member-alert" href="/donate">
+          <HeartHandshake size={19} />
+          <span>{t('સમાજ સેતુ ચલાવતા ટ્રસ્ટને સહયોગ આપો', 'Support the trust that runs Samaj Setu')}</span>
+          <ChevronRight size={18} />
+        </Link>
 
         {context.candidates.length === 0 && (
           <Link className="intro-login" href="/family/link">

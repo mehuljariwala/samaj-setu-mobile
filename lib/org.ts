@@ -22,6 +22,19 @@ type TrustDetails = {
    * notice prints them. Ten digits, no +91 — `formatPhone` adds it.
    */
   helpline: { name: { gu: string; en: string }; phone: string }[];
+  /**
+   * Where a family can give to the trust (/donate), as on the bank's own UPI
+   * card and cheque book. The QR is that card's, cropped, in
+   * public/donate/chandan-trust-upi-qr.png; it reads the same UPI ID.
+   */
+  donation: {
+    upiId: string;
+    accountName: string;
+    bank: { gu: string; en: string };
+    branch: { gu: string; en: string };
+    accountNumber: string;
+    ifsc: string;
+  };
 };
 
 export const TRUST: TrustDetails = {
@@ -39,6 +52,14 @@ export const TRUST: TrustDetails = {
     { name: { gu: 'મેહુલ જરીવાલા', en: 'Mehul Jariwala' }, phone: '8866669302' },
     { name: { gu: 'સંદીપ પંડિત', en: 'Sandeep Pandit' }, phone: '7567703113' },
   ],
+  donation: {
+    upiId: '20261013000210-qrp@cbin',
+    accountName: 'CHANDAN CHARITABLE TRUST',
+    bank: { gu: 'સેન્ટ્રલ બેંક ઑફ ઇન્ડિયા', en: 'Central Bank of India' },
+    branch: { gu: 'રુસ્તમપુરા, સુરત, ગુજરાત 395002', en: 'Rustompura, Surat, Gujarat 395002' },
+    accountNumber: '4149357963',
+    ifsc: 'CBIN0280513',
+  },
 };
 
 /**

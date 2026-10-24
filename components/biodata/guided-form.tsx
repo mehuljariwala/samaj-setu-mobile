@@ -121,6 +121,8 @@ export function GuidedBiodata({
   const applying = applicationId !== null;
   /** Where Back and Finish later go: the registration, or the member home. */
   const home = applying ? '/register' : '/home';
+  /** Back from the first screen: the registration's documents, the screen just before. */
+  const before = applying ? '/register?step=documents' : '/home';
 
   const editable = status === 'draft' || status === 'correction_requested';
   /** Registration details changed with this version, waiting on the same approval. */
@@ -273,7 +275,8 @@ export function GuidedBiodata({
   }
 
   function back() {
-    if (step === 0 || (step === REVIEW && !editable)) return router.push(home);
+    if (step === 0) return router.push(before);
+    if (step === REVIEW && !editable) return router.push(home);
     if (fromReview) { setFromReview(false); return go(REVIEW); }
     go(step - 1);
   }

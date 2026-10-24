@@ -26,6 +26,7 @@ export function screenLabel(t: T, path: string): string {
     case 'biodata': return t('બાયોડેટા', 'Biodata');
     case 'notifications': return t('સૂચનાઓ', 'Notifications');
     case 'support': return t('મદદ', 'Help');
+    case 'donate': return t('દાન', 'Donate');
     case 's': return t('શેર કરેલી પ્રોફાઇલ', 'A shared profile');
     case 'account-off': return t('એકાઉન્ટ બંધ સ્ક્રીન', 'Account switched off screen');
     case 'admin':
